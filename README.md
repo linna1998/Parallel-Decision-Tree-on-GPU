@@ -24,27 +24,25 @@ Function BuildTree(n,A) // n: samples (rows), A: attributes
     end 
 end
 ```
-![Image of Yaktocat](./img/decision-tree.png)
+<!-- ![Image of Yaktocat](./img/decision-tree.png) -->
 
 Decision tree ensemble algorithms are increasingly adopted as a crucial solution to modern machine learning applications such as classification. The major computation cost of the training decision tree ensemble comes from training a single decision tree, and the key challenge of decision tree building process is the high cost in finding the best split for each leaf(`bestAttributeSplitPoint(n ,A) in the algorithm`), which requires scanning through all the training data and all the features in the current sub-tree (O(#features * #data)).[3]
 
-#### Different sequential implementation
+### Different parallel approaches of decision tree
 
-### Different parallel approaches of decision tree?
-
-#### CPU Parallel:
+1. CPU Parallel:
 There are multiple ways to parallel the decision tree building process. More specifically, there are mainly two methods
 
-1. Task Parallel
+- Task Parallel
 Classification decision tree construction algorithms have natural concurrency, as once a node is generated, all of its children in the classification tree can be generated concurrently. But this method suffers from *major load imbalance* issue and *high communication cost*. So we would not use this kind of parallel strategy.[1]
 
-2. Feature Parallel (Vertical Parallel)
+- Feature Parallel (Vertical Parallel)
 When splitting the node, each feature data would be processed independently to find the best split point. Then each process would communicate to get the optimal splitting the data. Afterward, one processor would partition the data based on the splitting point and then broadcast the data to other processors. This result addresses the load balance issue, but suffer from high communication cost when the data set is large. Which means this staregy does not suit for GPU parallelism. [2]
 
-3. Data-Parallel (Horizontal Parallel)
+- Data-Parallel (Horizontal Parallel)
 Data parallel partitions the dataset so that each processor could handle only a portion of the dataset. Each process builds the histogram of all the features and then merge the histogram by communication. So the method reduces communication cost very much and also support streaming data. So this method is suitable for GPU because GPU has limited share memory to use. [2]
 
-#### GPU Parallel:
+2. GPU Parallel:
 Much existing publication focus on building communication-efficient and scalable distributed decision tree, while there is a limited exploration in GPU accelerations. On the one hand, GPU’s strict memory constraint this method does not scale to a large dataset. On the other hand, GPU used SIMD instructions within a warp and thus instruction divergence is a big problem in GPU programming. [3]
 
 ## Challenge
@@ -79,7 +77,7 @@ Much existing publication focus on building communication-efficient and scalable
 4. Improve our GPU parallel version with some new algorithms
 
 ### Hope to achieve:
-1. High scalability on GPU
+1. High scalability on GPU when data becomes larger
 2. More speedup on GPU.
 
 ### Demo and poster
