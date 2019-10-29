@@ -8,7 +8,7 @@ Anxiang Zhang
 https://linna1998.github.io/Parallel-Decision-Tree-on-GPU/
 
 ## Summary
-We are going to implement a communication-efficient parallel version of gradient boosting decision tree (gbdt). At first, we are going to implement a sequential version and use CPU to parallelize it. This model is served as a baseline. Then, GPU would be applied to implement a faster version. Finally, we are going to evaluate the speedup, memory performance and bottlenecks of all these versions. The main challenge resides in the strategy we used to parallelize. There are multiple ways to parallel the decision tree building process, including data-parallel, feature-parallel and etc. Some strategies are easy to implement but suffer from loadbalance issue. Some strategyies have high communication cost. In our study, we focus on reducing the communication cost during the tree construction process. Also, memory constraint would be taken into consideration since GPU has limited memory to use. 
+We are going to implement a communication-efficient parallel version of gradient boosting decision tree (gbdt). At first, we are going to implement a sequential version and use CPU to parallelize it. This model is served as a baseline. Then, GPU would be applied to implement a faster version. Finally, we are going to evaluate the speedup, memory performance and bottlenecks of all these versions. The main challenge resides in the strategy we used to parallelize. There are multiple ways to parallel the decision tree building process, including data-parallel, feature-parallel and etc. Some strategies are easy to implement but suffer from loadbalance issue. Some strategies have high communication cost. In our study, we focus on reducing the communication cost during the tree construction process. Also, memory constraint would be taken into consideration since GPU has limited memory to use. 
 
 ## Background
 
@@ -23,16 +23,16 @@ Decision tree ensemble algorithms are increasingly adopted as a crucial solution
 ### Different parallel approaches of decision tree?
 
 #### CPU Parallel:
-There are multiple ways to parallel the decision tree building process. More specifically, there are mainly two methods
+There are multiple ways to parallel the decision tree building process. More specifically, there are mainly three methods
 
 1. Task Parallel
 Classification decision tree construction algorithms have natural concurrency, as once a node is generated, all of its children in the classification tree can be generated concurrently. But this method suffers from *major load imbalance* issue and *high communication cost*. So we would not use this kind of parallel strategy.[1]
 
 2. Feature Parallel (Vertical Parallel)
-When splitting the node, each feature data would be processed independently to find the best split point. Then each process would communicate to get the optimal splitting the data. Afterwards, one processor would partition the data based on the splitting point and then broadcast the data to other processors. This result addresses the load balance issue, but suffer from high communication cost when the data set is large. Which means this staregy does not suit for GPU parallelism. [2]
+When splitting the node, each feature data would be processed independently to find the best split point. Then each process would communicate to get the optimal way of splitting the data. Afterwards, one processor would partition the data based on the splitting point and then broadcast the data to other processors. This result addresses the load balance issue, but suffer from high communication cost when the data set is large. Which means this staregy does not suit for GPU parallelism. [2]
 
 3. Data Parallel (Horizontal Parallel)
-Data parallel partitions the dataset so that each processor could handle only a portion of dataset. Each process builds the histogram of all the features and then merge the histogram by communication. So method reduces communication cost very much and also support streamming data. So this method is suitable for GPU due to the fact that GPU has limited share memory to use. [2]
+Data parallel partitions the dataset so that each processor could handle only a portion of dataset. Each process builds the histogram of all the features and then merge the histogram by communication. So method reduces communication cost very much and also support streamming data. Therefore, this method is suitable for GPU due to the fact that GPU has limited share memory to use. [2]
 
 #### GPU Parallel:
 Many existing publication focus on building communication-efficient and scalabel distributed decision tree, while there are limited exploration in GPU accelerations. On the one hand, GPU’s strict memory constraint this method does not scale to large dataset. On the other hand, GPU used SIMD instructions within a warp and thus instruction divergence is a big problem in GPU programming. [3]
@@ -83,21 +83,19 @@ Many existing publication focus on building communication-efficient and scalabel
 2. Language: mainly C/C++, CUDA
 
 ## Schedule:
-10.30 Finish proposal and website
+10.30 Finish proposal and website.
 
 11.6 Finish the sequential version. Find the dataset for evaluation.
 
-11.13 Finish the CPU parallel version
+11.13 Finish the CPU data parallel version.
 
-11.20 Start basic GPU parallel version
+11.22 Project Milestone. Finish basic GPU parallel version.
 
-11.27 Improved GPU parallel 
+11.27 Improve GPU parallel version.
 
-12.4 Improved GPU parallel
+12.4 Evaluate and find the trade-offs between different implementations.
 
-12.11 Evaluate and find the trade-offs
-
-12.18 Finish report
+12.10 Finish final report and poster.
 
 
 ## References
