@@ -1,6 +1,6 @@
 # Parallel Streaming Decision Tree on GPU
 
-<center> ke Ding(dekin) || Anxiang Zhang (anxiangz@andrew.cmu.edu) </center>
+<center> ke Ding(keding@andrew.cmu.edu) || Anxiang Zhang (anxiangz@andrew.cmu.edu) </center>
 
 ## URL
 https://linna1998.github.io/Parallel-Decision-Tree-on-GPU/
@@ -107,6 +107,9 @@ Much existing publication focus on building communication-efficient and scalable
 
 12.10 Finish final report and poster.
 
+## Dataset
+LIBSVM dataset
+https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/ [5]
 
 ## References
 
@@ -117,3 +120,5 @@ Much existing publication focus on building communication-efficient and scalable
 [3]: Zhang, Huan, Si Si, and Cho-Jui Hsieh. "GPU-acceleration for Large-scale Tree Boosting." arXiv preprint arXiv:1706.08359 (2017).
 
 [4]: Jin, Ruoming, and Gagan Agrawal. "Communication and memory efficient parallel decision tree construction." Proceedings of the 2003 SIAM International Conference on Data Mining. Society for Industrial and Applied Mathematics, 2003.
+
+[5]: Chih-Chung Chang and Chih-Jen Lin, LIBSVM : a library for support vector machines. ACM Transactions on Intelligent Systems and Technology, 2:27:1--27:27, 2011. Software available at http://www.csie.ntu.edu.tw/~cjlin/libsvm.
