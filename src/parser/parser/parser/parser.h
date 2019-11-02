@@ -21,15 +21,19 @@ public:
 	vector<Data> dataset;	
 	ifstream myfile;
 
+	int already_read_data;
+
 	Dataset() {}
 	Dataset(int _num_of_classes, int _num_of_data, int _num_of_features):
 		num_of_classes(_num_of_classes),
 		num_of_data(_num_of_data),
-		num_of_features(_num_of_features) {}
+		num_of_features(_num_of_features) {
+		already_read_data = 0;
+	}
 
 	void open_read_data(string name);
 
-	void streaming_read_data(int N);
+	bool streaming_read_data(int N);
 
 	void close_read_data();
 
