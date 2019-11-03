@@ -1,6 +1,6 @@
 # Parallel Streaming Decision Tree on GPU
 
-<center> ke Ding(dekin) || Anxiang Zhang (anxiangz@andrew.cmu.edu) </center>
+<center> ke Ding(keding@andrew.cmu.edu) || Anxiang Zhang (anxiangz@andrew.cmu.edu) </center>
 
 ## URL
 https://linna1998.github.io/Parallel-Decision-Tree-on-GPU/
@@ -11,6 +11,7 @@ We are going to implement a streaming and communication-efficient parallel versi
 ## Background
 
 ### What is decision tree?
+
 Decision Tree is a classic classification model in machine learning. It's famous for its simplicity, interpretability and effectiveness. A naive implementation fo decision tree is following
 ```
 Function BuildTree(n,A) // n: samples (rows), A: attributes 
@@ -41,6 +42,7 @@ When splitting the node, each feature data would be processed independently to f
 
 - Data-Parallel (Horizontal Parallel)
 Data parallel partitions the dataset so that each processor could handle only a portion of the dataset. Each process builds the histogram of all the features and then merge the histogram by communication. So the method reduces communication cost very much and also support streaming data. So this method is suitable for GPU because GPU has limited share memory to use. [2]
+
 
 2. GPU Parallel:
 Much existing publication focus on building communication-efficient and scalable distributed decision tree, while there is a limited exploration in GPU accelerations. On the one hand, GPU’s strict memory constraint this method does not scale to a large dataset. On the other hand, GPU used SIMD instructions within a warp and thus instruction divergence is a big problem in GPU programming. [3]
@@ -91,22 +93,23 @@ Much existing publication focus on building communication-efficient and scalable
 2. Language: mainly C/C++, CUDA
 
 ## Schedule:
-10.30 Finish proposal and website
+10.30 Finish proposal and website.
 
 11.6 Finish the sequential version. Find the dataset for evaluation.
 
-11.13 Finish the CPU parallel version
+11.13 Finish the CPU data parallel version.
 
-11.20 Start basic GPU parallel version
+11.22 Project Milestone. Finish basic GPU parallel version.
 
-11.27 Improved GPU parallel 
+11.27 Improve GPU parallel version.
 
-12.4 Improved GPU parallel
+12.4 Evaluate and find the trade-offs between different implementations.
 
-12.11 Evaluate and find the trade-offs
+12.10 Finish final report and poster.
 
-12.18 Finish report
-
+## Dataset
+LIBSVM dataset
+https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/ [5]
 
 ## References
 
@@ -117,3 +120,5 @@ Much existing publication focus on building communication-efficient and scalable
 [3]: Zhang, Huan, Si Si, and Cho-Jui Hsieh. "GPU-acceleration for Large-scale Tree Boosting." arXiv preprint arXiv:1706.08359 (2017).
 
 [4]: Jin, Ruoming, and Gagan Agrawal. "Communication and memory efficient parallel decision tree construction." Proceedings of the 2003 SIAM International Conference on Data Mining. Society for Industrial and Applied Mathematics, 2003.
+
+[5]: Chih-Chung Chang and Chih-Jen Lin, LIBSVM : a library for support vector machines. ACM Transactions on Intelligent Systems and Technology, 2:27:1--27:27, 2011. Software available at http://www.csie.ntu.edu.tw/~cjlin/libsvm.
