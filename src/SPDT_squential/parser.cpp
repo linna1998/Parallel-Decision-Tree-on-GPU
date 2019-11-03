@@ -55,7 +55,7 @@ int main() {
 	Dataset testDataset(3, 391, 20);
 	bool hasNext = true;
 
-	testDataset.open_read_data("svmguide2.txt");
+	testDataset.open_read_data("./data/svmguide2.txt");
 
 	while (true) {
 		hasNext = testDataset.streaming_read_data(10);
