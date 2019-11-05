@@ -51,20 +51,20 @@ void Dataset::print_dataset() {
 
 }
 
-int main() {
-	Dataset testDataset(3, 391, 20);
-	bool hasNext = true;
-
-	testDataset.open_read_data("./data/svmguide2.txt");
-
-	while (true) {
-		hasNext = testDataset.streaming_read_data(10);
-		testDataset.print_dataset();
-
-		if (!hasNext) break;
-	}		
-
-	testDataset.close_read_data();
-
-	return 0;
-}
+//int main() {
+//	Dataset testDataset(3, 391, 20);
+//	bool hasNext = true;
+//
+//	testDataset.open_read_data("./data/svmguide2.txt");
+//
+//	while (true) {
+//		hasNext = testDataset.streaming_read_data(10);
+//		testDataset.print_dataset();
+//
+//		if (!hasNext) break;
+//	}		
+//
+//	testDataset.close_read_data();
+//
+//	return 0;
+//}

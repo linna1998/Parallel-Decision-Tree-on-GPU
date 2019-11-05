@@ -1,23 +1,30 @@
+#pragma once
+#include <algorithm>
 #include <vector>
-#include "parser.h"
 
-typedef struct{
-    double bin_value;
-    int bin_frequency; // number of samples in this bin
-    int num_pos_frequency; // number of positive samples in this bin
-    
-} bin_triplet;
+// scala version: 
+// https://github.com/soundcloud/spdt/blob/master/compute/src/main/scala/com.soundcloud.spdt/Histogram.scala
 
-class Histogram{
+class BinTriplet {
 public:
+    double value;
+    int freq; // number of samples in this bin    
+	BinTriplet();
+	BinTriplet(double _value, int _freq);
+} ;
 
-    int max_bin;
-    Dataset& dataset;
-    // bins shape: (number of features, number of bins)
-    std::vector<std::vector<bin_triplet> > bins;
-    Histogram(Dataset& dataset, int start_idx, int end_idx, int max_bin = 255);
-    void merge();
-    void sum();
-    void update();
-
+class Histogram {
+public:
+	int max_bin;       
+	// bins are always sorted, with value in increasing order
+    std::vector<BinTriplet> bins;
+	
+	Histogram();
+    Histogram(int max_bin = 255);
+	void sortBin();
+	void mergeBin();
+    void update(double value);
+    double sum(int value);
+    void merge(Histogram &h, int B);
+	void uniform(std::vector<double> &u, int B);
 };
