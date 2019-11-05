@@ -20,7 +20,7 @@ public:
     std::vector<BinTriplet> bins;
 	
 	Histogram();
-    Histogram(int max_bin = 255);
+    Histogram(int max_bin);
 	void sortBin();
 	void mergeBin();
     void update(double value);

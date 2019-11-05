@@ -148,4 +148,3 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 	}
 	return;
 }
-

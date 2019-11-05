@@ -1,6 +1,8 @@
+#pragma once
 #include <stdint.h>
 #include "parser.h"
 #include "histogram.h"
+
 class TreeNode
 {
 public:
@@ -9,7 +11,7 @@ public:
     int label;
     TreeNode* left_node;
     TreeNode* right_node;
-    Histogram& histgram;
+    Histogram* histogram;
     // Each node contains a subset of data. In order to reduce the memory requirement,
     // dta_start_idx, dta_end_idx are used to store the start/end index of the data belonging to this node.
     int dta_start_idx; 
@@ -18,11 +20,15 @@ public:
     int optimal_split_feature_idx;
     double optimal_split_feature_value;
     double entropy;
+
     TreeNode();
     void set_label(int label);
-    void set_histogram(Histogram& histgram);
+    void set_histogram(Histogram* histogram);
     void set_dta_idx(int dta_start_idx, int dta_end_idx);
-    void set_split_info(int optimal_split_feature_idx, double optimal_split_feature_value, double entropy);
+    void set_split_info(
+        int optimal_split_feature_idx, 
+        double optimal_split_feature_value, 
+        double entropy);
 
 };
 
@@ -40,7 +46,8 @@ private:
     vector<int> global_partition_idx; 
 
 public:
-    DecisionTree(int max_num_leaves = -1, int max_depth = -1, int min_node_size = 0);
+    DecisionTree();
+    DecisionTree(int max_num_leaves, int max_depth, int min_node_size);
     
     void train(Dataset& train_data, const int batch_size = 64);
     void train_on_batch(Dataset& train_data);
