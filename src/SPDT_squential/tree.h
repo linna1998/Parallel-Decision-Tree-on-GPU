@@ -11,7 +11,9 @@ public:
     int label;
     TreeNode* left_node;
     TreeNode* right_node;
-    Histogram* histogram;
+    std::vector<std::vector<Histogram>> histogram;   
+    Dataset* datasetPointer; 
+
     // Each node contains a subset of data. In order to reduce the memory requirement,
     // dta_start_idx, dta_end_idx are used to store the start/end index of the data belonging to this node.
     int dta_start_idx; 
@@ -22,13 +24,15 @@ public:
     double entropy;
 
     TreeNode();
-    void set_label(int label);
-    void set_histogram(Histogram* histogram);
+    TreeNode(Dataset* datasetPointer);
+    void set_label(int label);    
     void set_dta_idx(int dta_start_idx, int dta_end_idx);
     void set_split_info(
         int optimal_split_feature_idx, 
         double optimal_split_feature_value, 
         double entropy);
+    // compress, build the histogram for this node
+    void compress();
 
 };
 

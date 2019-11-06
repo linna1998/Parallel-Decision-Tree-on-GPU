@@ -6,12 +6,13 @@ TreeNode::TreeNode() {
 
 }
 
-void TreeNode::set_label(int label){
-    this->label = label;
+// constructor function
+TreeNode::TreeNode(Dataset* datasetPointer) {
+    this->datasetPointer = datasetPointer;
 }
 
-void TreeNode::set_histogram(Histogram* histogram){
-    this->histogram = histogram;
+void TreeNode::set_label(int label){
+    this->label = label;
 }
 
 void TreeNode::set_dta_idx(int dta_start_idx, int dta_end_idx){
@@ -26,6 +27,23 @@ void TreeNode::set_split_info(
         this->optimal_split_feature_idx = optimal_split_feature_idx;
         this->optimal_split_feature_value = optimal_split_feature_value;
         this->entropy = entropy;
+}
+
+void TreeNode::compress() {
+    int i = 0;
+    int attr = 0;
+    histogram = std::vector<std::vector<Histogram>> 
+        (datasetPointer->num_of_features, 
+        std::vector<Histogram>(datasetPointer->num_of_classes));
+
+    // TODO: < or <= ???
+    for (i = dta_start_idx; i <= dta_end_idx; i++) {
+        for (attr = 0; attr < datasetPointer->num_of_features; attr++) {
+            histogram[attr][datasetPointer->dataset[i].label].
+            update(datasetPointer->dataset[i].values[attr]);
+        }
+    }
+
 }
 
 DecisionTree::DecisionTree() {
@@ -45,9 +63,7 @@ void DecisionTree::train(Dataset& train_data, const int batch_size) {
     root->set_dta_idx(0, train_data.num_of_data-1);
     this->root = root;
     queue<TreeNode*> que;
-    que.push(root);
-	Histogram *histogram = new Histogram(this->max_bin_size);
-    root->histogram = histogram;
+    que.push(root);	    
 }
 
 void DecisionTree::train_on_batch(Dataset& train_data) {
