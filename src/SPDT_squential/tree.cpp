@@ -1,14 +1,10 @@
 #include "tree.h"
+#include "panel.h"
 #include <queue>
 #include <stdio.h>
 #include <algorithm>
+#include <math.h>
 
-
-void SplitPoint::copy_from(SplitPoint& split){
-    this->feature_id = split.feature_id;
-    this->feature_value = split.feature_value;
-    this->entropy = split.entropy;
-}
 
 /*
  * Reture True if the data is larger or equal than the split value
@@ -22,19 +18,27 @@ bool SplitPoint::decition_rule(Data& data){
 TreeNode::TreeNode() {
     init();
 }
+
+
 void TreeNode::init() {
     is_leaf = false;
     has_new_data = false;
-    histogram_idx = -1;
     label = -1;
     // remove this if you want to keep the previous batch data.
     data_ptr.clear(); 
     return;
 }
 
+/*
+ * Set label for the node as the majority class.
+ */
 void TreeNode::set_label(){
     this->is_leaf = true;
-    // TODO:
+    int pos_count = 0;
+    for (auto& p: this->data_ptr){
+        pos_count = (p->label == POS_LABEL)? pos_count+1 : pos_count;
+    }
+    this->label = (pos_count >= (int)this->data_ptr.size() / 2) ? POS_LABEL:NEG_LABEL;
 }
 
 /*
@@ -42,7 +46,7 @@ void TreeNode::set_label(){
  * The data would be appended to the `left` if the data value is smaller than the split value
  */
 void TreeNode::split(SplitPoint& best_split, vector<Data*>& left, vector<Data*>& right) {
-    this->split_ptr.copy_from(best_split);
+    this->split_ptr = best_split;
     double split_value = best_split.feature_value;
     for(auto& p: this->data_ptr){
         double p_value = p->values[best_split.feature_id];
@@ -77,14 +81,13 @@ DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size)
 bool DecisionTree::is_terminated(TreeNode* node){
     if (node->data_ptr.size() <= min_node_size)
         return true;
-    
+    // TODO: more conditions to add
 }
 
 void DecisionTree::train(Dataset& train_data, const int batch_size) {
     if (root == NULL)
 	    root = new TreeNode();
-    
-    
+    // TODO: iterate data batch and call `train_on_batch`
 }
 
 void DecisionTree::test(Dataset& train_data) {
@@ -94,6 +97,7 @@ void DecisionTree::test(Dataset& train_data) {
 
 /*
  * This function return the best split point at a given leaf node.
+ * Best split is store in `split`
 */
 void DecisionTree::find_best_split(TreeNode* node, SplitPoint& split){
     std::vector<SplitPoint> results;
@@ -117,11 +121,11 @@ void DecisionTree::find_best_split(TreeNode* node, SplitPoint& split){
         [](const SplitPoint& l, const SplitPoint& r) {return l.entropy < r.entropy;});
 
     SplitPoint v = SplitPoint(best_split->feature_id, best_split->feature_value, best_split->entropy);
-    split.copy_from(v);
+    split = v;
 }
 
 /* 
- * This function reture all the unlabeled leaf nodes.
+ * This function reture all the unlabeled leaf nodes in a breadth-first manner.
 */
 vector<TreeNode*> DecisionTree::__get_unlabeled(TreeNode* node){
     queue<TreeNode*> q;
@@ -180,7 +184,7 @@ void DecisionTree::train_on_batch(Dataset& train_data) {
 /*
  * This function compress the data into histograms.
  * Each unlabeled leaf would have a (num_feature, num_class) histograms
- * This function takes the assumption that each leaf is re-initialized (this we use a batch mode)
+ * This function takes the assumption that each leaf is re-initialized ( we use a batch mode)
 */
 void DecisionTree::compress(vector<Data>& data, vector<TreeNode* >& unlabled_leaf){
     int count=0;
@@ -211,7 +215,9 @@ void DecisionTree::compress(vector<Data>& data, vector<TreeNode* >& unlabled_lea
         }
     }
 }
-
+/*
+ * initialize each node. This function is called when a new batch comes.
+ */
 void DecisionTree::initialize(TreeNode* node){
     
     if (node == NULL){
@@ -221,7 +227,6 @@ void DecisionTree::initialize(TreeNode* node){
     }
     else if ((node->left_node == NULL) && (node->left_node == NULL)){
         node->init();
-        num_leaves --;
     }
     else{
         initialize(node->left_node);

@@ -5,6 +5,8 @@
 #include <vector>
 
 using namespace std;
+#define POS_LABEL 1
+#define NEG_LABEL 0
 
 class Data {
 public:

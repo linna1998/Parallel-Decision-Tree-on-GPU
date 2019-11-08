@@ -15,9 +15,14 @@ public:
     double entropy;
     SplitPoint();
     SplitPoint(int feature_id, double feature_value, double entropy);
-    void copy_from(SplitPoint& split);
     bool decition_rule(Data& data);
 
+    inline SplitPoint& operator = (SplitPoint& split){
+        this->feature_id = split.feature_id;
+        this->feature_value = split.feature_value;
+        this->entropy = split.entropy;
+        return *this;
+    }
 };
 
 class TreeNode
