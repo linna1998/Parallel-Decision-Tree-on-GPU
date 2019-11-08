@@ -26,6 +26,7 @@ void TreeNode::init() {
     label = -1;
     // remove this if you want to keep the previous batch data.
     data_ptr.clear(); 
+    histogram_ptr = NULL;
     return;
 }
 
@@ -82,6 +83,7 @@ bool DecisionTree::is_terminated(TreeNode* node){
     if (node->data_ptr.size() <= min_node_size)
         return true;
     // TODO: more conditions to add
+    return false;
 }
 
 void DecisionTree::train(Dataset& train_data, const int batch_size) {
@@ -191,9 +193,9 @@ void DecisionTree::compress(vector<Data>& data, vector<TreeNode* >& unlabled_lea
     // Initialized an empty histogram for every unlabeled leaf.
     for (auto& p: unlabled_leaf){
         // if this is not the first batch data, then make a new histogram.
-        if (p->histogram_ptr->size() == 0){ 
+        if (p->histogram_ptr == NULL){ 
             //TODO: syntax error.
-            p->histogram_ptr = std::make_shared<Histogram_LEAF>(this->datasetPointer->num_of_features, 
+            p->histogram_ptr = new Histogram_LEAF(this->datasetPointer->num_of_features, 
                 Histogram_FEATURE(this->datasetPointer->num_of_classes)
                 );
 
@@ -202,7 +204,7 @@ void DecisionTree::compress(vector<Data>& data, vector<TreeNode* >& unlabled_lea
             //     Histogram_FEATURE(this->datasetPointer->num_of_classes)
             //     ));
         }
-        this->histogram.push_back(p->histogram_ptr);
+        this->histogram.push_back(*p->histogram_ptr);
 
     }
     // Construct the histogram. and navigate each data to its leaf.

@@ -5,7 +5,7 @@
 
 typedef std::vector<Histogram> Histogram_FEATURE;
 typedef std::vector<Histogram_FEATURE> Histogram_LEAF;
-typedef std::vector<std::shared_ptr<Histogram_LEAF> > Histogram_ALL;
+typedef std::vector<Histogram_LEAF > Histogram_ALL;
 
 class SplitPoint{
 public:
@@ -34,7 +34,7 @@ public:
     TreeNode* left_node;
     TreeNode* right_node;
 
-    std::shared_ptr<Histogram_LEAF> histogram_ptr;   
+    Histogram_LEAF* histogram_ptr;   
     vector<Data*> data_ptr;
     SplitPoint split_ptr;
 
