@@ -260,7 +260,3 @@ TreeNode* DecisionTree::navigate(Data& d){
     
     return ptr;
 }
-
-int main() {
-    return 0;
-}
