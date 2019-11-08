@@ -5,7 +5,17 @@
 #include <algorithm>
 #include <math.h>
 
+SplitPoint::SplitPoint(){
+    feature_id = -1;
+    feature_value = 0;
+    entropy = -1;
+}
 
+SplitPoint::SplitPoint(int feature_id, double feature_value, double entropy){
+    feature_id = feature_id;
+    feature_value = feature_value;
+    entropy = entropy;
+}
 /*
  * Reture True if the data is larger or equal than the split value
  */
@@ -18,6 +28,8 @@ bool SplitPoint::decition_rule(Data& data){
 TreeNode::TreeNode() {
     init();
 }
+
+
 
 
 void TreeNode::init() {
@@ -90,6 +102,7 @@ void DecisionTree::train(Dataset& train_data, const int batch_size) {
     if (root == NULL)
 	    root = new TreeNode();
     // TODO: iterate data batch and call `train_on_batch`
+    return;
 }
 
 void DecisionTree::test(Dataset& train_data) {
