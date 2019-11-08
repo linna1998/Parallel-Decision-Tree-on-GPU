@@ -34,7 +34,9 @@ public:
     TreeNode* left_node;
     TreeNode* right_node;
 
-    Histogram_LEAF* histogram_ptr;   
+    Histogram_LEAF* histogram_ptr;  
+    int histogram_id;   
+
     vector<Data*> data_ptr;
     SplitPoint split_ptr;
 
@@ -57,7 +59,6 @@ private:
     Dataset* datasetPointer; 
     // histogram size (num_leaf, num_feature, num_class)
     Histogram_ALL histogram;
-    int id;  // for initialize histogram to TreeNode
 
 public:
 
@@ -72,6 +73,7 @@ public:
     void compress(vector<Data>& data, vector<TreeNode* >& unlabled_leaf);
     vector<TreeNode*> __get_unlabeled(TreeNode* node);
     void initialize(TreeNode* node);
+    void init_histogram(vector<TreeNode* >& unlabled_leaf);
     TreeNode* navigate(Data& d);
     bool is_terminated(TreeNode* node);
 };

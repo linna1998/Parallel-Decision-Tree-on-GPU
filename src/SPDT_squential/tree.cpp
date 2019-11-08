@@ -38,6 +38,8 @@ void TreeNode::init() {
     label = -1;
     // remove this if you want to keep the previous batch data.
     data_ptr.clear();
+    histogram_id = -1;
+    histogram_ptr = NULL;
     return;
 }
 
@@ -145,6 +147,7 @@ vector<TreeNode*> DecisionTree::__get_unlabeled(TreeNode* node){
     queue<TreeNode*> q;
     q.push(node);
     vector<TreeNode*> ret;
+    int c = 0;
     while(q.empty()){
         auto tmp_ptr = q.front();
         q.pop();
@@ -156,6 +159,7 @@ vector<TreeNode*> DecisionTree::__get_unlabeled(TreeNode* node){
         else if ((node->left_node == NULL) && (node->left_node == NULL)){
             if (node->is_leaf && node->label < 0){
                 ret.push_back(node);
+                node->histogram_id = c++;
             }
         }
         else{
@@ -170,11 +174,11 @@ vector<TreeNode*> DecisionTree::__get_unlabeled(TreeNode* node){
 */
 void DecisionTree::train_on_batch(Dataset& train_data) {
     // Reinitialize every leaf in T as unlabeled.
-    id = 0;
     initialize(root);
     vector<TreeNode* > unlabeled_leaf = __get_unlabeled(root);
     while(unlabeled_leaf.size() > 0){
         vector<TreeNode* > unlabeled_leaf_new;
+        init_histogram(unlabeled_leaf);
         compress(train_data.dataset, unlabeled_leaf);
         for(auto& cur_leaf: unlabeled_leaf){
             if (is_terminated(cur_leaf)){
@@ -203,22 +207,6 @@ void DecisionTree::train_on_batch(Dataset& train_data) {
 */
 void DecisionTree::compress(vector<Data>& data, vector<TreeNode* >& unlabled_leaf){
     int feature_id = 0, class_id = 0;
-    // Initialized an empty histogram for every unlabeled leaf.
-    for (auto& p: unlabled_leaf) {
-        // if this is not the first batch data, then make a new histogram.
-        if (p->histogram_ptr == NULL) { 
-            p->init();        
-            for (feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++) {
-                for (class_id = 0; class_id < datasetPointer->num_of_classes; class_id++) {
-                    histogram[id][feature_id][class_id].clear();
-                }            
-            }
-            p->histogram_ptr = &(histogram[id]);
-            id++;
-        }
-        this->histogram.push_back(*p->histogram_ptr);
-
-    }
     // Construct the histogram. and navigate each data to its leaf.
     for (auto& d: data) {
         auto node = DecisionTree::navigate(d);
@@ -242,13 +230,6 @@ void DecisionTree::initialize(TreeNode* node){
     }
     else if ((node->left_node == NULL) && (node->left_node == NULL)) {
         node->init();        
-        for (feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++) {
-            for (class_id = 0; class_id < datasetPointer->num_of_classes; class_id++) {
-                histogram[id][feature_id][class_id].clear();
-            }            
-        }
-        node->histogram_ptr = &(histogram[id]);
-        id++;
     }   
     else {
         initialize(node->left_node);
@@ -256,6 +237,22 @@ void DecisionTree::initialize(TreeNode* node){
     }
     return;
 }
+
+/*
+ * This function initialize the histogram for each unlabeled leaf node.
+ * Also, potentially, it would free the previous histogram.
+ */
+void DecisionTree::init_histogram(vector<TreeNode* >& unlabled_leaf){
+    histogram.resize(unlabled_leaf.size());
+    for (auto& p: unlabled_leaf){
+        for (int feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++) {
+            for (int class_id = 0; class_id < datasetPointer->num_of_classes; class_id++) {
+                    histogram[p->histogram_id][feature_id][class_id].clear();
+            }            
+        }
+    }
+}
+
 /*
  *
  */
