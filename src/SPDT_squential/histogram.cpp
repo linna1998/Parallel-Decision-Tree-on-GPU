@@ -1,13 +1,14 @@
 #include "histogram.h"
+#include "math.h"
 
 BinTriplet::BinTriplet() {	
-	value = 0;
-	freq = 0;	
+	this->value = 0;
+	this->freq = 0;	
 }
 
 BinTriplet::BinTriplet(double _value, int _freq) {
-	value = _value;
-	freq = _freq;
+	this->value = _value;
+	this->freq = _freq;
 }
 
 Histogram::Histogram() {
@@ -17,6 +18,12 @@ Histogram::Histogram() {
 
 Histogram::Histogram(int max_bin) {
 	this->bins.clear();
+	this->max_bin = max_bin;	
+}
+
+Histogram::Histogram(int max_bin, const std::vector<BinTriplet>& _bins) {
+	this->bins.clear();
+	this->bins = std::vector(_bins);
 	this->max_bin = max_bin;	
 }
 
@@ -72,7 +79,7 @@ void Histogram::update(double value) {
 	return;
 }
 
-double Histogram::sum(int value) {
+double Histogram::sum(double value) {
 	int index = 0;
 	double mb = 0;
 	double s = 0;

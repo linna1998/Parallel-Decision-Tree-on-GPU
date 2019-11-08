@@ -3,61 +3,69 @@
 #include "parser.h"
 #include "histogram.h"
 
+typedef std::vector<Histogram> Histogram_FEATURE;
+typedef std::vector<Histogram_FEATURE> Histogram_LEAF;
+typedef std::vector<std::shared_ptr<Histogram_LEAF> > Histogram_ALL;
+
+class SplitPoint{
+public:
+    // used to store the spliting information on a given histogram.
+    int feature_id;
+    double feature_value;
+    double entropy;
+    SplitPoint();
+    SplitPoint(int feature_id, double feature_value, double entropy);
+    void copy_from(SplitPoint& split);
+    bool decition_rule(Data& data);
+
+};
+
 class TreeNode
 {
 public:
-    bool isLeaf = false;
-    // if isLeaf = True, label would be defined as the majority class in the subset
-    int label;
+    bool is_leaf = false;    
+    bool has_new_data = false;
+    int label; // -1 means no label
     TreeNode* left_node;
     TreeNode* right_node;
-    std::vector<std::vector<Histogram>> histogram;   
-    Dataset* datasetPointer; 
 
-    // Each node contains a subset of data. In order to reduce the memory requirement,
-    // dta_start_idx, dta_end_idx are used to store the start/end index of the data belonging to this node.
-    int dta_start_idx; 
-    int dta_end_idx;
-    // used to store the spliting information on a given histogram.
-    int optimal_split_feature_idx;
-    double optimal_split_feature_value;
-    double entropy;
+    std::shared_ptr<Histogram_LEAF> histogram_ptr;   
+    vector<Data*> data_ptr;
+    SplitPoint split_ptr;
 
     TreeNode();
-    TreeNode(Dataset* datasetPointer);
-    void set_label(int label);    
-    void set_dta_idx(int dta_start_idx, int dta_end_idx);
-    void set_split_info(
-        int optimal_split_feature_idx, 
-        double optimal_split_feature_value, 
-        double entropy);
-    // compress, build the histogram for this node
-    void compress();
-
+    void set_label();    
+    void init();    
+    void split(SplitPoint& best_split, vector<Data*>& left, vector<Data*>& right);
 };
 
 class DecisionTree
 {
 private:
-    TreeNode* root;
+    TreeNode* root = NULL;
     int num_leaves;
+    int depth;
     int max_num_leaves;
     int max_depth;
     int max_bin_size;
     int min_node_size;
-    // dataset_index is a global index of data. e.g. [0,3,2,1]
-    // this is used to partition the dataset. each node have a `start/end index` of this array
-    vector<int> global_partition_idx; 
+    Dataset* datasetPointer; 
+    // histogram size (num_leaf, num_feature, num_class)
+    Histogram_ALL histogram;
 
 public:
+
     DecisionTree();
     DecisionTree(int max_num_leaves, int max_depth, int min_node_size);
     
     void train(Dataset& train_data, const int batch_size = 64);
     void train_on_batch(Dataset& train_data);
     void test(Dataset& test_data);
-    void split(Dataset& data, int optimal_split_bin_idx);
     // this function adjust the `global_partition_idx`
-    void find_best_split(TreeNode* node, int& split_feature_id, float& split_feature_value);
-    void construct_histogram(Dataset& Dataset, int start_idx, int end_idx);
+    void find_best_split(TreeNode* node, SplitPoint& split);
+    void compress(vector<Data>& data, vector<TreeNode* >& unlabled_leaf);
+    vector<TreeNode*> __get_unlabeled(TreeNode* node);
+    void initialize(TreeNode* node);
+    TreeNode* navigate(Data& d);
+    bool is_terminated(TreeNode* node);
 };

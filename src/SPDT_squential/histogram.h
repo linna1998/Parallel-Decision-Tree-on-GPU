@@ -21,10 +21,11 @@ public:
 	
 	Histogram();
     Histogram(int max_bin);
+	Histogram(int max_bin, const std::vector<BinTriplet>& bins);
 	void sortBin();
 	void mergeBin();
     void update(double value);
-    double sum(int value);
+    double sum(double value);
     void merge(Histogram &h, int B);
 	void uniform(std::vector<double> &u, int B);
 };
