@@ -28,4 +28,6 @@ public:
     double sum(double value);
     void merge(Histogram &h, int B);
 	void uniform(std::vector<double> &u, int B);
+
+	void clear();
 };

@@ -155,3 +155,8 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 	}
 	return;
 }
+
+void Histogram::clear() {
+	max_bin = 0;
+	bins.clear();
+}

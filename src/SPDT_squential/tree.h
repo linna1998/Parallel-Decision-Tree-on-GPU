@@ -5,7 +5,7 @@
 
 typedef std::vector<Histogram> Histogram_FEATURE;
 typedef std::vector<Histogram_FEATURE> Histogram_LEAF;
-typedef std::vector<Histogram_LEAF > Histogram_ALL;
+typedef std::vector<Histogram_LEAF> Histogram_ALL;
 
 class SplitPoint{
 public:
@@ -57,12 +57,13 @@ private:
     Dataset* datasetPointer; 
     // histogram size (num_leaf, num_feature, num_class)
     Histogram_ALL histogram;
+    int id;  // for initialize histogram to TreeNode
 
 public:
 
     DecisionTree();
     DecisionTree(int max_num_leaves, int max_depth, int min_node_size);
-    
+        
     void train(Dataset& train_data, const int batch_size = 64);
     void train_on_batch(Dataset& train_data);
     void test(Dataset& test_data);

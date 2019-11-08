@@ -37,8 +37,7 @@ void TreeNode::init() {
     has_new_data = false;
     label = -1;
     // remove this if you want to keep the previous batch data.
-    data_ptr.clear(); 
-    histogram_ptr = NULL;
+    data_ptr.clear();
     return;
 }
 
@@ -171,6 +170,7 @@ vector<TreeNode*> DecisionTree::__get_unlabeled(TreeNode* node){
 */
 void DecisionTree::train_on_batch(Dataset& train_data) {
     // Reinitialize every leaf in T as unlabeled.
+    id = 0;
     initialize(root);
     vector<TreeNode* > unlabeled_leaf = __get_unlabeled(root);
     while(unlabeled_leaf.size() > 0){
@@ -199,23 +199,22 @@ void DecisionTree::train_on_batch(Dataset& train_data) {
 /*
  * This function compress the data into histograms.
  * Each unlabeled leaf would have a (num_feature, num_class) histograms
- * This function takes the assumption that each leaf is re-initialized ( we use a batch mode)
+ * This function takes the assumption that each leaf is re-initialized (we use a batch mode)
 */
 void DecisionTree::compress(vector<Data>& data, vector<TreeNode* >& unlabled_leaf){
-    int count=0;
+    int feature_id = 0, class_id = 0;
     // Initialized an empty histogram for every unlabeled leaf.
-    for (auto& p: unlabled_leaf){
+    for (auto& p: unlabled_leaf) {
         // if this is not the first batch data, then make a new histogram.
-        if (p->histogram_ptr == NULL){ 
-            //TODO: syntax error.
-            p->histogram_ptr = new Histogram_LEAF(this->datasetPointer->num_of_features, 
-                Histogram_FEATURE(this->datasetPointer->num_of_classes)
-                );
-
-            // //TODO: This one is OK.        
-            // std::shared_ptr<Histogram_LEAF> histo(new Histogram_LEAF(this->datasetPointer->num_of_features, 
-            //     Histogram_FEATURE(this->datasetPointer->num_of_classes)
-            //     ));
+        if (p->histogram_ptr == NULL) { 
+            p->init();        
+            for (feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++) {
+                for (class_id = 0; class_id < datasetPointer->num_of_classes; class_id++) {
+                    histogram[id][feature_id][class_id].clear();
+                }            
+            }
+            p->histogram_ptr = &(histogram[id]);
+            id++;
         }
         this->histogram.push_back(*p->histogram_ptr);
 
@@ -234,16 +233,24 @@ void DecisionTree::compress(vector<Data>& data, vector<TreeNode* >& unlabled_lea
  * initialize each node. This function is called when a new batch comes.
  */
 void DecisionTree::initialize(TreeNode* node){
-    
-    if (node == NULL){
+    int feature_id = 0, class_id = 0;
+
+    if (node == NULL) {
         // should never reach here.
         fprintf(stderr, "ERROR: The tree contains node that have only one child\n");
         exit(-1);
     }
-    else if ((node->left_node == NULL) && (node->left_node == NULL)){
-        node->init();
-    }
-    else{
+    else if ((node->left_node == NULL) && (node->left_node == NULL)) {
+        node->init();        
+        for (feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++) {
+            for (class_id = 0; class_id < datasetPointer->num_of_classes; class_id++) {
+                histogram[id][feature_id][class_id].clear();
+            }            
+        }
+        node->histogram_ptr = &(histogram[id]);
+        id++;
+    }   
+    else {
         initialize(node->left_node);
         initialize(node->right_node);
     }
