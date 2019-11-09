@@ -17,15 +17,10 @@ int main() {
     dbg_printf("Test size (%d, %d, %d)\n", trainDataset.num_of_data, 
                 trainDataset.num_of_features, trainDataset.num_of_classes);
     
-    decisionTree.train_on_batch(trainDataset);
+    decisionTree.train(trainDataset, 64);
 
 
     decisionTree.test(testDataset);
-
-    // DecisionTree decisionTree(256, 8, 128);
-    // Dataset trainDataset(2, 3, 30);
-    // trainDataset.open_read_data("./data/test.txt"); 
-    // decisionTree.train(trainDataset);           
 
     return 0;
 
