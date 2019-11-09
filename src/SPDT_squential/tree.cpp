@@ -163,7 +163,7 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
         root = new TreeNode(0);    
 
 	while (TRUE) {
-		hasNext = train_data.streaming_read_data(10);		
+		hasNext = train_data.streaming_read_data(batch_size);		
         train_data.print_dataset();
         train_on_batch(train_data);        
 		if (!hasNext) break;
