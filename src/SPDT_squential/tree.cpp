@@ -158,9 +158,18 @@ bool DecisionTree::is_terminated(TreeNode *node)
 
 void DecisionTree::train(Dataset &train_data, const int batch_size)
 {
+    int hasNext = TRUE;
     if (root == NULL)
-        root = new TreeNode(0);
-    // TODO: iterate data batch and call `train_on_batch`
+        root = new TreeNode(0);    
+
+	while (TRUE) {
+		hasNext = train_data.streaming_read_data(10);		
+        train_data.print_dataset();
+        train_on_batch(train_data);        
+		if (!hasNext) break;
+	}		
+
+	train_data.close_read_data();
     return;
 }
 

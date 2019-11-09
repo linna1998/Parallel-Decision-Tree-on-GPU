@@ -1,15 +1,41 @@
 #include "parser.h"
 
-void Data::read_a_data(int num_of_features, ifstream* myfile) {
+void Data::read_a_data(int num_of_features, ifstream* myfile) {	
 	int index;
-	double tmpvalue;
-	char c;
-	*myfile >> label;
-	for (int i = 0; i < num_of_features; i++) {
-		*myfile >> index;
-		*myfile >> c;
-		*myfile >> tmpvalue;
-		values[index] = tmpvalue;
+	double tmpvalue;	
+	
+	bool isFirst = true;
+
+	string str, prev, indexstr, valuestr;
+	getline(*myfile, str);	
+
+	size_t npos;
+
+	// cout << "str: " << str << endl;
+
+	while (str.size() > 0) {
+		npos = str.find(' ');
+		if (npos == string::npos) break;
+		prev = str.substr(0, npos);		
+		str = str.substr(npos + 1);
+		if (prev.size() == 0 || prev[0] < '+') continue;				
+		if (isFirst) {
+			// cout << "prev: " << prev << endl;
+			label = stoi(prev);
+			// cout << "label: " << label << endl;
+			isFirst = false;
+		} else {
+			// cout << "prev: " << prev << endl;
+			npos = prev.find(':');
+			indexstr = prev.substr(0, npos);
+			// cout << "indexstr: " << indexstr << endl;
+			index = stoi(indexstr);
+			valuestr = prev.substr(npos + 1);
+			// cout << "valuestr: " << valuestr << endl;
+			tmpvalue = stod(valuestr);
+			// cout << "index: " << index << "tmpvalue: " << tmpvalue << endl;
+			values[index] = tmpvalue;
+		}
 	}
 }
 

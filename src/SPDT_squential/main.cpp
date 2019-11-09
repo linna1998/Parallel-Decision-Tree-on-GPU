@@ -22,6 +22,11 @@ int main() {
 
     decisionTree.test(testDataset);
 
+    // DecisionTree decisionTree(256, 8, 128);
+    // Dataset trainDataset(2, 3, 30);
+    // trainDataset.open_read_data("./data/test.txt"); 
+    // decisionTree.train(trainDataset);           
+
     return 0;
 
 }
