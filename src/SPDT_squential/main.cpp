@@ -5,18 +5,24 @@ int main() {
     DecisionTree decisionTree(256, 8, 128);
 
     Dataset trainDataset(2, 1605, 123);
-    Dataset testDataset(2, 30956, 123);	
+    Dataset testDataset(2, 30956, 123);
+
+	bool hasNext = true;
+
+    trainDataset.open_read_data("./data/a1a.train.txt");
+    testDataset.open_read_data("./data/a1a.test.txt");	
+
+    dbg_printf("Train size (%d, %d, %d)\n", trainDataset.num_of_data, 
+                trainDataset.num_of_features, trainDataset.num_of_classes);
+    dbg_printf("Test size (%d, %d, %d)\n", trainDataset.num_of_data, 
+                trainDataset.num_of_features, trainDataset.num_of_classes);
     
+
     trainDataset.open_read_data("./data/a1a.train.txt");        
     decisionTree.train(trainDataset, 1605);
 
-	testDataset.open_read_data("./data/a1a.test.txt");	
-    decisionTree.test(testDataset);
 
-    // DecisionTree decisionTree(256, 8, 128);
-    // Dataset trainDataset(2, 3, 30);
-    // trainDataset.open_read_data("./data/test.txt"); 
-    // decisionTree.train(trainDataset);           
+    decisionTree.test(testDataset);
 
     return 0;
 

@@ -21,9 +21,6 @@ public:
 	// bins are always sorted, with value in increasing order
     BinTriplet* bins;
 	int bin_size;
-	
-	Histogram();
-    Histogram(int max_bin);
 	Histogram(int max_bin, BinTriplet* _bins);
 
 	void ptr2vec(std::vector<BinTriplet>& res);
