@@ -1,5 +1,7 @@
 #pragma once
+#include <memory.h>
 #include <stdint.h>
+#include <string.h>
 #include "parser.h"
 #include "histogram.h"
 

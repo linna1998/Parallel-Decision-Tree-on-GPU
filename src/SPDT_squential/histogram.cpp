@@ -12,25 +12,53 @@ BinTriplet::BinTriplet(double _value, int _freq) {
 }
 
 Histogram::Histogram() {
-	this->bins.clear();
+	this->bins = NULL;
 	this->max_bin = 255;
+	this->bin_size = 0;
 }
 
 Histogram::Histogram(int max_bin) {
-	this->bins.clear();
-	this->max_bin = max_bin;	
+	this->bins = NULL;
+	this->max_bin = max_bin;
+	this->bin_size = 0;	
 }
 
-Histogram::Histogram(int max_bin, BinTriplet* _bins) {
-	this->bins.clear();
+Histogram::Histogram(int max_bin, BinTriplet* _bins) {	
 	this->bins = _bins;
-	this->max_bin = max_bin;	
+	this->max_bin = max_bin;
+	this->bin_size = 0;	
+}
+
+// build vector of BinTriplet from histogram
+void Histogram::ptr2vec(std::vector<BinTriplet>& res) {
+	int i = 0;
+	res.clear();
+
+	for (i = 0; i < bin_size; i++) {
+		res.push_back(bins[i]);
+	}
+}
+
+// build histogram from vector into Histogram
+void Histogram::vec2ptr(std::vector<BinTriplet>& vec) {
+	int i = 0;
+	bin_size = vec.size();
+
+	for (i = 0; i < bin_size; i++) {
+		bins[i] = vec[i];
+	}
+
+	vec.clear();
+	vec.shrink_to_fit();
 }
 
 void Histogram::sortBin() {
-	sort(bins.begin(), bins.end(), [](const BinTriplet &a, const BinTriplet &b) {
+	std::vector<BinTriplet> vec;
+	ptr2vec(vec);
+	sort(vec.begin(), vec.end(), [](const BinTriplet &a, const BinTriplet &b) {
 		return a.value < b.value;
 	});
+	vec2ptr(vec);
 }
 
 
@@ -38,85 +66,106 @@ void Histogram::mergeBin() {
 	BinTriplet newbin;
 	int index = 0;
 
+	std::vector<BinTriplet> vec;
+	ptr2vec(vec);
+
 	// find the min value of difference
-	for (int i = 0; i < bins.size() - 1; i++) {
-		if (bins[i + 1].value - bins[i].value
-			< bins[index + 1].value - bins[index].value) {
+	for (int i = 0; i < vec.size() - 1; i++) {
+		if (vec[i + 1].value - vec[i].value
+			< vec[index + 1].value - vec[index].value) {
 			index = i;
 		}
 	}
 
-	// merge bins[index], bins[index + 1] into a new element
-	newbin.freq = bins[index].freq + bins[index + 1].freq;
+	// merge vec[index], vecs[index + 1] into a new element
+	newbin.freq = vec[index].freq + vec[index + 1].freq;
 
-	newbin.value = (bins[index].value * bins[index].freq
-		+ bins[index + 1].value * (bins[index + 1].freq + bins[index + 1].freq)) /
+	newbin.value = (vec[index].value * vec[index].freq
+		+ vec[index + 1].value * (vec[index + 1].freq + vec[index + 1].freq)) /
 		newbin.freq;
 
-	// erase bins[index + 1]
-	// change bins[index] with newbin
-	bins.erase(bins.begin() + index + 1);
-	bins[index] = newbin;
+	// erase vec[index + 1]
+	// change vec[index] with newbin
+	vec.erase(vec.begin() + index + 1);
+	vec[index] = newbin;
+	vec2ptr(vec);
 }
 
 void Histogram::update(double value) {	
+	std::vector<BinTriplet> vec;
+	ptr2vec(vec);
+
 	// If there are values in the bin equals to the value here
-	for (int i = 0; i < bins.size(); i++) {
-		if (bins[i].value == value) {			
-			bins[i].freq++;
+	for (int i = 0; i < vec.size(); i++) {
+		if (vec[i].value == value) {			
+			vec[i].freq++;
+			vec2ptr(vec);
 			return;
 		}
 	}
 
-	bins.push_back(BinTriplet(value, 1));
+	vec.push_back(BinTriplet(value, 1));
 
 	sortBin();
 
-	if (bins.size() <= max_bin) return;
+	if (vec.size() <= max_bin) {
+		vec2ptr(vec);
+		return;
+	}
 	
 	mergeBin();
 	
+	vec2ptr(vec);
 	return;
 }
 
 double Histogram::sum(double value) {
+	std::vector<BinTriplet> vec;
 	int index = 0;
 	double mb = 0;
 	double s = 0;
-	for (index = 0; index < bins.size() - 1; index++) {
-		if (bins[index].value <= value && bins[index + 1].value > value) {
+	ptr2vec(vec);
+	for (index = 0; index < vec.size() - 1; index++) {
+		if (vec[index].value <= value && vec[index + 1].value > value) {
 			break;
 		}
 	}
 
-	mb = (bins[index + 1].freq - bins[index].freq);
-	mb = mb * (value - bins[index].value);
-	mb = mb / (bins[index + 1].value - bins[index].value);
-	mb = bins[index].value + mb;
+	mb = (vec[index + 1].freq - vec[index].freq);
+	mb = mb * (value - vec[index].value);
+	mb = mb / (vec[index + 1].value - vec[index].value);
+	mb = vec[index].value + mb;
 
-	s = (bins[index].freq + mb) / 2;
-	s = s * (value - bins[index].value);
-	s = s / (bins[index + 1].value - bins[index].value);
+	s = (vec[index].freq + mb) / 2;
+	s = s * (value - vec[index].value);
+	s = s / (vec[index + 1].value - vec[index].value);
 
 	for (int j = 0; j < index; j++) {
-		s = s + bins[j].freq;
+		s = s + vec[j].freq;
 	}
 
-	s = s + bins[index].freq;
-
+	s = s + vec[index].freq;
+	vec2ptr(vec);
 	return s;
 }
 
 void Histogram::merge(Histogram &h, int B) {
 	int index = 0;
+	std::vector<BinTriplet> vec;
+	ptr2vec(vec);
 
-	bins.insert(bins.end(), h.bins.begin(), h.bins.end());
+	std::vector<BinTriplet> hvec;
+	h.ptr2vec(hvec);
+	vec.insert(vec.end(), hvec.begin(), hvec.end());
 
 	sortBin();
 
-	while (bins.size() > B) {
+	while (vec.size() > B) {
 		mergeBin();
 	}
+
+	vec2ptr(vec);
+	h.vec2ptr(hvec);
 	return;
 }
 
@@ -126,37 +175,42 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 	int index = 0;
 	double a = 0, b = 0, c = 0, d = 0, z = 0;	
 	double uj = 0;
+	std::vector<BinTriplet> vec;
+	ptr2vec(vec);
+
 	u.clear();
 
 	for (int i = 0; i <= B - 1; i++) {
-		tmpsum += bins[i].freq;
+		tmpsum += vec[i].freq;
 	}
 
 	for (int j = 0; j <= B - 2; j++) {
 		s = tmpsum * j / B;
 		
-		for (index = 0; index < bins.size() - 1; index++) {
-			if (sum(bins[index].value) < s
-				&& s < sum(bins[index + 1].value)) {
+		for (index = 0; index < vec.size() - 1; index++) {
+			if (sum(vec[index].value) < s
+				&& s < sum(vec[index + 1].value)) {
 				break;
 			}
 		}
 
-		d = s - sum(bins[index].value);
+		d = s - sum(vec[index].value);
 
-		a = bins[index + 1].freq - bins[index].freq;
-		b = 2 * bins[index].freq;
+		a = vec[index + 1].freq - vec[index].freq;
+		b = 2 * vec[index].freq;
 		c = -2 * d;
 		z = -b + sqrt(b * b - 4 * a * c);
 		z = z / (2 * a);
 
-		uj = bins[index].value + z * (bins[index + 1].value - bins[index].value);
+		uj = vec[index].value + z * (vec[index + 1].value - vec[index].value);
 		u.push_back(uj);
 	}
+	vec2ptr(vec);
 	return;
 }
 
 void Histogram::clear() {
 	max_bin = 0;
-	bins.clear();
+	bin_size = 0;
+	bins = NULL;
 }
