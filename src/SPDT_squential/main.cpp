@@ -8,7 +8,7 @@ int main() {
     Dataset testDataset(2, 30956, 123);	
     
     trainDataset.open_read_data("./data/a1a.train.txt");        
-    decisionTree.train(trainDataset);
+    decisionTree.train(trainDataset, 1605);
 
 	testDataset.open_read_data("./data/a1a.test.txt");	
     decisionTree.test(testDataset);
