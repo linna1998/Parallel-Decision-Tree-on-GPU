@@ -147,6 +147,7 @@ DecisionTree::DecisionTree()
     this->num_leaves = 0;
     this->cur_depth = 0;
     this->root = NULL;
+    this->bin_ptr = NULL;
 
 }
 
@@ -159,6 +160,7 @@ DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size)
     this->num_leaves = 0;
     this->cur_depth = 0;
     this->root = NULL;
+    this->bin_ptr = NULL;
 }
 
 /* 
@@ -358,13 +360,11 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_lea
         node->data_ptr.push_back(&d);
         node->has_new_data = true;
         for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
-        {
-            dbg_printf("attr: %d, d.label %d\n", attr, d.label);
+        {            
             // printf("max=%d\n", histogram[node->histogram_id][attr][d.label].max_bin);
             if (d.values.find(attr) != d.values.end()) {
                 (*(node->histogram_ptr))[attr][d.label].update(d.values[attr]);
-            }            
-            printf("compress: f_id=%d, f_value=%f\n", attr, d.values[attr]);
+            }          
         }
     }
     dbg_printf("compress: end\n");
@@ -400,20 +400,26 @@ void DecisionTree::batch_initialize(TreeNode *node)
  */
 void DecisionTree::init_histogram(vector<TreeNode *> &unlabled_leaf)
 {
+    long long int number = 0;
     dbg_printf("init_histogram: begin\n");
-    if (bin_ptr != NULL)
+    if (bin_ptr != NULL) {        
         delete[] bin_ptr;
-
+    }
+        
     printf("init_histogram: 1\n");
-    bin_ptr = new Bin_t[max_num_leaves * num_of_feature * num_class * max_bin_size];
-    memset(bin_ptr, 0, max_num_leaves * num_of_feature * num_class * max_bin_size * sizeof(Bin_t));            
+    number = max_num_leaves * datasetPointer->num_of_features * datasetPointer->num_of_classes * max_bin_size;    
+    bin_ptr = new Bin_t[number];
+    
+    memset(bin_ptr, 0, number * sizeof(Bin_t));            
     for (auto &p : unlabled_leaf)
     {
         for (int feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++)
         {
             for (int class_id = 0; class_id < datasetPointer->num_of_classes; class_id++)
             {
-                histogram[p->histogram_id][feature_id][class_id].bins = &bin_ptr[RLOC(p->histogram_id, feature_id, class_id, num_of_feature, num_class, max_bin_size)];
+                histogram[p->histogram_id][feature_id][class_id].bins = 
+                    &bin_ptr[RLOC(p->histogram_id, feature_id, class_id, 
+                    datasetPointer->num_of_features, datasetPointer->num_of_classes, max_bin_size)];
             }
         }
         p->histogram_ptr = &histogram[p->histogram_id];   

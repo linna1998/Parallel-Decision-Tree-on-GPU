@@ -63,9 +63,7 @@ private:
     int min_node_size = 32;
     int cur_depth = 0;
     Histogram_ALL histogram;
-    // three dimensions for the global histogram.
-    int num_of_feature;
-    int num_class;
+    // three dimensions for the global histogram.    
     int num_unlabled_leaves;
 
     Dataset* datasetPointer; 
