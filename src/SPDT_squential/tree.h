@@ -55,7 +55,6 @@ public:
     TreeNode* left_node;
     TreeNode* right_node;
     Histogram_LEAF* histogram_ptr;
-    Bin_ptr bin_ptr;  
     int histogram_id;   
 
     vector<Data*> data_ptr;
@@ -78,7 +77,7 @@ private:
     int max_bin_size;
     int min_node_size;
     int cur_depth = 0;
-    Histogram_ALL* histogram_ptr;
+    Histogram_ALL histogram;
     // three dimensions for the global histogram.
     int num_feature_num;
     int num_class;

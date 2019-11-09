@@ -336,11 +336,12 @@ void DecisionTree::init_histogram(vector<TreeNode *> &unlabled_leaf)
             for (int class_id = 0; class_id < datasetPointer->num_of_classes; class_id++)
             {
                 //TODO: initialize the histogram.
-                
+                histogram[p->histogram_id][feature_id][class_id].clear();
                 memset(&bin_ptr[RLOC(p->histogram_id, feature_id, class_id, num_feature_num, num_class, max_bin_size)], 0, max_bin_size * sizeof(Bin_t));
             }
         }
-        p->bin_ptr = &bin_ptr[RLOC(p->histogram_id, num_feature_num, num_class, max_bin_size)];
+        p->histogram_ptr = &histogram[p->histogram_id];
+        
     }
 }
 
