@@ -1,4 +1,6 @@
+#define DEBUG 1
 #include "tree.h"
+
 
 int main() {
 

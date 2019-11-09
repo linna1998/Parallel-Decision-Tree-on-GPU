@@ -12,8 +12,13 @@ BinTriplet::BinTriplet(double _value, int _freq) {
 }
 
 
-Histogram::Histogram(int max_bin, BinTriplet* _bins) {	
+Histogram::Histogram(const int max_bin, BinTriplet* _bins) {	
 	this->bins = _bins;
+	this->max_bin = max_bin;
+	this->bin_size = 0;	
+}
+
+Histogram::Histogram(const int max_bin) {	
 	this->max_bin = max_bin;
 	this->bin_size = 0;	
 }
@@ -44,19 +49,23 @@ void Histogram::vec2ptr(std::vector<BinTriplet>& vec) {
 void Histogram::sortBin() {
 	std::vector<BinTriplet> vec;
 	ptr2vec(vec);
+	// printf("sortBin: size=%d\n", vec.size());
 	sort(vec.begin(), vec.end(), [](const BinTriplet &a, const BinTriplet &b) {
 		return a.value < b.value;
 	});
 	vec2ptr(vec);
+	// printf("sortBin: end\n");
 }
 
 
 void Histogram::mergeBin() {
+
 	BinTriplet newbin;
 	int index = 0;
 
 	std::vector<BinTriplet> vec;
 	ptr2vec(vec);
+	// printf("mergeBin: begin size=%d\n", vec.size());
 
 	// find the min value of difference
 	for (int i = 0; i < vec.size() - 1; i++) {
@@ -78,17 +87,21 @@ void Histogram::mergeBin() {
 	vec.erase(vec.begin() + index + 1);
 	vec[index] = newbin;
 	vec2ptr(vec);
+	// printf("mergeBin: end\n");
+
 }
 
 void Histogram::update(double value) {	
 	std::vector<BinTriplet> vec;
 	ptr2vec(vec);
+	// printf("update: begin size=%d\n", vec.size());
 
 	// If there are values in the bin equals to the value here
 	for (int i = 0; i < vec.size(); i++) {
 		if (vec[i].value == value) {			
 			vec[i].freq++;
 			vec2ptr(vec);
+			// printf("update: end\n");
 			return;
 		}
 	}
@@ -96,15 +109,17 @@ void Histogram::update(double value) {
 	vec.push_back(BinTriplet(value, 1));
 
 	sortBin();
-
+	// printf("size=%d, max_bin=%d", vec.size(), max_bin);
 	if (vec.size() <= max_bin) {
 		vec2ptr(vec);
+		// printf("update: end\n");
 		return;
 	}
 	
 	mergeBin();
 	
 	vec2ptr(vec);
+	// printf("update: end\n");
 	return;
 }
 
@@ -199,7 +214,6 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 }
 
 void Histogram::clear() {
-	max_bin = 0;
 	bin_size = 0;
 	bins = NULL;
 }

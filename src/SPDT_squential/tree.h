@@ -11,23 +11,6 @@ typedef std::vector<Histogram_LEAF> Histogram_ALL;
 typedef BinTriplet Bin_t;
 typedef Bin_t* Bin_ptr;
 
-#ifdef DEBUG
-/* When DEBUG is defined, these form aliases to useful functions */
-#define dbg_printf(...) printf(__VA_ARGS__)
-#define dbg_requires(expr) assert(expr)
-#define dbg_assert(expr) assert(expr)
-#define dbg_ensures(expr) assert(expr)
-#define dbg_printheap(...) print_heap(__VA_ARGS__)
-#else
-/* When DEBUG is not defined, no code gets generated for these */
-/* The sizeof() hack is used to avoid "unused variable" warnings */
-#define dbg_printf(...) (sizeof(__VA_ARGS__), -1)
-#define dbg_requires(expr) (sizeof(expr), 1)
-#define dbg_assert(expr) (sizeof(expr), 1)
-#define dbg_ensures(expr) (sizeof(expr), 1)
-#define dbg_printheap(...) ((void)sizeof(__VA_ARGS__))
-#endif
-
 class SplitPoint{
 public:
     // used to store the spliting information on a given histogram.
@@ -74,14 +57,14 @@ private:
     TreeNode* root = NULL;
     int num_leaves;
     int depth;
-    int max_num_leaves;
-    int max_depth;
-    int max_bin_size;
-    int min_node_size;
+    int max_num_leaves = 64;
+    int max_depth = 8;
+    int max_bin_size = 255;
+    int min_node_size = 32;
     int cur_depth = 0;
     Histogram_ALL histogram;
     // three dimensions for the global histogram.
-    int num_feature_num;
+    int num_of_feature;
     int num_class;
     int num_unlabled_leaves;
 
@@ -101,7 +84,8 @@ public:
     void find_best_split(TreeNode* node, SplitPoint& split);
     void compress(vector<Data>& data, vector<TreeNode* >& unlabled_leaf);
     vector<TreeNode*> __get_unlabeled(TreeNode* node);
-    void initialize(TreeNode* node);
+    void batch_initialize(TreeNode* node);
+    void initialize(Dataset &train_data, const int batch_size);
     void init_histogram(vector<TreeNode* >& unlabled_leaf);
     TreeNode* navigate(Data& d);
     bool is_terminated(TreeNode* node);

@@ -3,9 +3,10 @@ OUTPUTDIR := bin/
 #-std=c++14
 
 CFLAGS := -std=c++11 -fvisibility=hidden -lpthread -O3
-CFLAGS_DBG := -std=c++11 -fvisibility=hidden -lpthread -O3 -DEBUG=1
 
-SOURCES := src/SPDT_squential/*.cpp
+SOURCES := src/SPDT_squential/histogram.cpp src/SPDT_squential/main.cpp src/SPDT_squential/parser.cpp src/SPDT_squential/tree.cpp
+SOURCES_dbg := src/SPDT_squential/histogram.cpp src/SPDT_squential/main_dbg.cpp src/SPDT_squential/parser.cpp src/SPDT_squential/tree.cpp
+
 HEADERS := src/SPDT_squential/*.h
 
 TARGETBIN := decision-tree
@@ -23,8 +24,8 @@ $(TARGETBIN): $(SOURCES) $(HEADERS)
 
 debug: $(TARGETBIN_DBG)
 
-$(TARGETBIN_DBG): $(SOURCES) $(HEADERS)
-	$(CXX) -o $@ $(CFLAGS_DBG) $(SOURCES)
+$(TARGETBIN_DBG): $(SOURCES_dbg) $(HEADERS)
+	$(CXX) -o $@ $(CFLAGS) $(SOURCES_dbg)
 
 clean:
 	rm -rf ./$(TARGETBIN)

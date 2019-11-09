@@ -5,6 +5,24 @@
 #include <algorithm>
 #include <math.h>
 
+#define DEBUG 1
+#ifdef DEBUG
+/* When DEBUG is defined, these form aliases to useful functions */
+#define dbg_printf(...) printf(__VA_ARGS__)
+#define dbg_requires(expr) assert(expr)
+#define dbg_assert(expr) assert(expr)
+#define dbg_ensures(expr) assert(expr)
+#define dbg_printheap(...) print_heap(__VA_ARGS__)
+#else
+/* When DEBUG is not defined, no code gets generated for these */
+/* The sizeof() hack is used to avoid "unused variable" warnings */
+#define dbg_printf(...) (sizeof(__VA_ARGS__), -1)
+#define dbg_requires(expr) (sizeof(expr), 1)
+#define dbg_assert(expr) (sizeof(expr), 1)
+#define dbg_ensures(expr) (sizeof(expr), 1)
+#define dbg_printheap(...) ((void)sizeof(__VA_ARGS__))
+#endif
+
 /*
  * For A[][M][N][Z]
  * A[i][j][k][e] = A[N*Z*M*i+Z*N*j+k*Z+e]
@@ -62,11 +80,6 @@ bool SplitPoint::decition_rule(Data &data)
 TreeNode::TreeNode(int depth)
 {
     this->depth = depth;
-    init();
-}
-
-void TreeNode::init()
-{
     is_leaf = false;
     has_new_data = false;
     label = -1;
@@ -74,6 +87,21 @@ void TreeNode::init()
     data_ptr.clear();
     histogram_id = -1;
     histogram_ptr = NULL;
+    left_node = NULL;
+    right_node = NULL;
+}
+
+
+void TreeNode::init()
+{
+    has_new_data = false;
+    label = -1;
+    // remove this if you want to keep the previous batch data.
+    data_ptr.clear();
+    histogram_id = -1;
+    histogram_ptr = NULL;
+    left_node = NULL;
+    right_node = NULL;
     return;
 }
 
@@ -117,6 +145,8 @@ DecisionTree::DecisionTree()
     this->depth = 0;
     this->num_leaves = 0;
     this->cur_depth = 0;
+    this->root = NULL;
+
 }
 
 DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size)
@@ -127,6 +157,7 @@ DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size)
     this->depth = 0;
     this->num_leaves = 0;
     this->cur_depth = 0;
+    this->root = NULL;
 }
 
 /* 
@@ -156,15 +187,24 @@ bool DecisionTree::is_terminated(TreeNode *node)
     return false;
 }
 
+void DecisionTree::initialize(Dataset &train_data, const int batch_size){
+    this->datasetPointer = &train_data;
+    dbg_printf("Init Root Node\n");
+    root = new TreeNode(0);   
+    root->is_leaf = true;
+    histogram = Histogram_ALL(max_num_leaves, Histogram_LEAF(train_data.num_of_features, Histogram_FEATURE(train_data.num_of_classes, Histogram(max_bin_size))));
+}
+
 void DecisionTree::train(Dataset &train_data, const int batch_size)
 {
     int hasNext = TRUE;
-    if (root == NULL)
-        root = new TreeNode(0);    
-
+    initialize(train_data, batch_size);
 	while (TRUE) {
 		hasNext = train_data.streaming_read_data(batch_size);		
-        train_data.print_dataset();
+        // train_data.print_dataset();
+        dbg_printf("Train size (%d, %d, %d)\n", train_data.num_of_data, 
+                train_data.num_of_features, train_data.num_of_classes);
+
         train_on_batch(train_data);        
 		if (!hasNext) break;
 	}		
@@ -214,34 +254,38 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 */
 vector<TreeNode *> DecisionTree::__get_unlabeled(TreeNode *node)
 {
+    dbg_printf("get_unlabeled: begin\n");
     queue<TreeNode *> q;
     q.push(node);
     vector<TreeNode *> ret;
     int c = 0;
-    while (q.empty())
+    while (!q.empty())
     {
         auto tmp_ptr = q.front();
         q.pop();
-        if (node == NULL)
+        if (tmp_ptr == NULL)
         {
             // should never reach here.
             fprintf(stderr, "ERROR: The tree contains node that have only one child\n");
             exit(-1);
         }
-        else if ((node->left_node == NULL) && (node->left_node == NULL))
+        else if ((tmp_ptr->left_node == NULL) && (tmp_ptr->right_node == NULL))
         {
-            if (node->is_leaf && node->label < 0)
+            dbg_requires(tmp_ptr->is_leaf);
+            dbg_requires(tmp_ptr->label < 0);
+            if (tmp_ptr->is_leaf && tmp_ptr->label < 0)
             {
-                ret.push_back(node);
-                node->histogram_id = c++;
+                ret.push_back(tmp_ptr);
+                tmp_ptr->histogram_id = c++;
             }
         }
         else
         {
-            q.push(node->left_node);
-            q.push(node->right_node);
+            q.push(tmp_ptr->left_node);
+            q.push(tmp_ptr->right_node);
         }
     }
+    dbg_printf("get_unlabeled: end, ret=[%d]\n", (int)ret.size());
     return ret;
 }
 /*
@@ -250,14 +294,28 @@ vector<TreeNode *> DecisionTree::__get_unlabeled(TreeNode *node)
 void DecisionTree::train_on_batch(Dataset &train_data)
 {
     // Reinitialize every leaf in T as unlabeled.
-    initialize(root);
+    dbg_printf("initialize: begin\n");
+    batch_initialize(root);
+    dbg_printf("initialize: end\n");
+
     vector<TreeNode *> unlabeled_leaf = __get_unlabeled(root);
-    while (unlabeled_leaf.size() > 0)
+
+    while (!unlabeled_leaf.empty())
     {
         // each while loop would add a new level node.
         this->cur_depth++;
         vector<TreeNode *> unlabeled_leaf_new;
         init_histogram(unlabeled_leaf);
+        // for (auto&p: histogram){
+        //     for (int feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++)
+        //     {
+        //         for (int class_id = 0; class_id < datasetPointer->num_of_classes; class_id++)
+        //         {
+        //             printf("max=%d\n", p[feature_id][class_id].max_bin);
+        //         }
+        //     }
+        // }
+
         compress(train_data.dataset, unlabeled_leaf);
         for (auto &cur_leaf : unlabeled_leaf)
         {
@@ -290,23 +348,30 @@ void DecisionTree::train_on_batch(Dataset &train_data)
 */
 void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_leaf)
 {
+    dbg_printf("compress: begin\n");
     int feature_id = 0, class_id = 0;
     // Construct the histogram. and navigate each data to its leaf.
     for (auto &d : data)
     {
+        dbg_printf("compress: 1\n");
         auto node = DecisionTree::navigate(d);
+        dbg_printf("compress: 2\n");
         node->data_ptr.push_back(&d);
         node->has_new_data = true;
         for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
         {
-            (*(node->histogram_ptr))[attr][d.label].update(d.values[attr]);
+            int label = (d.label < 0)?0:1;
+            // printf("max=%d\n", histogram[node->histogram_id][attr][label].max_bin);
+            (*(node->histogram_ptr))[attr][label].update(d.values[attr]);
         }
+        dbg_printf("compress: 3\n");
     }
+    dbg_printf("compress: begin\n");
 }
 /*
- * initialize each node. This function is called when a new batch comes.
+ * initialize each leaf as unlabeled.
  */
-void DecisionTree::initialize(TreeNode *node)
+void DecisionTree::batch_initialize(TreeNode *node)
 {
     int feature_id = 0, class_id = 0;
 
@@ -316,14 +381,14 @@ void DecisionTree::initialize(TreeNode *node)
         fprintf(stderr, "ERROR: The tree contains node that have only one child\n");
         exit(-1);
     }
-    else if ((node->left_node == NULL) && (node->left_node == NULL))
+    else if ((node->left_node == NULL) && (node->right_node == NULL))
     {
-        node->init();
+       node->init();
     }
     else
     {
-        initialize(node->left_node);
-        initialize(node->right_node);
+        batch_initialize(node->left_node);
+        batch_initialize(node->right_node);
     }
     return;
 }
@@ -334,24 +399,25 @@ void DecisionTree::initialize(TreeNode *node)
  */
 void DecisionTree::init_histogram(vector<TreeNode *> &unlabled_leaf)
 {
+    dbg_printf("init_histogram: begin\n");
     if (bin_ptr != NULL)
         delete[] bin_ptr;
 
-    bin_ptr = new Bin_t[max_num_leaves * num_feature_num * num_class * max_bin_size];
+    printf("init_histogram: 1\n");
+    bin_ptr = new Bin_t[max_num_leaves * num_of_feature * num_class * max_bin_size];
+    memset(bin_ptr, 0, max_num_leaves * num_of_feature * num_class * max_bin_size * sizeof(Bin_t));            
     for (auto &p : unlabled_leaf)
     {
         for (int feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++)
         {
             for (int class_id = 0; class_id < datasetPointer->num_of_classes; class_id++)
             {
-                //TODO: initialize the histogram.
-                histogram[p->histogram_id][feature_id][class_id].clear();
-                memset(&bin_ptr[RLOC(p->histogram_id, feature_id, class_id, num_feature_num, num_class, max_bin_size)], 0, max_bin_size * sizeof(Bin_t));
+                histogram[p->histogram_id][feature_id][class_id].bins = &bin_ptr[RLOC(p->histogram_id, feature_id, class_id, num_of_feature, num_class, max_bin_size)];
             }
         }
-        p->histogram_ptr = &histogram[p->histogram_id];
-        
+        p->histogram_ptr = &histogram[p->histogram_id];   
     }
+    dbg_printf("init_histogram: end\n");
 }
 
 /*
