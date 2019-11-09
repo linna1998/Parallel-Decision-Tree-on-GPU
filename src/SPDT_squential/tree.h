@@ -7,6 +7,23 @@ typedef std::vector<Histogram> Histogram_FEATURE;
 typedef std::vector<Histogram_FEATURE> Histogram_LEAF;
 typedef std::vector<Histogram_LEAF> Histogram_ALL;
 
+#ifdef DEBUG
+/* When DEBUG is defined, these form aliases to useful functions */
+#define dbg_printf(...) printf(__VA_ARGS__)
+#define dbg_requires(expr) assert(expr)
+#define dbg_assert(expr) assert(expr)
+#define dbg_ensures(expr) assert(expr)
+#define dbg_printheap(...) print_heap(__VA_ARGS__)
+#else
+/* When DEBUG is not defined, no code gets generated for these */
+/* The sizeof() hack is used to avoid "unused variable" warnings */
+#define dbg_printf(...) (sizeof(__VA_ARGS__), -1)
+#define dbg_requires(expr) (sizeof(expr), 1)
+#define dbg_assert(expr) (sizeof(expr), 1)
+#define dbg_ensures(expr) (sizeof(expr), 1)
+#define dbg_printheap(...) ((void)sizeof(__VA_ARGS__))
+#endif
+
 class SplitPoint{
 public:
     // used to store the spliting information on a given histogram.
@@ -31,6 +48,8 @@ public:
     bool is_leaf = false;    
     bool has_new_data = false;
     int label; // -1 means no label
+    int depth;
+
     TreeNode* left_node;
     TreeNode* right_node;
 
@@ -40,7 +59,7 @@ public:
     vector<Data*> data_ptr;
     SplitPoint split_ptr;
 
-    TreeNode();
+    TreeNode(int depth);
     void set_label();    
     void init();    
     void split(SplitPoint& best_split, vector<Data*>& left, vector<Data*>& right);
@@ -56,6 +75,8 @@ private:
     int max_depth;
     int max_bin_size;
     int min_node_size;
+    int cur_depth = 0;
+
     Dataset* datasetPointer; 
     // histogram size (num_leaf, num_feature, num_class)
     Histogram_ALL histogram;
