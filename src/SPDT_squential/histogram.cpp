@@ -21,7 +21,7 @@ Histogram::Histogram(int max_bin) {
 	this->max_bin = max_bin;	
 }
 
-Histogram::Histogram(int max_bin, const std::vector<BinTriplet>& _bins) {
+Histogram::Histogram(int max_bin, BinTriplet* _bins) {
 	this->bins.clear();
 	this->bins = _bins;
 	this->max_bin = max_bin;	

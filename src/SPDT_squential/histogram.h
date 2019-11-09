@@ -5,23 +5,25 @@
 // scala version: 
 // https://github.com/soundcloud/spdt/blob/master/compute/src/main/scala/com.soundcloud.spdt/Histogram.scala
 
+
 class BinTriplet {
 public:
     double value;
     int freq; // number of samples in this bin    
 	BinTriplet();
 	BinTriplet(double _value, int _freq);
-} ;
+};
+
 
 class Histogram {
 public:
 	int max_bin;       
 	// bins are always sorted, with value in increasing order
-    std::vector<BinTriplet> bins;
+    BinTriplet* bins;
 	
 	Histogram();
     Histogram(int max_bin);
-	Histogram(int max_bin, const std::vector<BinTriplet>& bins);
+	Histogram(int max_bin, const BinTriplet* bins);
 	void sortBin();
 	void mergeBin();
     void update(double value);

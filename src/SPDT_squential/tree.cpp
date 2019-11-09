@@ -5,6 +5,38 @@
 #include <algorithm>
 #include <math.h>
 
+/*
+ * For A[][M][N][Z]
+ * A[i][j][k][e] = A[N*Z*M*i+Z*N*j+k*Z+e]
+ */
+inline int RLOC(int i, int j, int k, int e, int& M, int &N, int& Z){
+    return N*Z*M*i+Z*N*j+k*Z*k+e;
+}
+
+/*
+ * For A[][M][N][Z]
+ * A[i][j][k] = A[N*Z*M*i+Z*N*j+k*Z]
+ */
+inline int RLOC(int i, int j, int k, int& M, int &N, int& Z){
+    return N*Z*M*i+Z*N*j+k*Z*k;
+}
+
+/*
+ * For A[][M][N][Z]
+ * A[i][j] = A[N*Z*M*i+Z*N*j]
+ */
+inline int RLOC(int i, int j, int& M, int &N, int& Z){
+    return N*Z*M*i+Z*N*j;
+}
+
+/*
+ * For A[][M][N][Z]
+ * A[i] = A[N*Z*M*i]
+ */
+inline int RLOC(int i, int& M, int &N, int& Z){
+    return N*Z*M*i;
+}
+
 SplitPoint::SplitPoint()
 {
     feature_id = -1;
@@ -293,17 +325,22 @@ void DecisionTree::initialize(TreeNode *node)
  */
 void DecisionTree::init_histogram(vector<TreeNode *> &unlabled_leaf)
 {
-    histogram.resize(unlabled_leaf.size());
+    if (bin_ptr != NULL)
+        delete[] bin_ptr;
+
+    bin_ptr = new Bin_t[max_num_leaves * num_feature_num * num_class * max_bin_size];
     for (auto &p : unlabled_leaf)
     {
         for (int feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++)
         {
             for (int class_id = 0; class_id < datasetPointer->num_of_classes; class_id++)
             {
-                histogram[p->histogram_id][feature_id][class_id].clear();
+                //TODO: initialize the histogram.
+                
+                memset(&bin_ptr[RLOC(p->histogram_id, feature_id, class_id, num_feature_num, num_class, max_bin_size)], 0, max_bin_size * sizeof(Bin_t));
             }
         }
-        p->histogram_ptr = &histogram[p->histogram_id];
+        p->bin_ptr = &bin_ptr[RLOC(p->histogram_id, num_feature_num, num_class, max_bin_size)];
     }
 }
 

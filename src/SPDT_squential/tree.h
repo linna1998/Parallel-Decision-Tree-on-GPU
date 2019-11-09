@@ -6,6 +6,8 @@
 typedef std::vector<Histogram> Histogram_FEATURE;
 typedef std::vector<Histogram_FEATURE> Histogram_LEAF;
 typedef std::vector<Histogram_LEAF> Histogram_ALL;
+typedef BinTriplet Bin_t;
+typedef Bin_t* Bin_ptr;
 
 #ifdef DEBUG
 /* When DEBUG is defined, these form aliases to useful functions */
@@ -52,8 +54,8 @@ public:
 
     TreeNode* left_node;
     TreeNode* right_node;
-
-    Histogram_LEAF* histogram_ptr;  
+    Histogram_LEAF* histogram_ptr;
+    Bin_ptr bin_ptr;  
     int histogram_id;   
 
     vector<Data*> data_ptr;
@@ -76,10 +78,15 @@ private:
     int max_bin_size;
     int min_node_size;
     int cur_depth = 0;
+    Histogram_ALL* histogram_ptr;
+    // three dimensions for the global histogram.
+    int num_feature_num;
+    int num_class;
+    int num_unlabled_leaves;
 
     Dataset* datasetPointer; 
     // histogram size (num_leaf, num_feature, num_class)
-    Histogram_ALL histogram;
+    Bin_ptr bin_ptr;
 
 public:
 
