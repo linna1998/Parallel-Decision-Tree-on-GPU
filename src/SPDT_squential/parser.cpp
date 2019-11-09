@@ -23,6 +23,7 @@ void Data::read_a_data(int num_of_features, ifstream* myfile) {
 			// cout << "prev: " << prev << endl;
 			label = stoi(prev);
 			// cout << "label: " << label << endl;
+			if (label == -1) label = 0;
 			isFirst = false;
 		} else {
 			// cout << "prev: " << prev << endl;
