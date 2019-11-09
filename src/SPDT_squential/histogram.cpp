@@ -11,17 +11,6 @@ BinTriplet::BinTriplet(double _value, int _freq) {
 	this->freq = _freq;
 }
 
-Histogram::Histogram() {
-	this->bins = NULL;
-	this->max_bin = 255;
-	this->bin_size = 0;
-}
-
-Histogram::Histogram(int max_bin) {
-	this->bins = NULL;
-	this->max_bin = max_bin;
-	this->bin_size = 0;	
-}
 
 Histogram::Histogram(int max_bin, BinTriplet* _bins) {	
 	this->bins = _bins;

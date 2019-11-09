@@ -10,9 +10,16 @@ int main() {
 	bool hasNext = true;
 
     trainDataset.open_read_data("./data/a1a.train.txt");
-    decisionTree.train(trainDataset);
+    testDataset.open_read_data("./data/a1a.test.txt");	
 
-	testDataset.open_read_data("./data/a1a.test.txt");	
+    dbg_printf("Train size (%d, %d, %d)\n", trainDataset.num_of_data, 
+                trainDataset.num_of_features, trainDataset.num_of_classes);
+    dbg_printf("Test size (%d, %d, %d)\n", trainDataset.num_of_data, 
+                trainDataset.num_of_features, trainDataset.num_of_classes);
+    
+    decisionTree.train_on_batch(trainDataset);
+
+
     decisionTree.test(testDataset);
 
     return 0;
