@@ -1,5 +1,6 @@
 #include "tree.h"
 #include "panel.h"
+#include <assert.h>
 #include <queue>
 #include <stdio.h>
 #include <algorithm>
