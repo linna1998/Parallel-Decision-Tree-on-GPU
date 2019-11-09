@@ -359,12 +359,15 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_lea
         node->has_new_data = true;
         for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
         {
+            dbg_printf("attr: %d, d.label %d\n", attr, d.label);
             // printf("max=%d\n", histogram[node->histogram_id][attr][d.label].max_bin);
-            (*(node->histogram_ptr))[attr][d.label].update(d.values[attr]);
+            if (d.values.find(attr) != d.values.end()) {
+                (*(node->histogram_ptr))[attr][d.label].update(d.values[attr]);
+            }            
             printf("compress: f_id=%d, f_value=%f\n", attr, d.values[attr]);
         }
     }
-    dbg_printf("compress: begin\n");
+    dbg_printf("compress: end\n");
 }
 /*
  * initialize each leaf as unlabeled.
