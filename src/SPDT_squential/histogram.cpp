@@ -226,7 +226,7 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 	}	
 
 	for (int j = 0; j <= B - 2; j++) {
-		s = tmpsum * j / B;		
+		s = tmpsum * (j + 1) / B;		
 		
 		for (index = 0; index < (int)vec.size() - 1; index++) {
 			
