@@ -19,7 +19,7 @@ public:
     double entropy;
     SplitPoint();
     SplitPoint(int feature_id, double feature_value, double entropy);
-    bool decition_rule(Data& data);
+    bool decision_rule(Data& data);
 
     inline SplitPoint& operator = (SplitPoint& split){
         this->feature_id = split.feature_id;

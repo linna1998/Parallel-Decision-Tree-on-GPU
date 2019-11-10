@@ -72,7 +72,7 @@ SplitPoint::SplitPoint(int feature_id, double feature_value, double entropy)
 /*
  * Reture True if the data is larger or equal than the split value
  */
-bool SplitPoint::decition_rule(Data &data)
+bool SplitPoint::decision_rule(Data &data)
 {
     return data.values[feature_id] >= feature_value;
 }
@@ -220,8 +220,8 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
     int hasNext = TRUE;
     initialize(train_data, batch_size);
 	while (TRUE) {
-		hasNext = train_data.streaming_read_data(batch_size);	
-        train_data.print_dataset();	
+		hasNext = train_data.streaming_read_data(batch_size);		
+        train_data.print_dataset();
         dbg_printf("Train size (%d, %d, %d)\n", train_data.num_of_data, 
                 train_data.num_of_features, train_data.num_of_classes);
 
@@ -366,7 +366,9 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_lea
             {            
                 if (d->values.find(attr) != d->values.end()) {
                     (*(node->histogram_ptr))[attr][d->label].update(d->values[attr]);
-                }          
+                } else {
+                    (*(node->histogram_ptr))[attr][d->label].update(0);
+                }       
             }
         }
     }
@@ -428,7 +430,7 @@ TreeNode *DecisionTree::navigate(Data &d)
     TreeNode *ptr = this->root;
     while (!ptr->is_leaf)
     {
-        ptr = (ptr->split_ptr.decition_rule(d)) ? ptr->right_node : ptr->left_node;
+        ptr = (ptr->split_ptr.decision_rule(d)) ? ptr->right_node : ptr->left_node;
     }
 
     return ptr;
