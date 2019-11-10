@@ -45,13 +45,13 @@ void Dataset::open_read_data(string name) {
 }
 
 /* return whether there are still data left or not */
-bool Dataset::streaming_read_data(int N) {
-	Data tmpdata;
+bool Dataset::streaming_read_data(int N) {	
 	dataset.clear();
+	dataset.shrink_to_fit();
+	dataset = vector<Data>(N);
 
 	for (int i = 0; i < N; i++) {
-		tmpdata.read_a_data(num_of_features, &myfile);
-		dataset.push_back(tmpdata);
+		dataset[i].read_a_data(num_of_features, &myfile);		
 		already_read_data++;
 		if (already_read_data == num_of_data) {
 			break;

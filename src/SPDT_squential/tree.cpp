@@ -222,7 +222,7 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
     initialize(train_data, batch_size);
 	while (TRUE) {
 		hasNext = train_data.streaming_read_data(batch_size);		
-        // train_data.print_dataset();
+        train_data.print_dataset();
         dbg_printf("Train size (%d, %d, %d)\n", train_data.num_of_data, 
                 train_data.num_of_features, train_data.num_of_classes);
 
