@@ -46,23 +46,18 @@ void Histogram::vec2ptr(std::vector<BinTriplet>& vec) {
 	vec.shrink_to_fit();	
 }
 
-void Histogram::sortBin() {
-	std::vector<BinTriplet> vec;
-	ptr2vec(vec);	
+void Histogram::sortBin(std::vector<BinTriplet>& vec) {	
 	sort(vec.begin(), vec.end(), [](const BinTriplet &a, const BinTriplet &b) {
 		return a.value < b.value;
-	});
-	vec2ptr(vec);	
+	});	
 }
 
 
-void Histogram::mergeBin() {
+void Histogram::mergeBin(std::vector<BinTriplet>& vec) {
 
 	BinTriplet newbin;
 	int index = 0;
 
-	std::vector<BinTriplet> vec;
-	ptr2vec(vec);
 	// find the min value of difference
 	for (int i = 0; i < vec.size() - 1; i++) {
 		if (vec[i + 1].value - vec[i].value
@@ -80,8 +75,7 @@ void Histogram::mergeBin() {
 	// erase vec[index + 1]
 	// change vec[index] with newbin
 	vec.erase(vec.begin() + index + 1);
-	vec[index] = newbin;
-	vec2ptr(vec);
+	vec[index] = newbin;	
 
 }
 
@@ -100,13 +94,13 @@ void Histogram::update(double value) {
 
 	vec.push_back(BinTriplet(value, 1));
 
-	sortBin();	
+	sortBin(vec);	
 	if (vec.size() <= max_bin) {
 		vec2ptr(vec);		
 		return;
 	}
 	
-	mergeBin();
+	mergeBin(vec);
 	
 	vec2ptr(vec);	
 	return;
@@ -152,11 +146,11 @@ void Histogram::merge(Histogram &h, int B) {
 	h.ptr2vec(hvec);
 
 	vec.insert(vec.end(), hvec.begin(), hvec.end());
-
-	sortBin();
+	
+	sortBin(vec);
 
 	while (vec.size() > B) {
-		mergeBin();
+		mergeBin(vec);
 	}
 
 	vec2ptr(vec);
