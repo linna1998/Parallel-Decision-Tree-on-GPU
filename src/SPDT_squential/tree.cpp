@@ -206,7 +206,6 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
     initialize(train_data, batch_size);
 	while (TRUE) {
 		hasNext = train_data.streaming_read_data(batch_size);		
-        // train_data.print_dataset();
         dbg_printf("Train size (%d, %d, %d)\n", train_data.num_of_data, 
                 train_data.num_of_features, train_data.num_of_classes);
 
@@ -228,7 +227,6 @@ void DecisionTree::test(Dataset &train_data)
 */
 void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 {
-    printf("find_best_split: begin\n");
     std::vector<SplitPoint> results;
     for (int i = 0; i < this->datasetPointer->num_of_features; i++)
     {
@@ -253,7 +251,6 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 
     SplitPoint v = SplitPoint(best_split->feature_id, best_split->feature_value, best_split->entropy);
     split = v;
-    printf("find_best_split: end\n");
 }
 
 /* 
@@ -261,7 +258,6 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 */
 vector<TreeNode *> DecisionTree::__get_unlabeled(TreeNode *node)
 {
-    dbg_printf("get_unlabeled: begin\n");
     queue<TreeNode *> q;
     q.push(node);
     vector<TreeNode *> ret;
@@ -290,7 +286,6 @@ vector<TreeNode *> DecisionTree::__get_unlabeled(TreeNode *node)
             q.push(tmp_ptr->right_node);
         }
     }
-    dbg_printf("get_unlabeled: end, ret=[%d]\n", (int)ret.size());
     return ret;
 }
 /*
@@ -299,43 +294,26 @@ vector<TreeNode *> DecisionTree::__get_unlabeled(TreeNode *node)
 void DecisionTree::train_on_batch(Dataset &train_data)
 {
     // Reinitialize every leaf in T as unlabeled.
-    dbg_printf("initialize: begin\n");
     batch_initialize(root);
-    dbg_printf("initialize: end\n");
-
     vector<TreeNode *> unlabeled_leaf = __get_unlabeled(root);
 
     while (!unlabeled_leaf.empty())
     {
-        printf("Begin of one while loop\n");
+        dbg_printf("New level begin\n");
         // each while loop would add a new level node.
         this->cur_depth++;
         vector<TreeNode *> unlabeled_leaf_new;
         init_histogram(unlabeled_leaf);
-        // for (auto&p: histogram){
-        //     for (int feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++)
-        //     {
-        //         for (int class_id = 0; class_id < datasetPointer->num_of_classes; class_id++)
-        //         {
-        //             printf("max=%d\n", p[feature_id][class_id].max_bin);
-        //         }
-        //     }
-        // }
-
         compress(train_data.dataset, unlabeled_leaf);
         for (auto &cur_leaf : unlabeled_leaf)
         {
-            printf("In for loop\n");
             if (is_terminated(cur_leaf))
             {
-                printf("before if\n");
                 cur_leaf->set_label();
                 this->num_leaves++;
-                printf("after if\n");
             }
             else
             {
-                printf("before else\n");
                 SplitPoint best_split;
                 find_best_split(cur_leaf, best_split);
                 auto left_tree = new TreeNode(this->cur_depth);
@@ -344,13 +322,10 @@ void DecisionTree::train_on_batch(Dataset &train_data)
                 unlabeled_leaf_new.push_back(left_tree);
                 unlabeled_leaf_new.push_back(right_tree);
                 this->num_leaves--;
-                printf("after else\n");
             }
         }
         unlabeled_leaf = unlabeled_leaf_new;
         unlabeled_leaf_new.clear();
-
-        printf("End of one while loop\n");
     }
 }
 
@@ -361,7 +336,6 @@ void DecisionTree::train_on_batch(Dataset &train_data)
 */
 void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_leaf)
 {
-    dbg_printf("compress: begin\n");
     int feature_id = 0, class_id = 0;
     // Construct the histogram. and navigate each data to its leaf.
     for (auto &d : data)
@@ -371,13 +345,11 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_lea
         node->has_new_data = true;
         for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
         {            
-            // printf("max=%d\n", histogram[node->histogram_id][attr][d.label].max_bin);
             if (d.values.find(attr) != d.values.end()) {
                 (*(node->histogram_ptr))[attr][d.label].update(d.values[attr]);
             }          
         }
     }
-    dbg_printf("compress: end\n");
 }
 /*
  * initialize each leaf as unlabeled.
@@ -411,20 +383,12 @@ void DecisionTree::batch_initialize(TreeNode *node)
 void DecisionTree::init_histogram(vector<TreeNode *> &unlabled_leaf)
 {
     long long int number = 0;
-    dbg_printf("init_histogram: begin\n");
     if (bin_ptr != NULL) {        
         delete[] bin_ptr;
     }
-        
-    printf("init_histogram: 1\n");
     number = max_num_leaves * datasetPointer->num_of_features * datasetPointer->num_of_classes * max_bin_size;    
     bin_ptr = new Bin_t[number];
-
-    printf("number: %d\n", number);
-    
     memset(bin_ptr, 0, number * sizeof(Bin_t));  
-
-    printf("after memset\n");    
     int c = 0;      
     for (auto &p : unlabled_leaf)
     {
@@ -439,7 +403,6 @@ void DecisionTree::init_histogram(vector<TreeNode *> &unlabled_leaf)
         }
         p->histogram_ptr = &histogram[p->histogram_id];   
     }
-    dbg_printf("init_histogram: end\n");
 }
 
 /*

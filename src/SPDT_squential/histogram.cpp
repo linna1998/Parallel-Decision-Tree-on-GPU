@@ -49,12 +49,10 @@ void Histogram::vec2ptr(std::vector<BinTriplet>& vec) {
 void Histogram::sortBin() {
 	std::vector<BinTriplet> vec;
 	ptr2vec(vec);
-	// printf("sortBin: size=%d\n", vec.size());
 	sort(vec.begin(), vec.end(), [](const BinTriplet &a, const BinTriplet &b) {
 		return a.value < b.value;
 	});
 	vec2ptr(vec);
-	// printf("sortBin: end\n");
 }
 
 
@@ -65,8 +63,6 @@ void Histogram::mergeBin() {
 
 	std::vector<BinTriplet> vec;
 	ptr2vec(vec);
-	// printf("mergeBin: begin size=%d\n", vec.size());
-
 	// find the min value of difference
 	for (int i = 0; i < vec.size() - 1; i++) {
 		if (vec[i + 1].value - vec[i].value
@@ -77,7 +73,6 @@ void Histogram::mergeBin() {
 
 	// merge vec[index], vecs[index + 1] into a new element
 	newbin.freq = vec[index].freq + vec[index + 1].freq;
-
 	newbin.value = (vec[index].value * vec[index].freq
 		+ vec[index + 1].value * (vec[index + 1].freq + vec[index + 1].freq)) /
 		newbin.freq;
@@ -87,21 +82,18 @@ void Histogram::mergeBin() {
 	vec.erase(vec.begin() + index + 1);
 	vec[index] = newbin;
 	vec2ptr(vec);
-	// printf("mergeBin: end\n");
 
 }
 
 void Histogram::update(double value) {	
 	std::vector<BinTriplet> vec;
 	ptr2vec(vec);
-	printf("update: begin size=%d\n", vec.size());
 
 	// If there are values in the bin equals to the value here
 	for (int i = 0; i < vec.size(); i++) {
 		if (vec[i].value == value) {			
 			vec[i].freq++;
 			vec2ptr(vec);
-			printf("update: end\n");
 			return;
 		}
 	}
@@ -109,17 +101,13 @@ void Histogram::update(double value) {
 	vec.push_back(BinTriplet(value, 1));
 
 	sortBin();
-	printf("size=%d, max_bin=%d", vec.size(), max_bin);
 	if (vec.size() <= max_bin) {
 		vec2ptr(vec);
-		printf("update: end\n");
 		return;
 	}
 	
 	mergeBin();
-	
 	vec2ptr(vec);
-	printf("update: end\n");
 	return;
 }
 
@@ -154,17 +142,14 @@ double Histogram::sum(double value) {
 }
 
 void Histogram::merge(Histogram &h, int B) {
-	printf("Histogram::merge begin\n");
 	int index = 0;
 	std::vector<BinTriplet> vec;
 	ptr2vec(vec);
 
-	printf("old size: %d\n", vec.size());
 
 	std::vector<BinTriplet> hvec;
 	h.ptr2vec(hvec);
 
-	printf("insert size: %d\n", hvec.size());
 
 	vec.insert(vec.end(), hvec.begin(), hvec.end());
 
@@ -173,17 +158,14 @@ void Histogram::merge(Histogram &h, int B) {
 	while (vec.size() > B) {
 		mergeBin();
 	}
-	printf("new size: %d\n", vec.size());
 
 	vec2ptr(vec);
 	h.vec2ptr(hvec);	
 	
-	printf("Histogram::merge end\n");
 	return;
 }
 
 void Histogram::uniform(std::vector<double> &u, int B) {
-	printf("Histogram::uniform begin. B=%d\n", B);
 	double tmpsum = 0;
 	double s = 0;
 	int index = 0;
@@ -195,7 +177,6 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 	u.clear();
 
 	if (vec.size() == 0) {
-		printf("Histogram::uniform, vec.size() = 0, end\n");
 		return;
 	}
 
@@ -226,7 +207,6 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 		u.push_back(uj);
 	}
 	vec2ptr(vec);
-	printf("Histogram::uniform end\n");
 	return;
 }
 
