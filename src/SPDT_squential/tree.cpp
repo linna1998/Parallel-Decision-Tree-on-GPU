@@ -152,7 +152,12 @@ void TreeNode::print() {
     if (right_node != NULL) {
         right_node->print();
     }
+}
 
+void TreeNode::clear(){
+    if (left_node != NULL) left_node->clear();
+    if (right_node != NULL) right_node->clear();
+    data_ptr.clear();
 }
 
 DecisionTree::DecisionTree()
@@ -166,6 +171,11 @@ DecisionTree::DecisionTree()
     this->root = NULL;
     this->bin_ptr = NULL;
 
+}
+
+DecisionTree::~DecisionTree(){
+    delete[] bin_ptr;
+    root->clear();
 }
 
 DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size)
@@ -212,6 +222,12 @@ void DecisionTree::initialize(Dataset &train_data, const int batch_size){
     dbg_printf("Init Root Node\n");
     root = new TreeNode(0);   
     root->is_leaf = true;
+    if (bin_ptr != NULL) {        
+        delete[] bin_ptr;
+    }
+    long long number = max_num_leaves * datasetPointer->num_of_features * datasetPointer->num_of_classes * max_bin_size;    
+    bin_ptr = new Bin_t[number];
+    memset(bin_ptr, 0, number * sizeof(Bin_t));  
     histogram = Histogram_ALL(max_num_leaves, Histogram_LEAF(train_data.num_of_features, Histogram_FEATURE(train_data.num_of_classes, Histogram(max_bin_size))));
 }
 
@@ -409,13 +425,6 @@ void DecisionTree::batch_initialize(TreeNode *node)
  */
 void DecisionTree::init_histogram(vector<TreeNode *> &unlabled_leaf)
 {
-    long long int number = 0;
-    if (bin_ptr != NULL) {        
-        delete[] bin_ptr;
-    }
-    number = max_num_leaves * datasetPointer->num_of_features * datasetPointer->num_of_classes * max_bin_size;    
-    bin_ptr = new Bin_t[number];
-    memset(bin_ptr, 0, number * sizeof(Bin_t));  
     int c = 0;      
     for (auto &p : unlabled_leaf)
     {

@@ -50,6 +50,7 @@ public:
     void init();    
     void split(SplitPoint& best_split, vector<Data*>& left, vector<Data*>& right);
     void print();
+    void clear();
 };
 
 class DecisionTree
@@ -74,6 +75,7 @@ private:
 public:
 
     DecisionTree();
+    ~DecisionTree();
     DecisionTree(int max_num_leaves, int max_depth, int min_node_size);
         
     void train(Dataset& train_data, const int batch_size = 64);
