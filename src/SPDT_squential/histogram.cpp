@@ -171,6 +171,15 @@ void Histogram::merge(Histogram &h, int B) {
 	
 	sortBin(vec);
 
+	// merge the same values in vec
+	for (int i = 0; i + 1 < vec.size(); i++) {
+		if (vec[i].value == vec[i+1].value) {
+			vec[i].freq += vec[i+1].freq;
+			vec.erase(vec.begin() + i + 1);
+			i--;
+		}
+	}
+
 	while (vec.size() > B) {
 		mergeBin(vec);
 	}
@@ -236,13 +245,11 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 			}
 		}
 
-		d = s - sum(vec[index].value);
-		printf("d: %f\n", d);
+		d = s - sum(vec[index].value);		
 
 		a = vec[index + 1].freq - vec[index].freq;
 		b = 2 * vec[index].freq;
-		c = -2 * d;
-		printf("a: %f, b %f, c %f\n", a, b, c);
+		c = -2 * d;		
 		
 		if (a != 0 && b * b - 4 * a * c >= 0) {
 			z = -b + sqrt(b * b - 4 * a * c);
@@ -252,13 +259,13 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 			z = -c / b;
 		} else {
 			z = 0;
-		}
-		printf("z: %f\n", z);
+		}		
 
 		uj = vec[index].value + z * (vec[index + 1].value - vec[index].value);		
 		u.push_back(uj);
-
-		if (isnan(uj) < 0) {
+		printf("%f ", uj);
+		
+		if (isnan(uj)) {
 			exit(1);
 		}
 	}

@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <memory.h>
 #include <vector>
 
 // scala version: 
