@@ -384,7 +384,9 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_lea
             // printf("max=%d\n", histogram[node->histogram_id][attr][d.label].max_bin);
             if (d.values.find(attr) != d.values.end()) {
                 (*(node->histogram_ptr))[attr][d.label].update(d.values[attr]);
-            }          
+            } else {
+                (*(node->histogram_ptr))[attr][d.label].update(0);
+            }     
         }
     }
     dbg_printf("compress: end\n");
