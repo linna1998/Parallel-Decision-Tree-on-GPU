@@ -48,11 +48,19 @@ void Histogram::vec2ptr(std::vector<BinTriplet>& vec) {
 
 void Histogram::sortBin() {
 	std::vector<BinTriplet> vec;
+<<<<<<< HEAD
 	ptr2vec(vec);
 	sort(vec.begin(), vec.end(), [](const BinTriplet &a, const BinTriplet &b) {
 		return a.value < b.value;
 	});
 	vec2ptr(vec);
+=======
+	ptr2vec(vec);	
+	sort(vec.begin(), vec.end(), [](const BinTriplet &a, const BinTriplet &b) {
+		return a.value < b.value;
+	});
+	vec2ptr(vec);	
+>>>>>>> dac8fce828e318c8b85307dfcc73f9157f6d7d37
 }
 
 
@@ -87,27 +95,46 @@ void Histogram::mergeBin() {
 
 void Histogram::update(double value) {	
 	std::vector<BinTriplet> vec;
+<<<<<<< HEAD
 	ptr2vec(vec);
+=======
+	ptr2vec(vec);	
+>>>>>>> dac8fce828e318c8b85307dfcc73f9157f6d7d37
 
 	// If there are values in the bin equals to the value here
 	for (int i = 0; i < vec.size(); i++) {
 		if (vec[i].value == value) {			
 			vec[i].freq++;
+<<<<<<< HEAD
 			vec2ptr(vec);
+=======
+			vec2ptr(vec);			
+>>>>>>> dac8fce828e318c8b85307dfcc73f9157f6d7d37
 			return;
 		}
 	}
 
 	vec.push_back(BinTriplet(value, 1));
 
+<<<<<<< HEAD
 	sortBin();
 	if (vec.size() <= max_bin) {
 		vec2ptr(vec);
+=======
+	sortBin();	
+	if (vec.size() <= max_bin) {
+		vec2ptr(vec);		
+>>>>>>> dac8fce828e318c8b85307dfcc73f9157f6d7d37
 		return;
 	}
 	
 	mergeBin();
+<<<<<<< HEAD
 	vec2ptr(vec);
+=======
+	
+	vec2ptr(vec);	
+>>>>>>> dac8fce828e318c8b85307dfcc73f9157f6d7d37
 	return;
 }
 
