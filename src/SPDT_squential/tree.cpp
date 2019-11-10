@@ -97,8 +97,6 @@ void TreeNode::init()
 {
     has_new_data = false;
     label = -1;
-    // remove this if you want to keep the previous batch data.
-    data_ptr.clear();
     histogram_id = -1;
     histogram_ptr = NULL;
     left_node = NULL;
@@ -126,7 +124,7 @@ void TreeNode::set_label()
  */
 void TreeNode::split(SplitPoint &best_split, vector<Data *> &left, vector<Data *> &right)
 {
-    printf("split begin\n");
+    dbg_printf("split begin\n");
     this->split_ptr = best_split;
     double split_value = best_split.feature_value;
     for (auto &p : this->data_ptr)
@@ -137,7 +135,8 @@ void TreeNode::split(SplitPoint &best_split, vector<Data *> &left, vector<Data *
         else
             left.push_back(p);
     }
-    printf("split end\n");
+    dbg_printf("data size=%d, right=%d, left=%d\n", data_ptr.size(), right.size(), left.size());
+    dbg_printf("split end\n");
 }
 
 void TreeNode::print() {
@@ -189,7 +188,7 @@ bool DecisionTree::is_terminated(TreeNode *node)
 {
     if (node->data_ptr.size() <= min_node_size)
     {
-        dbg_printf("Node terminated: min_node_size\n");
+        dbg_printf("Node terminated: min_node_size=%d >= %d\n", min_node_size, node->data_ptr.size());
         return true;
     }
 
@@ -221,7 +220,8 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
     int hasNext = TRUE;
     initialize(train_data, batch_size);
 	while (TRUE) {
-		hasNext = train_data.streaming_read_data(batch_size);		
+		hasNext = train_data.streaming_read_data(batch_size);	
+        train_data.print_dataset();	
         dbg_printf("Train size (%d, %d, %d)\n", train_data.num_of_data, 
                 train_data.num_of_features, train_data.num_of_classes);
 
@@ -310,6 +310,9 @@ vector<TreeNode *> DecisionTree::__get_unlabeled(TreeNode *node)
 */
 void DecisionTree::train_on_batch(Dataset &train_data)
 {
+    
+    for(auto& data: train_data.dataset)
+        root->data_ptr.push_back(&data);
     // Reinitialize every leaf in T as unlabeled.
     batch_initialize(root);
     vector<TreeNode *> unlabeled_leaf = __get_unlabeled(root);
@@ -355,16 +358,16 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_lea
 {
     int feature_id = 0, class_id = 0;
     // Construct the histogram. and navigate each data to its leaf.
-    for (auto &d : data)
-    {
-        auto node = DecisionTree::navigate(d);
-        node->data_ptr.push_back(&d);
-        node->has_new_data = true;
-        for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
-        {            
-            if (d.values.find(attr) != d.values.end()) {
-                (*(node->histogram_ptr))[attr][d.label].update(d.values[attr]);
-            }          
+    for (auto& node: unlabled_leaf){
+        for (auto &d: node->data_ptr)
+        {
+            node->has_new_data = true;
+            for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
+            {            
+                if (d->values.find(attr) != d->values.end()) {
+                    (*(node->histogram_ptr))[attr][d->label].update(d->values[attr]);
+                }          
+            }
         }
     }
 }
