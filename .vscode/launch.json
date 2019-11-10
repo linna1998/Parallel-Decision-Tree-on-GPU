@@ -5,29 +5,19 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(lldb) Launch",
+            "name": "(gdb) Launch",
+            "miDebuggerPath": "/usr/local/Cellar/gdb/8.3/bin/gdb",
+            "requireExactSource": true,
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/decision-tree-dbg",
+            "program": "${workspaceFolder}/decision-tree-dgb",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "MIMode": "lldb"
+            "MIMode": "gdb"
         },
-        {
-            "name": "g++ build and debug active file",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${fileDirname}/decision-tree-dbg",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "lldb",
-            "preLaunchTask": "g++ build active file"
-        }
+            
     ]
 }
