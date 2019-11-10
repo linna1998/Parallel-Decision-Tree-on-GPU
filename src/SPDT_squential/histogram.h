@@ -27,8 +27,8 @@ public:
 	void ptr2vec(std::vector<BinTriplet>& res);
 	void vec2ptr(std::vector<BinTriplet>& vec);
 
-	void sortBin();
-	void mergeBin();
+	void sortBin(std::vector<BinTriplet>& vec);
+	void mergeBin(std::vector<BinTriplet>& vec);
     void update(double value);
     double sum(double value);
     void merge(Histogram &h, int B);
