@@ -265,7 +265,6 @@ vector<TreeNode *> DecisionTree::__get_unlabeled(TreeNode *node)
     queue<TreeNode *> q;
     q.push(node);
     vector<TreeNode *> ret;
-    int c = 0;
     while (!q.empty())
     {
         auto tmp_ptr = q.front();
@@ -283,7 +282,6 @@ vector<TreeNode *> DecisionTree::__get_unlabeled(TreeNode *node)
             if (tmp_ptr->is_leaf && tmp_ptr->label < 0)
             {
                 ret.push_back(tmp_ptr);
-                tmp_ptr->histogram_id = c++;
             }
         }
         else
@@ -426,15 +424,16 @@ void DecisionTree::init_histogram(vector<TreeNode *> &unlabled_leaf)
     
     memset(bin_ptr, 0, number * sizeof(Bin_t));  
 
-    printf("after memset\n");          
+    printf("after memset\n");    
+    int c = 0;      
     for (auto &p : unlabled_leaf)
     {
+        p->histogram_id = c++;
         for (int feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++)
         {
             for (int class_id = 0; class_id < datasetPointer->num_of_classes; class_id++)
             {
-                histogram[p->histogram_id][feature_id][class_id].bins = 
-                    &bin_ptr[RLOC(p->histogram_id, feature_id, class_id, 
+                histogram[p->histogram_id][feature_id][class_id].bins = &bin_ptr[RLOC(p->histogram_id, feature_id, class_id, 
                     datasetPointer->num_of_features, datasetPointer->num_of_classes, max_bin_size)];
             }
         }
