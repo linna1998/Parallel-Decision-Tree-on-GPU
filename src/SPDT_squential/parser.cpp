@@ -13,7 +13,7 @@ void Data::read_a_data(int num_of_features, ifstream* myfile) {
 
 	// cout << "str: " << str << endl;
 
-	for (int i = 1; i <= num_of_features; i++) {
+	for (int i = 0; i < num_of_features; i++) {
 		values[i] = 0;
 	}
 
@@ -39,7 +39,7 @@ void Data::read_a_data(int num_of_features, ifstream* myfile) {
 			// cout << "valuestr: " << valuestr << endl;
 			tmpvalue = stod(valuestr);
 			// cout << "index: " << index << "tmpvalue: " << tmpvalue << endl;
-			values[index] = tmpvalue;
+			values[index - 1] = tmpvalue;
 		}
 	}
 }
