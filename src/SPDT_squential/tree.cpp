@@ -278,7 +278,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
         std::vector<double> possible_splits;
         merged_hist.uniform(possible_splits, this->max_bin_size);
         // get the split value
-        for (auto &split_value : possible_splits)
+        for (auto& split_value : possible_splits)
         {
             double gain = hist.sum(split_value);
             SplitPoint t = SplitPoint(i, split_value, gain);
@@ -358,7 +358,7 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             {                
                 SplitPoint best_split;
                 find_best_split(cur_leaf, best_split);
-                dbg_printf("best fit: id=%d, value=%.4f, gain=%.4f\n", best_split.feature_id, best_split.feature_value, best_split.entropy);
+                dbg_printf("best split: id=%d, value=%.4f, gain=%.4f\n", best_split.feature_id, best_split.feature_value, best_split.entropy);
                 auto left_tree = new TreeNode(this->cur_depth);
                 auto right_tree = new TreeNode(this->cur_depth);
                 cur_leaf->split(best_split, left_tree->data_ptr, right_tree->data_ptr);
