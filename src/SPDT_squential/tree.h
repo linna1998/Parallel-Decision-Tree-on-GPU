@@ -49,6 +49,7 @@ public:
     void set_label();    
     void init();    
     void split(SplitPoint& best_split, vector<Data*>& left, vector<Data*>& right);
+    void print();
 };
 
 class DecisionTree

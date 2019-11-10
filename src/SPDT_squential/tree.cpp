@@ -140,6 +140,22 @@ void TreeNode::split(SplitPoint &best_split, vector<Data *> &left, vector<Data *
     printf("split end\n");
 }
 
+void TreeNode::print() {
+    printf("TreeNode: \n");
+    printf("depth: %d\n", depth);
+    printf("label %d\n", label);
+    printf("hasLeft: %d\n", left_node != NULL);
+    printf("hasRight: %d\n", right_node != NULL);
+    if (left_node != NULL) {
+        left_node->print();
+    }
+
+    if (right_node != NULL) {
+        right_node->print();
+    }
+
+}
+
 DecisionTree::DecisionTree()
 {
     this->max_num_leaves = -1;
@@ -215,6 +231,7 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
 	}		
 
 	train_data.close_read_data();
+    root->print();
     return;
 }
 
@@ -324,18 +341,14 @@ void DecisionTree::train_on_batch(Dataset &train_data)
 
         compress(train_data.dataset, unlabeled_leaf);
         for (auto &cur_leaf : unlabeled_leaf)
-        {
-            printf("In for loop\n");
+        {            
             if (is_terminated(cur_leaf))
-            {
-                printf("before if\n");
+            {         
                 cur_leaf->set_label();
-                this->num_leaves++;
-                printf("after if\n");
+                this->num_leaves++;             
             }
             else
-            {
-                printf("before else\n");
+            {                
                 SplitPoint best_split;
                 find_best_split(cur_leaf, best_split);
                 auto left_tree = new TreeNode(this->cur_depth);
@@ -343,14 +356,11 @@ void DecisionTree::train_on_batch(Dataset &train_data)
                 cur_leaf->split(best_split, left_tree->data_ptr, right_tree->data_ptr);
                 unlabeled_leaf_new.push_back(left_tree);
                 unlabeled_leaf_new.push_back(right_tree);
-                this->num_leaves--;
-                printf("after else\n");
+                this->num_leaves--;                
             }
         }
         unlabeled_leaf = unlabeled_leaf_new;
-        unlabeled_leaf_new.clear();
-
-        printf("End of one while loop\n");
+        unlabeled_leaf_new.clear();        
     }
 }
 

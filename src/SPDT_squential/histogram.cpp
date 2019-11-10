@@ -48,13 +48,11 @@ void Histogram::vec2ptr(std::vector<BinTriplet>& vec) {
 
 void Histogram::sortBin() {
 	std::vector<BinTriplet> vec;
-	ptr2vec(vec);
-	// printf("sortBin: size=%d\n", vec.size());
+	ptr2vec(vec);	
 	sort(vec.begin(), vec.end(), [](const BinTriplet &a, const BinTriplet &b) {
 		return a.value < b.value;
 	});
-	vec2ptr(vec);
-	// printf("sortBin: end\n");
+	vec2ptr(vec);	
 }
 
 
@@ -93,33 +91,28 @@ void Histogram::mergeBin() {
 
 void Histogram::update(double value) {	
 	std::vector<BinTriplet> vec;
-	ptr2vec(vec);
-	printf("update: begin size=%d\n", vec.size());
+	ptr2vec(vec);	
 
 	// If there are values in the bin equals to the value here
 	for (int i = 0; i < vec.size(); i++) {
 		if (vec[i].value == value) {			
 			vec[i].freq++;
-			vec2ptr(vec);
-			printf("update: end\n");
+			vec2ptr(vec);			
 			return;
 		}
 	}
 
 	vec.push_back(BinTriplet(value, 1));
 
-	sortBin();
-	printf("size=%d, max_bin=%d", vec.size(), max_bin);
+	sortBin();	
 	if (vec.size() <= max_bin) {
-		vec2ptr(vec);
-		printf("update: end\n");
+		vec2ptr(vec);		
 		return;
 	}
 	
 	mergeBin();
 	
-	vec2ptr(vec);
-	printf("update: end\n");
+	vec2ptr(vec);	
 	return;
 }
 
