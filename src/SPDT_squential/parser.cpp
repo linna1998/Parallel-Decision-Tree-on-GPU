@@ -13,6 +13,10 @@ void Data::read_a_data(int num_of_features, ifstream* myfile) {
 
 	// cout << "str: " << str << endl;
 
+	for (int i = 1; i <= num_of_features; i++) {
+		values[i] = 0;
+	}
+
 	while (str.size() > 0) {
 		npos = str.find(' ');
 		if (npos == string::npos) break;
