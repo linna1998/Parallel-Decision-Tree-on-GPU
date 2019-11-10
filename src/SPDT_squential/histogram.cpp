@@ -226,7 +226,7 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 
 	u.clear();
 
-	if (vec.size() == 0) {
+	if (vec.size() <= 1) {
 		return;
 	}
 	
@@ -245,7 +245,7 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 			}
 		}
 
-		d = s - sum(vec[index].value);		
+		d = abs(s - sum(vec[index].value));		
 
 		a = vec[index + 1].freq - vec[index].freq;
 		b = 2 * vec[index].freq;
@@ -259,8 +259,13 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 			z = -c / b;
 		} else {
 			z = 0;
-		}		
-
+		}
+		// printf("d %f\n", d);		
+		// printf("a %f, b %f, c %f\n", a, b, c);
+		// printf("z %f\n", z);
+		if (z < 0) z = 0;
+		if (z > 1) z = 1;
+		
 		uj = vec[index].value + z * (vec[index + 1].value - vec[index].value);		
 		u.push_back(uj);
 		printf("%f ", uj);
