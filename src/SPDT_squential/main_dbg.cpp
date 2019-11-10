@@ -6,16 +6,11 @@ int main() {
 
     DecisionTree decisionTree(256, 8, 128);
 
-    Dataset trainDataset(2, 1605, 123);
-    Dataset testDataset(2, 30956, 123);
+    Dataset trainDataset(3, 391, 20);
 
-	bool hasNext = true;
-
-    trainDataset.open_read_data("./data/a1a.train.txt");
-    testDataset.open_read_data("./data/a1a.test.txt");	
+    trainDataset.open_read_data("./data/svmguide2.txt");    
     
-    decisionTree.train(trainDataset, 1605);
-    decisionTree.test(testDataset);
+    decisionTree.train(trainDataset, 391);    
 
     return 0;
 

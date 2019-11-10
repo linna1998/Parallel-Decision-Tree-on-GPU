@@ -34,6 +34,7 @@ public:
     void merge(Histogram &h, int B);
 	void uniform(std::vector<double> &u, int B);
 	void print();
+	void check();
 	void clear();
 
 	inline Histogram& operator = (Histogram& h){

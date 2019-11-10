@@ -1,6 +1,6 @@
 #include "parser.h"
 
-void Data::read_a_data(int num_of_features, ifstream* myfile) {	
+void Data::read_a_data(int num_of_features, int num_of_classes, ifstream* myfile) {	
 	int index;
 	double tmpvalue;	
 	
@@ -27,7 +27,12 @@ void Data::read_a_data(int num_of_features, ifstream* myfile) {
 			// cout << "prev: " << prev << endl;
 			label = stoi(prev);
 			// cout << "label: " << label << endl;
-			if (label == -1) label = 0;
+			
+			if (label == -1 && num_of_classes == 2) label = 0;
+			if (num_of_classes > 2) {
+				label = label - 1;
+			}
+
 			isFirst = false;
 		} else {
 			// cout << "prev: " << prev << endl;
@@ -55,7 +60,7 @@ bool Dataset::streaming_read_data(int N) {
 	dataset = vector<Data>(N);
 
 	for (int i = 0; i < N; i++) {
-		dataset[i].read_a_data(num_of_features, &myfile);		
+		dataset[i].read_a_data(num_of_features, num_of_classes, &myfile);		
 		already_read_data++;
 		if (already_read_data == num_of_data) {
 			break;

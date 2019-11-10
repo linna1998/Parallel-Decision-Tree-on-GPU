@@ -249,6 +249,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
     {
         // merge different labels
         Histogram& hist = (*node->histogram_ptr)[i][0];
+        (*node->histogram_ptr)[i][0].print();
         Histogram merged_hist = hist;
         if (i==0){
             printf("1 bin size=%d\n", merged_hist.bin_size);
@@ -329,8 +330,8 @@ void DecisionTree::train_on_batch(Dataset &train_data)
         // each while loop would add a new level node.
         this->cur_depth++;
         vector<TreeNode *> unlabeled_leaf_new;
-        init_histogram(unlabeled_leaf);
-        compress(train_data.dataset, unlabeled_leaf);
+        init_histogram(unlabeled_leaf);        
+        compress(train_data.dataset, unlabeled_leaf);        
         for (auto &cur_leaf : unlabeled_leaf)
         {            
             if (is_terminated(cur_leaf))
@@ -377,6 +378,7 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_lea
             }
         }
     }
+    dbg_printf("Leave compress\n");
 }
 /*
  * initialize each leaf as unlabeled.
@@ -421,8 +423,12 @@ void DecisionTree::init_histogram(vector<TreeNode *> &unlabled_leaf)
     {
         p->histogram_id = c++;
         for (int feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++)
-            for (int class_id = 0; class_id < datasetPointer->num_of_classes; class_id++)
-                histogram[p->histogram_id][feature_id][class_id].bins = &bin_ptr[RLOC(p->histogram_id, feature_id, class_id, datasetPointer->num_of_features, datasetPointer->num_of_classes, max_bin_size)];
+            for (int class_id = 0; class_id < datasetPointer->num_of_classes; class_id++) {                
+                histogram[p->histogram_id][feature_id][class_id].clear();
+                histogram[p->histogram_id][feature_id][class_id].bins = &bin_ptr[RLOC(p->histogram_id, feature_id, class_id, datasetPointer->num_of_features, datasetPointer->num_of_classes, max_bin_size)];                
+                histogram[p->histogram_id][feature_id][class_id].check();
+            }                
+
         p->histogram_ptr = &histogram[p->histogram_id];   
     }
 }

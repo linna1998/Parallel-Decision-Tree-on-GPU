@@ -13,7 +13,7 @@ public:
 	int label;
 	map<int, double> values;
 
-	void read_a_data(int num_of_features, ifstream* myfile);
+	void read_a_data(int num_of_features, int num_of_classes, ifstream* myfile);
 };
 
 class Dataset {
