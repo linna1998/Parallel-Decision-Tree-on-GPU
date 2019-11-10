@@ -39,7 +39,9 @@ public:
 	inline Histogram& operator = (Histogram& h){
 		this->max_bin = h.max_bin;
 		this->bin_size = h.bin_size;
+		// this->bins = new BinTriplet[this->max_bin];
 		this->bins = h.bins;
+		
 		return *this;
 	}
 };

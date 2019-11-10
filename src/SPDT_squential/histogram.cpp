@@ -151,7 +151,6 @@ void Histogram::merge(Histogram &h, int B) {
 	std::vector<BinTriplet> hvec;
 	h.ptr2vec(hvec);
 
-
 	vec.insert(vec.end(), hvec.begin(), hvec.end());
 
 	sortBin();
@@ -170,6 +169,7 @@ void Histogram::print(){
 	printf("[");
 	while(i<bin_size){
 		printf("(%.4f, %d) ", bins[i].value, bins[i].freq);
+		i++;
 	}
 	printf("]\n");
 
