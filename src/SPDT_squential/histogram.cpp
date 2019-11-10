@@ -165,6 +165,15 @@ void Histogram::merge(Histogram &h, int B) {
 	
 	return;
 }
+void Histogram::print(){
+	int i=0;
+	printf("[");
+	while(i<bin_size){
+		printf("(%.4f, %d) ", bins[i].value, bins[i].freq);
+	}
+	printf("]\n");
+
+}
 
 void Histogram::uniform(std::vector<double> &u, int B) {
 	double tmpsum = 0;

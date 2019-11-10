@@ -65,9 +65,9 @@ SplitPoint::SplitPoint()
 
 SplitPoint::SplitPoint(int feature_id, double feature_value, double entropy)
 {
-    feature_id = feature_id;
-    feature_value = feature_value;
-    entropy = entropy;
+    this->feature_id = feature_id;
+    this->feature_value = feature_value;
+    this->entropy = entropy;
 }
 /*
  * Reture True if the data is larger or equal than the split value
@@ -221,7 +221,7 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
     initialize(train_data, batch_size);
 	while (TRUE) {
 		hasNext = train_data.streaming_read_data(batch_size);		
-        train_data.print_dataset();
+        // train_data.print_dataset();
         dbg_printf("Train size (%d, %d, %d)\n", train_data.num_of_data, 
                 train_data.num_of_features, train_data.num_of_classes);
 
@@ -248,11 +248,17 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
     for (int i = 0; i < this->datasetPointer->num_of_features; i++)
     {
         // merge different labels
-        Histogram &hist = (*node->histogram_ptr)[i][0];
-        Histogram merged_hist = Histogram(this->max_bin_size, hist.bins);
+        Histogram& hist = (*node->histogram_ptr)[i][0];
+        Histogram merged_hist = hist;
+        if (i==1){
+            printf("1 bin size=%d\n", merged_hist.bin_size);
+            merged_hist.print();
+        }
+        
         for (int k = 1; k < this->datasetPointer->num_of_classes; k++)
             merged_hist.merge((*node->histogram_ptr)[i][k], this->max_bin_size);
-
+        if (i==1)
+            merged_hist.print();
         std::vector<double> possible_splits;
         merged_hist.uniform(possible_splits, this->max_bin_size);
         // get the split value
@@ -336,6 +342,7 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             {                
                 SplitPoint best_split;
                 find_best_split(cur_leaf, best_split);
+                dbg_printf("best fit: id=%d, value=%.4f, gain=%.4f\n", best_split.feature_id, best_split.feature_value, best_split.entropy);
                 auto left_tree = new TreeNode(this->cur_depth);
                 auto right_tree = new TreeNode(this->cur_depth);
                 cur_leaf->split(best_split, left_tree->data_ptr, right_tree->data_ptr);
@@ -366,9 +373,7 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_lea
             {            
                 if (d->values.find(attr) != d->values.end()) {
                     (*(node->histogram_ptr))[attr][d->label].update(d->values[attr]);
-                } else {
-                    (*(node->histogram_ptr))[attr][d->label].update(0);
-                }       
+                }     
             }
         }
     }

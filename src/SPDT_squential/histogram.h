@@ -33,6 +33,13 @@ public:
     double sum(double value);
     void merge(Histogram &h, int B);
 	void uniform(std::vector<double> &u, int B);
-
+	void print();
 	void clear();
+
+	inline Histogram& operator = (Histogram& h){
+		this->max_bin = h.max_bin;
+		this->bin_size = h.bin_size;
+		this->bins = h.bins;
+		return *this;
+	}
 };
