@@ -164,7 +164,6 @@ void Histogram::merge(Histogram &h, int B) {
 	std::vector<BinTriplet> vec;
 	ptr2vec(vec);
 
-
 	std::vector<BinTriplet> hvec;
 	h.ptr2vec(hvec);
 
