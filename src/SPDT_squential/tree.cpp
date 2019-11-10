@@ -250,14 +250,14 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
         // merge different labels
         Histogram& hist = (*node->histogram_ptr)[i][0];
         Histogram merged_hist = hist;
-        if (i==1){
+        if (i==0){
             printf("1 bin size=%d\n", merged_hist.bin_size);
             merged_hist.print();
         }
         
         for (int k = 1; k < this->datasetPointer->num_of_classes; k++)
             merged_hist.merge((*node->histogram_ptr)[i][k], this->max_bin_size);
-        if (i==1)
+        if (i==0)
             merged_hist.print();
         std::vector<double> possible_splits;
         merged_hist.uniform(possible_splits, this->max_bin_size);
