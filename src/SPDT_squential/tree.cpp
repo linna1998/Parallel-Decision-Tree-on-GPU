@@ -6,23 +6,6 @@
 #include <algorithm>
 #include <math.h>
 
-#define DEBUG 1
-#ifdef DEBUG
-/* When DEBUG is defined, these form aliases to useful functions */
-#define dbg_printf(...) printf(__VA_ARGS__)
-#define dbg_requires(expr) assert(expr)
-#define dbg_assert(expr) assert(expr)
-#define dbg_ensures(expr) assert(expr)
-#define dbg_printheap(...) print_heap(__VA_ARGS__)
-#else
-/* When DEBUG is not defined, no code gets generated for these */
-/* The sizeof() hack is used to avoid "unused variable" warnings */
-#define dbg_printf(...) (sizeof(__VA_ARGS__), -1)
-#define dbg_requires(expr) (sizeof(expr), 1)
-#define dbg_assert(expr) (sizeof(expr), 1)
-#define dbg_ensures(expr) (sizeof(expr), 1)
-#define dbg_printheap(...) ((void)sizeof(__VA_ARGS__))
-#endif
 
 /*
  * For A[][M][N][Z]
@@ -60,14 +43,19 @@ SplitPoint::SplitPoint()
 {
     feature_id = -1;
     feature_value = 0;
-    entropy = -1;
+    entropy_left = 0;
+    entropy_right = 0;
+    entropy_before = 0;
 }
 
-SplitPoint::SplitPoint(int feature_id, double feature_value, double entropy)
+SplitPoint::SplitPoint(int feature_id, double feature_value)
 {
     this->feature_id = feature_id;
     this->feature_value = feature_value;
-    this->entropy = entropy;
+    this->entropy_left = 0;
+    this->entropy_right = 0;
+    this->entropy_before = 0;
+
 }
 /*
  * Reture True if the data is larger or equal than the split value
@@ -90,6 +78,8 @@ TreeNode::TreeNode(int depth)
     histogram_ptr = NULL;
     left_node = NULL;
     right_node = NULL;
+    entropy = 0.f;
+    num_pos_label=0;
 }
 
 
@@ -110,32 +100,37 @@ void TreeNode::init()
 void TreeNode::set_label()
 {
     this->is_leaf = true;
-    int pos_count = 0;
-    for (auto &p : this->data_ptr)
-    {
-        pos_count = (p->label == POS_LABEL) ? pos_count + 1 : pos_count;
-    }
-    this->label = (pos_count >= (int)this->data_ptr.size() / 2) ? POS_LABEL : NEG_LABEL;
+    this->label = (this->num_pos_label >= (int)this->data_ptr.size() / 2) ? POS_LABEL : NEG_LABEL;
 }
 
 /*
  * This function split the data according to the best split feature id and value.
  * The data would be appended to the `left` if the data value is smaller than the split value
  */
-void TreeNode::split(SplitPoint &best_split, vector<Data *> &left, vector<Data *> &right)
+void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
 {
     dbg_printf("split begin\n");
     this->split_ptr = best_split;
     double split_value = best_split.feature_value;
+    int num_pos_lebel_left=0;
+    int num_pos_lebel_right=0;
     for (auto &p : this->data_ptr)
     {
         double p_value = p->values[best_split.feature_id];
-        if (p_value >= split_value)
-            right.push_back(p);
-        else
-            left.push_back(p);
+        if (p_value >= split_value){
+            right->data_ptr.push_back(p);
+            num_pos_lebel_right = (p->label == POS_LABEL) ? num_pos_lebel_right+1 : num_pos_lebel_right;
+        }
+        else{
+            left->data_ptr.push_back(p);
+            num_pos_lebel_left = (p->label == POS_LABEL) ? num_pos_lebel_left+1 : num_pos_lebel_left;
+        }
     }
-    dbg_printf("data size=%d, right=%d, left=%d\n", data_ptr.size(), right.size(), left.size());
+    left->entropy = best_split.entropy_left;
+    left->num_pos_label = num_pos_lebel_left;
+    right->num_pos_label = num_pos_lebel_right;
+    right->entropy = best_split.entropy_right;
+    dbg_printf("data size=%d, right=%d, left=%d\n", data_ptr.size(), right->data_ptr.size(), left->data_ptr.size());
     dbg_printf("split end\n");
 }
 
@@ -214,6 +209,11 @@ bool DecisionTree::is_terminated(TreeNode *node)
         return true;
     }
 
+    if (node->num_pos_label == (int) node->data_ptr.size()){
+        dbg_printf("Node terminated: all samples belong to same class\n");
+        return true; 
+    }
+
     return false;
 }
 
@@ -240,7 +240,6 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
         // train_data.print_dataset();
         dbg_printf("Train size (%d, %d, %d)\n", train_data.num_of_data, 
                 train_data.num_of_features, train_data.num_of_classes);
-
         train_on_batch(train_data);        
 		if (!hasNext) break;
 	}		
@@ -255,6 +254,38 @@ void DecisionTree::test(Dataset &train_data)
 }
 
 /*
+ * Calculate the entropy gain = H(Y) - H(Y|X)
+ * H(Y|X) needs parameters p(X<a), p(Y=0|X<a), p(Y=0|X>=a)
+ * Assuming binary classification problem
+ */
+void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
+    int total_sum = node->data_ptr.size();
+    dbg_ensures(total_sum > 0);
+    dbg_ensures(total_sum > 0);
+    
+    double left_sum_class_0 = (*node->histogram_ptr)[feature_id][0].sum(split.feature_value);
+    double right_sum_class_0 = (*node->histogram_ptr)[feature_id][0].get_total() - left_sum_class_0;
+    double left_sum_class_1 = (*node->histogram_ptr)[feature_id][1].sum(split.feature_value);
+    double right_sum_class_1 = (*node->histogram_ptr)[feature_id][1].get_total() - left_sum_class_1;
+    printf("[%d] value=%.4f, left_sum_class_0=%.4f, left_sum_class_1=%.4f\n", feature_id, split.feature_value, 
+           left_sum_class_0, left_sum_class_1);
+
+    double px = (left_sum_class_0 + left_sum_class_1) / (1.0 * total_sum); // p(x<a)
+    double py_x0 = left_sum_class_0 / (left_sum_class_0 + left_sum_class_1); // p(y=0|x < a)
+    double py_x1 = right_sum_class_0 / (right_sum_class_0 + right_sum_class_1); // p(y=0|x >= a)
+    printf("[%d] py_x0=%.4f, py_x1=%.4f, px=%.4f\n", feature_id, py_x0, py_x1, px);
+    dbg_ensures(py_x0 > 0 && py_x0 < 1);
+    dbg_ensures(py_x1 > 0 && py_x1 < 1);
+    dbg_ensures(px > 0 && px < 1);
+    split.entropy_left = -py_x0 * log2(py_x0) - (1-py_x0)*log2(1-py_x0);
+    split.entropy_right = -py_x1 * log2(py_x1) - (1-py_x1)*log2(1-py_x1);
+    double H_YX = px * split.entropy_left + (1-px) * split.entropy_right;
+    split.gain = split.entropy_before - H_YX;
+    printf("%.4f = %.4f - %.4f\n", split.gain, split.entropy_before, H_YX);
+    dbg_ensures(split.gain >= 0);
+}
+
+/*
  * This function return the best split point at a given leaf node.
  * Best split is store in `split`
 */
@@ -265,32 +296,42 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
     {
         // merge different labels
         Histogram& hist = (*node->histogram_ptr)[i][0];
-        (*node->histogram_ptr)[i][0].print();
         Histogram merged_hist = hist;
         if (i==0){
-            printf("1 bin size=%d\n", merged_hist.bin_size);
+            printf("before merge \n");
             merged_hist.print();
         }
-        
         for (int k = 1; k < this->datasetPointer->num_of_classes; k++)
             merged_hist.merge((*node->histogram_ptr)[i][k], this->max_bin_size);
-        if (i==0)
+        if (i==0){
+            printf("after merge \n");
             merged_hist.print();
+        }
         std::vector<double> possible_splits;
-        merged_hist.uniform(possible_splits, this->max_bin_size);
-        // get the split value
-        for (auto& split_value : possible_splits)
+        merged_hist.uniform(possible_splits, merged_hist.bin_size);
+        if (i==0){
+            printf("possible_splits = [ ");
+            for (auto& split_value: possible_splits)
+                printf("(%.4f)", split_value);
+            printf("]\n");                
+        }
+        for (auto& split_value: possible_splits)
         {
-            double gain = hist.sum(split_value);
-            SplitPoint t = SplitPoint(i, split_value, gain);
+            SplitPoint t = SplitPoint(i, split_value);
+            t.entropy_before = node->entropy;
+            get_gain(node, t, i);
             results.push_back(t);
         }
     }
     std::vector<SplitPoint>::iterator best_split = std::max_element(results.begin(), results.end(),
-                                                                    [](const SplitPoint &l, const SplitPoint &r) { return l.entropy < r.entropy; });
+                                                                    [](const SplitPoint &l, const SplitPoint &r) { return l.gain < r.gain; });
 
-    SplitPoint v = SplitPoint(best_split->feature_id, best_split->feature_value, best_split->entropy);
-    split = v;
+    split.feature_id = best_split->feature_id;
+    split.feature_value = best_split->feature_value;
+    split.entropy_right = best_split->entropy_right;
+    split.entropy_left = best_split->entropy_left;
+    split.entropy_before = best_split->entropy_before;
+    split.gain = best_split->gain;
 }
 
 /* 
@@ -336,6 +377,10 @@ void DecisionTree::train_on_batch(Dataset &train_data)
     
     for(auto& data: train_data.dataset)
         root->data_ptr.push_back(&data);
+    double pos_rate = ((double) train_data.num_pos_label) / train_data.num_of_data;
+    dbg_assert(pos_rate > 0 && pos_rate < 1);
+    root->num_pos_label = train_data.num_pos_label;
+    root->entropy = - pos_rate * log2(pos_rate) - (1-pos_rate) * log2((1-pos_rate));
     // Reinitialize every leaf in T as unlabeled.
     batch_initialize(root);
     vector<TreeNode *> unlabeled_leaf = __get_unlabeled(root);
@@ -359,10 +404,16 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             {                
                 SplitPoint best_split;
                 find_best_split(cur_leaf, best_split);
-                dbg_printf("best split: id=%d, value=%.4f, gain=%.4f\n", best_split.feature_id, best_split.feature_value, best_split.entropy);
+                if (best_split.gain <= min_gain){
+                    dbg_printf("Node terminated: gain=%.4f <= %.4f\n", min_node_size, best_split.gain, min_gain);
+                    cur_leaf->set_label();
+                    this->num_leaves++;               
+                    continue;
+                }
+                dbg_printf("best split: id=%d, value=%.4f, gain=%.4f\n", best_split.feature_id, best_split.feature_value, best_split.gain);
                 auto left_tree = new TreeNode(this->cur_depth);
                 auto right_tree = new TreeNode(this->cur_depth);
-                cur_leaf->split(best_split, left_tree->data_ptr, right_tree->data_ptr);
+                cur_leaf->split(best_split, left_tree, right_tree);
                 unlabeled_leaf_new.push_back(left_tree);
                 unlabeled_leaf_new.push_back(right_tree);
                 this->num_leaves--;                

@@ -1,5 +1,6 @@
 #include "histogram.h"
 #include "math.h"
+#include "tree.h"
 
 BinTriplet::BinTriplet() {	
 	this->value = 0;
@@ -25,6 +26,14 @@ Histogram::Histogram(const int max_bin, BinTriplet* _bins) {
 Histogram::Histogram(const int max_bin) {	
 	this->max_bin = max_bin;
 	this->bin_size = 0;	
+}
+
+int Histogram::get_total() {
+	int t=0;	
+	for (int i=0; i<bin_size; i++){
+		t += bins[i].freq;
+	}
+	return t;
 }
 
 // build vector of BinTriplet from histogram
@@ -125,17 +134,20 @@ double Histogram::sum(double value) {
 	double s = 0;
 	ptr2vec(vec);
 	for (index = 0; index < vec.size() - 1; index++) {
-		if (vec[index].value <= value && vec[index + 1].value > value) {
+		if (vec[index].value < value && vec[index + 1].value >= value) {
 			break;
 		}
 	}
-
+	
+	dbg_ensures((vec[index + 1].value - vec[index].value) != 0);
 	if (vec[index + 1].value - vec[index].value != 0) {
 		mb = (vec[index + 1].freq - vec[index].freq);
 		mb = mb * (value - vec[index].value);
 		mb = mb / (vec[index + 1].value - vec[index].value);
 		mb = vec[index].freq + mb;
 	} else {
+		fprintf(stderr, "vec[index + 1].value - vec[index].value == 0");
+		exit(-1);
 		mb = vec[index].freq;
 	}
 	
@@ -144,6 +156,8 @@ double Histogram::sum(double value) {
 		s = s * (value - vec[index].value);
 		s = s / (vec[index + 1].value - vec[index].value);
 	} else {
+		fprintf(stderr, "(vec[index + 1].value - vec[index].value) == 0");
+		exit(-1);
 		s = (vec[index].freq + mb) / 2;
 	}
 
@@ -152,14 +166,13 @@ double Histogram::sum(double value) {
 		s = s + vec[j].freq;
 	}
 
-	s = s + vec[index].freq;
+	s = s + ((double)vec[index].freq) / 2;
 	vec2ptr(vec);			
 	return s;
 }
 
 void Histogram::merge(Histogram &h, int B) {
 	check();
-	print();
 	int index = 0;
 	std::vector<BinTriplet> vec;
 	ptr2vec(vec);
@@ -187,7 +200,6 @@ void Histogram::merge(Histogram &h, int B) {
 	vec2ptr(vec);
 	h.vec2ptr(hvec);	
 	check();
-	print();
 	return;
 }
 void Histogram::print(){
@@ -215,7 +227,6 @@ void Histogram::check(){
 }
 
 void Histogram::uniform(std::vector<double> &u, int B) {
-	printf("uniform: start. B: %d\n", B);	
 	double tmpsum = 0;
 	double s = 0;
 	int index = 0;
@@ -245,7 +256,7 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 			}
 		}
 
-		d = abs(s - sum(vec[index].value));		
+		d = s - sum(vec[index].value);		
 
 		a = vec[index + 1].freq - vec[index].freq;
 		b = 2 * vec[index].freq;
@@ -260,22 +271,17 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 		} else {
 			z = 0;
 		}
-		// printf("d %f\n", d);		
-		// printf("a %f, b %f, c %f\n", a, b, c);
-		// printf("z %f\n", z);
 		if (z < 0) z = 0;
 		if (z > 1) z = 1;
 		
 		uj = vec[index].value + z * (vec[index + 1].value - vec[index].value);		
 		u.push_back(uj);
-		printf("%f ", uj);
 		
 		if (isnan(uj)) {
 			exit(1);
 		}
 	}
 	vec2ptr(vec);	
-	printf("uniform: end\n");	
 	return;
 }
 

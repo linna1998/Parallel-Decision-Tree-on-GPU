@@ -61,6 +61,7 @@ bool Dataset::streaming_read_data(int N) {
 
 	for (int i = 0; i < N; i++) {
 		dataset[i].read_a_data(num_of_features, num_of_classes, &myfile);		
+		if (dataset[i].label == POS_LABEL) num_pos_label++;
 		already_read_data++;
 		if (already_read_data == num_of_data) {
 			break;

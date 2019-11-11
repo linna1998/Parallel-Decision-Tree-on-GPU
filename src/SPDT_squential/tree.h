@@ -11,23 +11,23 @@ typedef std::vector<Histogram_LEAF> Histogram_ALL;
 typedef BinTriplet Bin_t;
 typedef Bin_t* Bin_ptr;
 
-class SplitPoint{
-public:
-    // used to store the spliting information on a given histogram.
-    int feature_id;
-    double feature_value;
-    double entropy;
-    SplitPoint();
-    SplitPoint(int feature_id, double feature_value, double entropy);
-    bool decision_rule(Data& data);
-
-    inline SplitPoint& operator = (SplitPoint& split){
-        this->feature_id = split.feature_id;
-        this->feature_value = split.feature_value;
-        this->entropy = split.entropy;
-        return *this;
-    }
-};
+#define DEBUG 1
+#ifdef DEBUG
+/* When DEBUG is defined, these form aliases to useful functions */
+#define dbg_printf(...) printf(__VA_ARGS__)
+#define dbg_requires(expr) assert(expr)
+#define dbg_assert(expr) assert(expr)
+#define dbg_ensures(expr) assert(expr)
+#define dbg_printheap(...) print_heap(__VA_ARGS__)
+#else
+/* When DEBUG is not defined, no code gets generated for these */
+/* The sizeof() hack is used to avoid "unused variable" warnings */
+#define dbg_printf(...) (sizeof(__VA_ARGS__), -1)
+#define dbg_requires(expr) (sizeof(expr), 1)
+#define dbg_assert(expr) (sizeof(expr), 1)
+#define dbg_ensures(expr) (sizeof(expr), 1)
+#define dbg_printheap(...) ((void)sizeof(__VA_ARGS__))
+#endif
 
 class TreeNode
 {
@@ -36,11 +36,12 @@ public:
     bool has_new_data = false;
     int label; // -1 means no label
     int depth;
-
+    double entropy;
     TreeNode* left_node;
     TreeNode* right_node;
     Histogram_LEAF* histogram_ptr;
     int histogram_id;   
+    int num_pos_label;
 
     vector<Data*> data_ptr;
     SplitPoint split_ptr;
@@ -48,7 +49,7 @@ public:
     TreeNode(int depth);
     void set_label();    
     void init();    
-    void split(SplitPoint& best_split, vector<Data*>& left, vector<Data*>& right);
+    void split(SplitPoint& best_split, TreeNode*  left, TreeNode*  right);
     void print();
     void clear();
 };
@@ -64,6 +65,7 @@ private:
     int max_bin_size = 255;
     int min_node_size = 32;
     int cur_depth = 0;
+    double min_gain = 1e-3;
     Histogram_ALL histogram;
     // three dimensions for the global histogram.    
     int num_unlabled_leaves;
