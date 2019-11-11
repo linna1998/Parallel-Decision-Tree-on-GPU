@@ -1,4 +1,5 @@
 #pragma once
+#include <assert.h>
 #include <memory.h>
 #include <stdint.h>
 #include <string.h>
