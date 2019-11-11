@@ -23,6 +23,9 @@ Histogram::Histogram(const int max_bin, BinTriplet* _bins) {
 	this->bin_size = 0;	
 }
 
+
+
+
 Histogram::Histogram(const int max_bin) {	
 	this->max_bin = max_bin;
 	this->bin_size = 0;	
@@ -138,7 +141,7 @@ double Histogram::sum(double value) {
 			break;
 		}
 	}
-	
+
 	dbg_ensures((vec[index + 1].value - vec[index].value) != 0);
 	if (vec[index + 1].value - vec[index].value != 0) {
 		mb = (vec[index + 1].freq - vec[index].freq);

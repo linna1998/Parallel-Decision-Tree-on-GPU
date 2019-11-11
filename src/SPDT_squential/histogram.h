@@ -44,12 +44,15 @@ public:
 	// bins are always sorted, with value in increasing order
     BinTriplet* bins;
 	int bin_size;
+	Histogram(){
+		this->max_bin = 0;
+		this->bin_size = 0;	
+		};
 	Histogram(const int max_bin);
 	Histogram(const int max_bin, BinTriplet* _bins);
 
 	void ptr2vec(std::vector<BinTriplet>& res);
 	void vec2ptr(std::vector<BinTriplet>& vec);
-
 	void sortBin(std::vector<BinTriplet>& vec);
 	void mergeBin(std::vector<BinTriplet>& vec);
     void update(double value);
