@@ -95,7 +95,6 @@ void Histogram::mergeBin(std::vector<BinTriplet>& vec) {
 	// change vec[index] with newbin
 	vec.erase(vec.begin() + index + 1);
 	vec[index] = newbin;	
-
 }
 
 void Histogram::update(double value) {	
@@ -142,7 +141,7 @@ double Histogram::sum(double value) {
 		}
 	}
 
-	dbg_ensures((vec[index + 1].value - vec[index].value) != 0);
+	dbg_ensures((vec[index + 1].value - vec[index].value) < 1e-10);
 	if (vec[index + 1].value - vec[index].value != 0) {
 		mb = (vec[index + 1].freq - vec[index].freq);
 		mb = mb * (value - vec[index].value);
