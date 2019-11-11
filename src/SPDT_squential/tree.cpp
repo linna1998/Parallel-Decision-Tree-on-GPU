@@ -132,6 +132,9 @@ void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
     right->entropy = best_split.entropy_right;
     dbg_printf("data size=%d, right=%d, left=%d\n", data_ptr.size(), right->data_ptr.size(), left->data_ptr.size());
     dbg_printf("split end\n");
+    dbg_assert(left->num_pos_label >= 0);
+    dbg_assert(right->num_pos_label >= 0);
+
 }
 
 void TreeNode::print() {
@@ -265,13 +268,13 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     double right_sum_class_0 = (*node->histogram_ptr)[feature_id][0].get_total() - left_sum_class_0;
     double left_sum_class_1 = (*node->histogram_ptr)[feature_id][1].sum(split.feature_value);
     double right_sum_class_1 = (*node->histogram_ptr)[feature_id][1].get_total() - left_sum_class_1;
-    // printf("[%d] value=%.4f, left_sum_class_0=%.4f, left_sum_class_1=%.4f\n", feature_id, split.feature_value, 
-    //        left_sum_class_0, left_sum_class_1);
+    printf("[%d] value=%.4f, left_sum_class_0=%.4f, left_sum_class_1=%.4f\n", feature_id, split.feature_value, 
+           left_sum_class_0, left_sum_class_1);
 
     double px = (left_sum_class_0 + left_sum_class_1) / (1.0 * total_sum); // p(x<a)
     double py_x0 = left_sum_class_0 / (left_sum_class_0 + left_sum_class_1); // p(y=0|x < a)
     double py_x1 = right_sum_class_0 / (right_sum_class_0 + right_sum_class_1); // p(y=0|x >= a)
-    // printf("[%d] py_x0=%.4f, py_x1=%.4f, px=%.4f\n", feature_id, py_x0, py_x1, px);
+    printf("[%d] py_x0=%.4f, py_x1=%.4f, px=%.4f\n", feature_id, py_x0, py_x1, px);
     dbg_ensures(py_x0 >= 0 && py_x0 <= 1);
     dbg_ensures(py_x1 >= 0 && py_x1 <= 1);
     dbg_ensures(px >= 0 && px <= 1);
@@ -280,7 +283,7 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     double H_YX = px * split.entropy_left + (1-px) * split.entropy_right;
     split.gain = split.entropy_before - H_YX;
     dbg_printf("%.4f = %.4f - %.4f\n", split.gain, split.entropy_before, H_YX);
-    dbg_ensures(split.gain >= EPS);
+    // dbg_ensures(split.gain >= 0);
 }
 
 /*
@@ -411,11 +414,11 @@ void DecisionTree::train_on_batch(Dataset &train_data)
                     continue;
                 }
                 dbg_printf("best split: id=%d, value=%.4f, gain=%.4f\n", best_split.feature_id, best_split.feature_value, best_split.gain);
-                auto left_tree = new TreeNode(this->cur_depth);
-                auto right_tree = new TreeNode(this->cur_depth);
-                cur_leaf->split(best_split, left_tree, right_tree);
-                unlabeled_leaf_new.push_back(left_tree);
-                unlabeled_leaf_new.push_back(right_tree);
+                cur_leaf->left_node = new TreeNode(this->cur_depth);
+                cur_leaf->right_node = new TreeNode(this->cur_depth);
+                cur_leaf->split(best_split, cur_leaf->left_node, cur_leaf->right_node);
+                unlabeled_leaf_new.push_back(cur_leaf->left_node);
+                unlabeled_leaf_new.push_back(cur_leaf->right_node);
                 this->num_leaves--;                
             }
         }
