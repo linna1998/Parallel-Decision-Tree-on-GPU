@@ -278,11 +278,7 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 		if (z > 1) z = 1;
 		
 		uj = vec[index].value + z * (vec[index + 1].value - vec[index].value);		
-		u.push_back(uj);
-		
-		if (isnan(uj)) {
-			exit(1);
-		}
+		u.push_back(uj);				
 	}
 	vec2ptr(vec);	
 	return;
