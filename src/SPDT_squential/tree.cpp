@@ -265,22 +265,22 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     double right_sum_class_0 = (*node->histogram_ptr)[feature_id][0].get_total() - left_sum_class_0;
     double left_sum_class_1 = (*node->histogram_ptr)[feature_id][1].sum(split.feature_value);
     double right_sum_class_1 = (*node->histogram_ptr)[feature_id][1].get_total() - left_sum_class_1;
-    printf("[%d] value=%.4f, left_sum_class_0=%.4f, left_sum_class_1=%.4f\n", feature_id, split.feature_value, 
-           left_sum_class_0, left_sum_class_1);
+    // printf("[%d] value=%.4f, left_sum_class_0=%.4f, left_sum_class_1=%.4f\n", feature_id, split.feature_value, 
+    //        left_sum_class_0, left_sum_class_1);
 
     double px = (left_sum_class_0 + left_sum_class_1) / (1.0 * total_sum); // p(x<a)
     double py_x0 = left_sum_class_0 / (left_sum_class_0 + left_sum_class_1); // p(y=0|x < a)
     double py_x1 = right_sum_class_0 / (right_sum_class_0 + right_sum_class_1); // p(y=0|x >= a)
-    printf("[%d] py_x0=%.4f, py_x1=%.4f, px=%.4f\n", feature_id, py_x0, py_x1, px);
-    dbg_ensures(py_x0 > 0 && py_x0 < 1);
-    dbg_ensures(py_x1 > 0 && py_x1 < 1);
-    dbg_ensures(px > 0 && px < 1);
-    split.entropy_left = -py_x0 * log2(py_x0) - (1-py_x0)*log2(1-py_x0);
-    split.entropy_right = -py_x1 * log2(py_x1) - (1-py_x1)*log2(1-py_x1);
+    // printf("[%d] py_x0=%.4f, py_x1=%.4f, px=%.4f\n", feature_id, py_x0, py_x1, px);
+    dbg_ensures(py_x0 >= 0 && py_x0 <= 1);
+    dbg_ensures(py_x1 >= 0 && py_x1 <= 1);
+    dbg_ensures(px >= 0 && px <= 1);
+    split.entropy_left = ((1-py_x0) < EPS || py_x0 < EPS) ? 0 : -py_x0 * log2(py_x0) - (1-py_x0)*log2(1-py_x0);
+    split.entropy_right = ((1-py_x1) < EPS || py_x1 < EPS) ? 0 : -py_x1 * log2(py_x1) - (1-py_x1)*log2(1-py_x1);
     double H_YX = px * split.entropy_left + (1-px) * split.entropy_right;
     split.gain = split.entropy_before - H_YX;
-    printf("%.4f = %.4f - %.4f\n", split.gain, split.entropy_before, H_YX);
-    dbg_ensures(split.gain >= 0);
+    dbg_printf("%.4f = %.4f - %.4f\n", split.gain, split.entropy_before, H_YX);
+    dbg_ensures(split.gain >= EPS);
 }
 
 /*
@@ -299,7 +299,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
         for (int k = 1; k < this->datasetPointer->num_of_classes; k++)
             merged_hist.merge((*node->histogram_ptr)[i][k], this->max_bin_size);
         
-        if (i==0){
+        if (i==12){
             printf("merge \n");
             merged_hist.print();
             printf("class 0 \n");
@@ -309,7 +309,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
         }
         std::vector<double> possible_splits;
         merged_hist.uniform(possible_splits, merged_hist.bin_size);
-        if (i==0){
+        if (i==12){
             printf("possible_splits = [ ");
             for (auto& split_value: possible_splits)
                 printf("(%.4f)", split_value);
