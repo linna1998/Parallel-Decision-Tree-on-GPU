@@ -60,16 +60,16 @@ public:
 class DecisionTree
 {
 private:
-    TreeNode* root = NULL;
+    TreeNode* root;
     int num_leaves;
     int num_nodes;
     int depth;
-    int max_num_leaves = 64;
-    int max_depth = 8;
-    int max_bin_size = 255;
-    int min_node_size = 32;
-    int cur_depth = 0;
-    double min_gain = 1e-3;
+    int max_num_leaves;
+    int max_depth;
+    int max_bin_size;
+    int min_node_size;
+    int cur_depth;
+    double min_gain;
     Histogram_ALL histogram;
     // three dimensions for the global histogram.    
     int num_unlabled_leaves;
@@ -83,7 +83,8 @@ public:
     DecisionTree();
     ~DecisionTree();
     DecisionTree(int max_num_leaves, int max_depth, int min_node_size);
-        
+    
+    void self_check();
     void train(Dataset& train_data, const int batch_size = 64);
     void train_on_batch(Dataset& train_data);
     void test(Dataset& test_data);
