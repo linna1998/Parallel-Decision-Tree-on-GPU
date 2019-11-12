@@ -14,7 +14,7 @@ int main() {
     testDataset.open_read_data("./data/a1a.test.txt");	
     
     decisionTree.train(trainDataset, 1605);
-    decisionTree.test(testDataset);
+    std::cout << "correct rate: " << decisionTree.test(testDataset) << std::endl; 
     
 
     return 0;
