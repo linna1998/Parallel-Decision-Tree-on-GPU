@@ -22,6 +22,8 @@ public:
     inline SplitPoint& operator = (SplitPoint& split){
         this->feature_id = split.feature_id;
         this->feature_value = split.feature_value;
+		this->gain = split.gain;
+		this->entropy = split.entropy;
         return *this;
     }
 };

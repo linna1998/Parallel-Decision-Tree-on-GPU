@@ -57,7 +57,9 @@ SplitPoint::SplitPoint(int feature_id, double feature_value)
  */
 bool SplitPoint::decision_rule(Data &data)
 {
-    dbg_ensures(entropy>=0 && gain>=0 && feature_id >= 0);
+    dbg_ensures(entropy >= -EPS);
+    dbg_ensures(gain >= -EPS);
+    dbg_ensures(feature_id >= 0);
     return data.values[feature_id] >= feature_value;
 }
 
@@ -430,6 +432,7 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             {                
                 SplitPoint best_split;
                 find_best_split(cur_leaf, best_split);
+                dbg_ensures(best_split.gain >= -EPS);
                 if (best_split.gain <= min_gain){
                     dbg_printf("Node terminated: gain=%.4f <= %.4f\n", min_node_size, best_split.gain, min_gain);
                     cur_leaf->set_label();
