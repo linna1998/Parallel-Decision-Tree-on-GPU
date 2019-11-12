@@ -1,4 +1,5 @@
 #include "tree.h"
+#include <time.h>
 
 vector<string> names = {"a1a", "ijcnn1"};
 
@@ -10,6 +11,8 @@ int featureNum[2] = {123, 22};
 int main() {
 
     int index = 1;
+    clock_t start, end;
+    double cpu_time_used;
 
     string trainName = "./data/" + names[index] + ".train.txt";
     string testName = "./data/" + names[index] + ".test.txt";
@@ -23,8 +26,19 @@ int main() {
     trainDataset.open_read_data(trainName);
     testDataset.open_read_data(testName);	
     
+
+     
+    start = clock();     
     decisionTree.train(trainDataset, trainSize[index]);
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("train time: %f\n", cpu_time_used);
+
+    start = clock();   
     printf("correct rate: %f\n", decisionTree.test(testDataset));     
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("test time: %f\n", cpu_time_used);
 
     return 0;
 
