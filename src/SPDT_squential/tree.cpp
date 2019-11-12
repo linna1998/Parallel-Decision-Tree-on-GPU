@@ -406,14 +406,7 @@ void DecisionTree::train_on_batch(Dataset &train_data)
     vector<TreeNode *> unlabeled_leaf = __get_unlabeled(root);
     dbg_assert(unlabeled_leaf.size() <= max_num_leaves);
     while (!unlabeled_leaf.empty())
-    {
-        // if (unlabeled_leaf.size() > max_num_leaves) {
-        //     for (int i = 0; i < unlabeled_leaf.size(); i++) {                
-        //         unlabeled_leaf[i]->set_label();
-        //         this->num_leaves++;
-        //     }
-        //     break;
-        // }
+    {        
         // each while loop would add a new level node.
         this->cur_depth++;
         vector<TreeNode *> unlabeled_leaf_new;        
@@ -539,10 +532,12 @@ void DecisionTree::self_check(){
  * This function initialize the histogram for each unlabeled leaf node.
  * Also, potentially, it would free the previous histogram.
  */
-void DecisionTree::init_histogram(vector<TreeNode *> &unlabled_leaf)
+void DecisionTree::init_histogram(vector<TreeNode *> &unlabeled_leaf)
 {
     int c = 0;      
-    for (auto &p : unlabled_leaf)
+    assert(unlabeled_leaf.size() <= max_num_leaves);
+    
+    for (auto &p : unlabeled_leaf)
     {
         p->histogram_id = c++;
         for (int feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++)
