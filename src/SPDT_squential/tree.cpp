@@ -495,6 +495,8 @@ void DecisionTree::self_check(){
         }
         else
         {
+            dbg_requires(!tmp_ptr->is_leaf);
+            dbg_requires(tmp_ptr->label == -1);
             q.push(tmp_ptr->left_node);
             q.push(tmp_ptr->right_node);
         }
