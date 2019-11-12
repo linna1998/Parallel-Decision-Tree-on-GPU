@@ -33,6 +33,7 @@ typedef Bin_t* Bin_ptr;
 class TreeNode
 {
 public:
+    int id;
     bool is_leaf = false;    
     bool has_new_data = false;
     int label; // -1 means no label
@@ -47,7 +48,7 @@ public:
     vector<Data*> data_ptr;
     SplitPoint split_ptr;
 
-    TreeNode(int depth);
+    TreeNode(int depth, int id);
     void set_label();    
     void init();    
     void split(SplitPoint& best_split, TreeNode*  left, TreeNode*  right);
@@ -59,15 +60,16 @@ public:
 class DecisionTree
 {
 private:
-    TreeNode* root = NULL;
+    TreeNode* root;
     int num_leaves;
+    int num_nodes;
     int depth;
-    int max_num_leaves = 64;
-    int max_depth = 8;
-    int max_bin_size = 255;
-    int min_node_size = 32;
-    int cur_depth = 0;
-    double min_gain = 1e-3;
+    int max_num_leaves;
+    int max_depth;
+    int max_bin_size;
+    int min_node_size;
+    int cur_depth;
+    double min_gain;
     Histogram_ALL histogram;
     // three dimensions for the global histogram.    
     int num_unlabled_leaves;
@@ -81,7 +83,8 @@ public:
     DecisionTree();
     ~DecisionTree();
     DecisionTree(int max_num_leaves, int max_depth, int min_node_size);
-        
+    
+    void self_check();
     void train(Dataset& train_data, const int batch_size = 64);
     void train_on_batch(Dataset& train_data);
     double test(Dataset& test_data);

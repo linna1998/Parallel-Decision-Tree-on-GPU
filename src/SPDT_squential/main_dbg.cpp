@@ -4,7 +4,7 @@
 
 int main() {
 
-    DecisionTree decisionTree(256, 8, 128);
+    DecisionTree decisionTree;
 
     Dataset trainDataset(2, 1605, 123);
     Dataset testDataset(2, 30956, 123);

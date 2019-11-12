@@ -4,7 +4,7 @@
 #include <vector>
 #include "parser.h"
 
-#define EPS 1e-10
+#define EPS 1e-9
 
 // scala version: 
 // https://github.com/soundcloud/spdt/blob/master/compute/src/main/scala/com.soundcloud.spdt/Histogram.scala
@@ -14,19 +14,14 @@ public:
     // used to store the spliting information on a given histogram.
     int feature_id;
     double feature_value;
-    double entropy_before;
-    double entropy_left;
-    double entropy_right;
 	double gain;
+	double entropy;
     SplitPoint();
     SplitPoint(int feature_id, double feature_value);
     bool decision_rule(Data& data);
     inline SplitPoint& operator = (SplitPoint& split){
         this->feature_id = split.feature_id;
         this->feature_value = split.feature_value;
-		this->entropy_before = split.entropy_before;
-		this->entropy_left = split.entropy_left;
-		this->entropy_right = split.entropy_right;
         return *this;
     }
 };
