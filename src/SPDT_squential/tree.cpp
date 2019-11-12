@@ -540,7 +540,7 @@ void DecisionTree::init_histogram(vector<TreeNode *> &unlabled_leaf)
             for (int class_id = 0; class_id < datasetPointer->num_of_classes; class_id++) {                
                 histogram[p->histogram_id][feature_id][class_id].clear();
                 histogram[p->histogram_id][feature_id][class_id].bins = &bin_ptr[RLOC(p->histogram_id, feature_id, class_id, datasetPointer->num_of_features, datasetPointer->num_of_classes, max_bin_size)];                
-                histogram[p->histogram_id][feature_id][class_id].check();
+                histogram[p->histogram_id][feature_id][class_id].check(__LINE__);
             }                
 
         p->histogram_ptr = &histogram[p->histogram_id];   

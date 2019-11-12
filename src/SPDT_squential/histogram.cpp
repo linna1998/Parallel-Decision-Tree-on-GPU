@@ -62,15 +62,21 @@ void Histogram::vec2ptr(std::vector<BinTriplet>& vec) {
 	vec.shrink_to_fit();	
 }
 
-void Histogram::sortBin(std::vector<BinTriplet>& vec) {	
+void sortBin(std::vector<BinTriplet>& vec) {	
 	sort(vec.begin(), vec.end(), [](const BinTriplet &a, const BinTriplet &b) {
 		return a.value < b.value;
 	});	
 }
 
+void printVector(std::vector<BinTriplet>& vec) {
+	printf("size: %d\n", vec.size());
 
-void Histogram::mergeBin(std::vector<BinTriplet>& vec) {	
+	for (int i = 0; i < vec.size(); i++) {
+		printf("%d: (%.4f, %d) ", i, vec[i].value, vec[i].freq);
+	}	
+}
 
+void mergeBin(std::vector<BinTriplet>& vec) {
 	BinTriplet newbin;
 	int index = 0;
 
@@ -85,17 +91,18 @@ void Histogram::mergeBin(std::vector<BinTriplet>& vec) {
 	// merge vec[index], vecs[index + 1] into a new element
 	newbin.freq = vec[index].freq + vec[index + 1].freq;
 	newbin.value = (vec[index].value * vec[index].freq
-		+ vec[index + 1].value * (vec[index + 1].freq + vec[index + 1].freq)) /
+		+ vec[index + 1].value * vec[index + 1].freq) /
 		newbin.freq;
 
 	// erase vec[index + 1]
 	// change vec[index] with newbin
 	vec.erase(vec.begin() + index + 1);
-	vec[index] = newbin;	
+	vec[index].freq = newbin.freq;
+	vec[index].value = newbin.value;
 }
 
 void Histogram::update(double value) {	
-	check();		
+	check(__LINE__);		
 	std::vector<BinTriplet> vec;
 	ptr2vec(vec);	
 
@@ -104,7 +111,7 @@ void Histogram::update(double value) {
 		if (abs(vec[i].value - value) < EPS) {			
 			vec[i].freq++;
 			vec2ptr(vec);
-			check();					
+			check(__LINE__);					
 			return;
 		}
 	}
@@ -115,19 +122,19 @@ void Histogram::update(double value) {
 
 	if (vec.size() <= max_bin) {
 		vec2ptr(vec);			
-		check();		
+		check(__LINE__);		
 		return;
 	}
 	
 	mergeBin(vec);	
 	
 	vec2ptr(vec);	
-	check();	
+	check(__LINE__);	
 	return;
 }
 
 double Histogram::sum(double value) {
-	check();
+	check(__LINE__);
 	std::vector<BinTriplet> vec;
 	int index = 0;
 	double mb = 0;
@@ -173,12 +180,22 @@ double Histogram::sum(double value) {
 
 	s = s + ((double)vec[index].freq) / 2;
 	vec2ptr(vec);
-	check();
+	check(__LINE__);
 	return s;
 }
 
+void mergeSame(std::vector<BinTriplet>& vec) {
+	for (int i = 0; i + 1 < vec.size(); i++) {
+		if (abs(vec[i].value - vec[i+1].value) < EPS) {
+			vec[i].freq += vec[i+1].freq;
+			vec.erase(vec.begin() + i + 1);
+			i--;
+		}
+	}
+}
+
 void Histogram::merge(Histogram &h, int B) {
-	check();
+	check(__LINE__);
 	int index = 0;
 	std::vector<BinTriplet> vec;
 	ptr2vec(vec);
@@ -191,21 +208,15 @@ void Histogram::merge(Histogram &h, int B) {
 	sortBin(vec);
 
 	// merge the same values in vec
-	for (int i = 0; i + 1 < vec.size(); i++) {
-		if (abs(vec[i].value - vec[i+1].value) < EPS) {
-			vec[i].freq += vec[i+1].freq;
-			vec.erase(vec.begin() + i + 1);
-			i--;
-		}
-	}
+	mergeSame(vec);
 
 	while (vec.size() > B) {
-		mergeBin(vec);
+		mergeBin(vec);		
 	}
 
 	vec2ptr(vec);
 	h.vec2ptr(hvec);	
-	check();
+	check(__LINE__);
 	return;
 }
 void Histogram::print(){
@@ -220,22 +231,27 @@ void Histogram::print(){
 
 }
 
-void Histogram::check() {
+void Histogram::check(int lineno) {	
+
 	int i = 0;	
 	for (i = 0; i < bin_size; i++) {		
 		if (bins[i].freq == 0) {
+			printf("check lineno: %d\n", lineno);
 			printf("%d: (%.4f, %d) ", i, bins[i].value, bins[i].freq);
 			printf("Freq = 0\n");
 			exit(1);
 		} 	
-		if (i + 1 < bin_size) {			
-			assert(abs(bins[i].value - bins[i + 1].value) > EPS);
+		if (i + 1 < bin_size && abs(bins[i].value - bins[i + 1].value) < EPS) {		
+			printf("check lineno: %d\n", lineno);
+			printf("%d: (%.4f, %d) ", i, bins[i].value, bins[i].freq);
+			printf("%d: (%.4f, %d) ", i + 1, bins[i + 1].value, bins[i + 1].freq);
+			exit(1);
 		}	
 	}	
 }
 
 void Histogram::uniform(std::vector<double> &u, int B) {
-	check();
+	check(__LINE__);
 	double tmpsum = 0;
 	double s = 0;
 	int index = 0;
@@ -287,7 +303,7 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 		u.push_back(uj);				
 	}
 	vec2ptr(vec);	
-	check();
+	check(__LINE__);
 	return;
 }
 
