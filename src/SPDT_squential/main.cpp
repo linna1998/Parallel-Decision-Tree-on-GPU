@@ -17,7 +17,7 @@ int main() {
     string trainName = "./data/" + names[index] + ".train.txt";
     string testName = "./data/" + names[index] + ".test.txt";
 
-    DecisionTree decisionTree;
+    DecisionTree decisionTree(64, 9, 32);
 
     Dataset trainDataset(2, trainSize[index], featureNum[index]);
     Dataset testDataset(2, testSize[index], featureNum[index]);
@@ -26,8 +26,6 @@ int main() {
     trainDataset.open_read_data(trainName);
     testDataset.open_read_data(testName);	
     
-
-     
     start = clock();     
     decisionTree.train(trainDataset, trainSize[index]);
     end = clock();

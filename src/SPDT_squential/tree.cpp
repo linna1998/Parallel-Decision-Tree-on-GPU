@@ -194,14 +194,14 @@ DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size)
     this->max_num_leaves = max_num_leaves;
     this->max_depth = max_depth;
     this->min_node_size = min_node_size;
-    this->max_bin_size = 255;
     this->depth = 0;
     this->num_leaves = 0;
+    this->max_bin_size = 12;
     this->cur_depth = 0;
     this->root = NULL;
     this->bin_ptr = NULL;
     this->min_gain = 1e-3;
-    num_nodes = 0;
+    this->num_nodes = 0;
 }
 
 /* 
