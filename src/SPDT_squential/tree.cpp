@@ -152,6 +152,8 @@ void TreeNode::print() {
     printspaces();
     printf("label %d\n", label);
     printspaces();
+    printf("is_leaf %d\n", is_leaf);
+    printspaces();
     printf("hasLeft: %d\n", left_node != NULL);
     printspaces();
     printf("hasRight: %d\n", right_node != NULL);    
@@ -264,8 +266,26 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
     return;
 }
 
-void DecisionTree::test(Dataset &train_data)
-{
+double DecisionTree::test(Dataset &test_data) {
+    printf("Test\n");
+    root->print();
+
+    int i = 0;
+    int correct_num = 0;
+    test_data.streaming_read_data(test_data.num_of_data);
+
+    for (i = 0; i < test_data.num_of_data; i++) {
+        // printf("lable 1: %d, label 2: %d\n", 
+        //     navigate(test_data.dataset[i])->label,
+        //     test_data.dataset[i].label);
+        assert(navigate(test_data.dataset[i])->label != -1);
+        if (navigate(test_data.dataset[i])->label == test_data.dataset[i].label) {
+            correct_num++;
+        }
+    }
+    printf("correct_num %d\n", correct_num);
+    printf("test_data.num_of_data %d\n", test_data.num_of_data);
+    return (double)correct_num / (double)test_data.num_of_data;
 }
 
 /*

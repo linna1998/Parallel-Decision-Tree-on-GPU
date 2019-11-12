@@ -84,7 +84,7 @@ public:
         
     void train(Dataset& train_data, const int batch_size = 64);
     void train_on_batch(Dataset& train_data);
-    void test(Dataset& test_data);
+    double test(Dataset& test_data);
     // this function adjust the `global_partition_idx`
     void find_best_split(TreeNode* node, SplitPoint& split);
     void compress(vector<Data>& data, vector<TreeNode* >& unlabled_leaf);
