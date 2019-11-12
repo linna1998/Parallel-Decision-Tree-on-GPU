@@ -67,6 +67,7 @@ public:
 	}
 };
 
+void printVector(std::vector<BinTriplet>& vec);
 void mergeSame(std::vector<BinTriplet>& vec);
 void sortBin(std::vector<BinTriplet>& vec);
 void mergeBin(std::vector<BinTriplet>& vec);
