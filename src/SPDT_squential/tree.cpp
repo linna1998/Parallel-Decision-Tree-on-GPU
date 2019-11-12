@@ -404,17 +404,16 @@ void DecisionTree::train_on_batch(Dataset &train_data)
     // Reinitialize every leaf in T as unlabeled.
     batch_initialize(root);
     vector<TreeNode *> unlabeled_leaf = __get_unlabeled(root);
-
+    dbg_assert(unlabeled_leaf.size() <= max_num_leaves);
     while (!unlabeled_leaf.empty())
     {
-        if (unlabeled_leaf.size() > max_num_leaves) {
-            for (int i = 0; i < unlabeled_leaf.size(); i++) {                
-                unlabeled_leaf[i]->set_label();
-                this->num_leaves++;
-            }
-            break;
-        }
-
+        // if (unlabeled_leaf.size() > max_num_leaves) {
+        //     for (int i = 0; i < unlabeled_leaf.size(); i++) {                
+        //         unlabeled_leaf[i]->set_label();
+        //         this->num_leaves++;
+        //     }
+        //     break;
+        // }
         // each while loop would add a new level node.
         this->cur_depth++;
         vector<TreeNode *> unlabeled_leaf_new;        
