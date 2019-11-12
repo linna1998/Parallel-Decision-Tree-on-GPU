@@ -409,7 +409,14 @@ void DecisionTree::train_on_batch(Dataset &train_data)
     {        
         // each while loop would add a new level node.
         this->cur_depth++;
-        vector<TreeNode *> unlabeled_leaf_new;        
+        vector<TreeNode *> unlabeled_leaf_new; 
+        if (unlabeled_leaf.size() > max_num_leaves) {
+            for (int i = 0; i < unlabeled_leaf.size(); i++) {
+                unlabeled_leaf[i]->set_label();
+                this->num_leaves++;
+            }
+            break;
+        }       
         init_histogram(unlabeled_leaf);        
         compress(train_data.dataset, unlabeled_leaf);       
         for (auto &cur_leaf : unlabeled_leaf)
