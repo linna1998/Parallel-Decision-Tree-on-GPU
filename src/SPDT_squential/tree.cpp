@@ -233,7 +233,7 @@ bool DecisionTree::is_terminated(TreeNode *node)
         dbg_printf("Node [%d] terminated: all samples belong to same class\n",node->id);
         return true; 
     }
-    printf("[%d] num_data=%d, num_pos=%d\n", node->id, node->data_ptr.size(), node->num_pos_label);
+    dbg_printf("[%d] num_data=%d, num_pos=%d\n", node->id, node->data_ptr.size(), node->num_pos_label);
     return false;
 }
 
@@ -263,14 +263,11 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
 		if (!hasNext) break;
 	}		
 
-	train_data.close_read_data();
-    root->print();
+	train_data.close_read_data();    
     return;
 }
 
-double DecisionTree::test(Dataset &test_data) {
-    printf("Test\n");
-    root->print();
+double DecisionTree::test(Dataset &test_data) {    
 
     int i = 0;
     int correct_num = 0;
@@ -284,9 +281,7 @@ double DecisionTree::test(Dataset &test_data) {
         if (navigate(test_data.dataset[i])->label == test_data.dataset[i].label) {
             correct_num++;
         }
-    }
-    printf("correct_num %d\n", correct_num);
-    printf("test_data.num_of_data %d\n", test_data.num_of_data);
+    }    
     return (double)correct_num / (double)test_data.num_of_data;
 }
 

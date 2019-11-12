@@ -12,7 +12,6 @@ typedef std::vector<Histogram_LEAF> Histogram_ALL;
 typedef BinTriplet Bin_t;
 typedef Bin_t* Bin_ptr;
 
-#define DEBUG 1
 #ifdef DEBUG
 /* When DEBUG is defined, these form aliases to useful functions */
 #define dbg_printf(...) printf(__VA_ARGS__)

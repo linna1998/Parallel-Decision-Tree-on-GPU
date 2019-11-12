@@ -1,4 +1,3 @@
-#define DEBUG 1
 #include "tree.h"
 
 vector<string> names = {"a1a", "ijcnn1"};
