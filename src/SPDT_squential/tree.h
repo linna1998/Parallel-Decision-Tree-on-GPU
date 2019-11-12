@@ -33,6 +33,7 @@ typedef Bin_t* Bin_ptr;
 class TreeNode
 {
 public:
+    int id;
     bool is_leaf = false;    
     bool has_new_data = false;
     int label; // -1 means no label
@@ -47,7 +48,7 @@ public:
     vector<Data*> data_ptr;
     SplitPoint split_ptr;
 
-    TreeNode(int depth);
+    TreeNode(int depth, int id);
     void set_label();    
     void init();    
     void split(SplitPoint& best_split, TreeNode*  left, TreeNode*  right);
@@ -60,6 +61,7 @@ class DecisionTree
 private:
     TreeNode* root = NULL;
     int num_leaves;
+    int num_nodes;
     int depth;
     int max_num_leaves = 64;
     int max_depth = 8;

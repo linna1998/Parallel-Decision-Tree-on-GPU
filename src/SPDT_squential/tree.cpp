@@ -66,8 +66,9 @@ bool SplitPoint::decision_rule(Data &data)
 }
 
 // constructor function
-TreeNode::TreeNode(int depth)
+TreeNode::TreeNode(int depth, int id)
 {
+    this->id = id;
     this->depth = depth;
     is_leaf = false;
     has_new_data = false;
@@ -109,7 +110,6 @@ void TreeNode::set_label()
  */
 void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
 {
-    dbg_printf("split begin\n");
     this->split_ptr = best_split;
     double split_value = best_split.feature_value;
     int num_pos_lebel_left=0;
@@ -130,11 +130,15 @@ void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
     left->num_pos_label = num_pos_lebel_left;
     right->num_pos_label = num_pos_lebel_right;
     right->entropy = best_split.entropy_right;
-    dbg_printf("data size=%d, right=%d, left=%d\n", data_ptr.size(), right->data_ptr.size(), left->data_ptr.size());
-    dbg_printf("split end\n");
+    if (left->id == 14){
+        printf("[%d] num_pos=%d/%d, entropy=%.4f\n", left->id, num_pos_lebel_left, left->data_ptr.size(), left->entropy);
+    }
+    if (right->id == 14){
+        printf("[%d] num_pos=%d/%d, entropy=%.4f\n", right->id, num_pos_lebel_right, right->data_ptr.size(), right->entropy);
+    }
     dbg_assert(left->num_pos_label >= 0);
     dbg_assert(right->num_pos_label >= 0);
-
+    dbg_assert(left->num_pos_label + right->num_pos_label == this->num_pos_label);
 }
 
 void TreeNode::print() {
@@ -168,6 +172,7 @@ DecisionTree::DecisionTree()
     this->cur_depth = 0;
     this->root = NULL;
     this->bin_ptr = NULL;
+    num_nodes = 0;
 
 }
 
@@ -186,6 +191,7 @@ DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size)
     this->cur_depth = 0;
     this->root = NULL;
     this->bin_ptr = NULL;
+    num_nodes = 0;
 }
 
 /* 
@@ -196,24 +202,35 @@ bool DecisionTree::is_terminated(TreeNode *node)
 {
     if (node->data_ptr.size() <= min_node_size)
     {
-        dbg_printf("Node terminated: min_node_size=%d >= %d\n", min_node_size, node->data_ptr.size());
+        dbg_printf("Node [%d] terminated: min_node_size=%d >= %d\n", min_node_size, node->data_ptr.size(), node->id);
         return true;
     }
 
     if (node->depth >= this->max_depth)
     {
-        dbg_printf("Node terminated: max_depth\n");
+        dbg_printf("Node [%d] terminated: max_depth\n", node->id);
         return true;
     }
 
     if (this->num_leaves >= this->max_num_leaves)
     {
-        dbg_printf("Node terminated: max_num_leaves\n");
+        dbg_printf("Node [%d] terminated: max_num_leaves\n", node->id);
         return true;
     }
 
-    if (node->num_pos_label == (int) node->data_ptr.size()){
-        dbg_printf("Node terminated: all samples belong to same class\n");
+    if (!node->num_pos_label || node->num_pos_label == (int) node->data_ptr.size()){
+        dbg_assert(node->entropy < EPS);
+        dbg_printf("Node [%d] terminated: all samples belong to same class\n",node->id);
+        return true; 
+    }
+
+    if (node->entropy < EPS){
+        if (node->id == 14){
+            (*node->histogram_ptr)[0][0].print();
+            (*node->histogram_ptr)[0][1].print();
+        }
+        // dbg_assert(node->num_pos_label == 0 || node->num_pos_label == (int) node->data_ptr.size());
+        dbg_printf("Node [%d] terminated: entropy=%.4f < %.8f and num_pos=%d/%d\n", node->id, node->entropy, EPS, node->num_pos_label, node->data_ptr.size());
         return true; 
     }
 
@@ -223,7 +240,7 @@ bool DecisionTree::is_terminated(TreeNode *node)
 void DecisionTree::initialize(Dataset &train_data, const int batch_size){
     this->datasetPointer = &train_data;
     dbg_printf("Init Root Node\n");
-    root = new TreeNode(0);   
+    root = new TreeNode(0, this->num_nodes++);  
     root->is_leaf = true;
     if (bin_ptr != NULL) {        
         delete[] bin_ptr;
@@ -268,13 +285,9 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     double right_sum_class_0 = (*node->histogram_ptr)[feature_id][0].get_total() - left_sum_class_0;
     double left_sum_class_1 = (*node->histogram_ptr)[feature_id][1].sum(split.feature_value);
     double right_sum_class_1 = (*node->histogram_ptr)[feature_id][1].get_total() - left_sum_class_1;
-    printf("[%d] value=%.4f, left_sum_class_0=%.4f, left_sum_class_1=%.4f\n", feature_id, split.feature_value, 
-           left_sum_class_0, left_sum_class_1);
-
     double px = (left_sum_class_0 + left_sum_class_1) / (1.0 * total_sum); // p(x<a)
     double py_x0 = left_sum_class_0 / (left_sum_class_0 + left_sum_class_1); // p(y=0|x < a)
     double py_x1 = right_sum_class_0 / (right_sum_class_0 + right_sum_class_1); // p(y=0|x >= a)
-    printf("[%d] py_x0=%.4f, py_x1=%.4f, px=%.4f\n", feature_id, py_x0, py_x1, px);
     dbg_ensures(py_x0 >= 0 && py_x0 <= 1);
     dbg_ensures(py_x1 >= 0 && py_x1 <= 1);
     dbg_ensures(px >= 0 && px <= 1);
@@ -390,7 +403,6 @@ void DecisionTree::train_on_batch(Dataset &train_data)
 
     while (!unlabeled_leaf.empty())
     {
-        dbg_printf("New level begin\n");
         // each while loop would add a new level node.
         this->cur_depth++;
         vector<TreeNode *> unlabeled_leaf_new;
@@ -414,8 +426,8 @@ void DecisionTree::train_on_batch(Dataset &train_data)
                     continue;
                 }
                 dbg_printf("best split: id=%d, value=%.4f, gain=%.4f\n", best_split.feature_id, best_split.feature_value, best_split.gain);
-                cur_leaf->left_node = new TreeNode(this->cur_depth);
-                cur_leaf->right_node = new TreeNode(this->cur_depth);
+                cur_leaf->left_node = new TreeNode(this->cur_depth, this->num_nodes++);
+                cur_leaf->right_node = new TreeNode(this->cur_depth, this->num_nodes++);
                 cur_leaf->split(best_split, cur_leaf->left_node, cur_leaf->right_node);
                 unlabeled_leaf_new.push_back(cur_leaf->left_node);
                 unlabeled_leaf_new.push_back(cur_leaf->right_node);
@@ -448,7 +460,6 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_lea
             }
         }
     }
-    dbg_printf("Leave compress\n");
 }
 /*
  * initialize each leaf as unlabeled.
