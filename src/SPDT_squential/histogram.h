@@ -49,15 +49,13 @@ public:
 	Histogram(const int max_bin, BinTriplet* _bins);
 
 	void ptr2vec(std::vector<BinTriplet>& res);
-	void vec2ptr(std::vector<BinTriplet>& vec);
-	void sortBin(std::vector<BinTriplet>& vec);
-	void mergeBin(std::vector<BinTriplet>& vec);
+	void vec2ptr(std::vector<BinTriplet>& vec);	
     void update(double value);
     double sum(double value);
     void merge(Histogram &h, int B);
 	void uniform(std::vector<double> &u, int B);
 	void print();
-	void check();
+	void check(int lineno);
 	void clear();
 	int get_total();
 	inline Histogram& operator = (Histogram& h){
@@ -68,3 +66,8 @@ public:
 		return *this;
 	}
 };
+
+void printVector(std::vector<BinTriplet>& vec);
+void mergeSame(std::vector<BinTriplet>& vec);
+void sortBin(std::vector<BinTriplet>& vec);
+void mergeBin(std::vector<BinTriplet>& vec);
