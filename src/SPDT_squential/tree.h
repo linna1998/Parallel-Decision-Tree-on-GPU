@@ -52,6 +52,7 @@ public:
     void set_label();    
     void init();    
     void split(SplitPoint& best_split, TreeNode*  left, TreeNode*  right);
+    void printspaces();
     void print();
     void clear();
 };

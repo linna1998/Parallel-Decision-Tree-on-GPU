@@ -141,12 +141,24 @@ void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
     dbg_assert(left->num_pos_label + right->num_pos_label == this->num_pos_label);
 }
 
+void TreeNode::printspaces() {
+    int i = 0;
+    for (i = 0; i < depth * 2; i++) {
+        printf(" ");
+    }
+}
+
 void TreeNode::print() {
+    printspaces();
     printf("TreeNode: \n");
+    printspaces();
     printf("depth: %d\n", depth);
+    printspaces();
     printf("label %d\n", label);
+    printspaces();
     printf("hasLeft: %d\n", left_node != NULL);
-    printf("hasRight: %d\n", right_node != NULL);
+    printspaces();
+    printf("hasRight: %d\n", right_node != NULL);    
     if (left_node != NULL) {
         left_node->print();
     }
