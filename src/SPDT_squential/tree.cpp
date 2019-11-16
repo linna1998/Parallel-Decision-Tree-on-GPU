@@ -497,6 +497,7 @@ void DecisionTree::batch_initialize(TreeNode *node)
     return;
 }
 void DecisionTree::self_check(){
+    #ifdef DEBUG
     queue<TreeNode *> q;
     q.push(root);
     int count_leaf=0;
@@ -531,6 +532,7 @@ void DecisionTree::self_check(){
     dbg_printf("------------------------------------------------\n");
     dbg_printf("| Num_leaf: %d, num_nodes: %d, max_depth: %d | \n", num_leaves, num_nodes, cur_depth);
     dbg_printf("------------------------------------------------\n");
+    #endif
 
 }
 /*

@@ -250,7 +250,7 @@ void Histogram::print(){
 }
 
 void Histogram::check(int lineno) {	
-
+	#ifdef DEBUG
 	int i = 0;	
 	for (i = 0; i < bin_size; i++) {		
 		if (bins[i].freq == 0) {
@@ -266,6 +266,7 @@ void Histogram::check(int lineno) {
 			exit(1);
 		}	
 	}	
+	#endif
 }
 
 void Histogram::uniform(std::vector<double> &u, int B) {

@@ -1,0 +1,418 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  ms/call  ms/call  name    
+ 20.52      0.08     0.08   195366     0.00     0.00  std::_Rb_tree<int, std::pair<int const, double>, std::_Select1st<std::pair<int const, double> >, std::less<int>, std::allocator<std::pair<int const, double> > >::_M_erase(std::_Rb_tree_node<std::pair<int const, double> >*)
+ 15.39      0.14     0.06    32561     0.00     0.00  Data::read_a_data(int, int, std::basic_ifstream<char, std::char_traits<char> >*)
+ 15.39      0.20     0.06       10     6.00    17.96  DecisionTree::compress(std::vector<Data, std::allocator<Data> >&, std::vector<TreeNode*, std::allocator<TreeNode*> >&)
+ 12.82      0.25     0.05  3355881     0.00     0.00  _ZNSt6vectorI10BinTripletSaIS0_EE19_M_emplace_back_auxIJS0_EEEvDpOT_
+ 10.26      0.29     0.04        1    40.01    70.01  DecisionTree::test(Dataset&)
+  7.69      0.32     0.03  1928148     0.00     0.00  Histogram::update(double)
+  5.13      0.34     0.02  3873805     0.00     0.00  Histogram::check(int)
+  5.13      0.36     0.02  3871345     0.00     0.00  std::vector<BinTriplet, std::allocator<BinTriplet> >::_M_shrink_to_fit()
+  2.56      0.37     0.01     1107     0.01     0.01  Histogram::merge(Histogram&, int)
+  2.56      0.38     0.01      971     0.01     0.01  get_gain(TreeNode*, SplitPoint&, int)
+  2.56      0.39     0.01        9     1.11     1.11  TreeNode::split(SplitPoint&, TreeNode*, TreeNode*)
+  0.00      0.39     0.00  4005003     0.00     0.00  std::_Rb_tree<int, std::pair<int const, double>, std::_Select1st<std::pair<int const, double> >, std::less<int>, std::allocator<std::pair<int const, double> > >::_M_get_insert_hint_unique_pos(std::_Rb_tree_const_iterator<std::pair<int const, double> >, int const&)
+  0.00      0.39     0.00   202212     0.00     0.00  BinTriplet::BinTriplet()
+  0.00      0.39     0.00     6788     0.00     0.00  void std::__introsort_loop<__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, long, __gnu_cxx::__ops::_Iter_comp_iter<sortBin(std::vector<BinTriplet, std::allocator<BinTriplet> >&)::{lambda(BinTriplet const&, BinTriplet const&)#1}> >(__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, __gnu_cxx::__ops::_Iter_comp_iter<sortBin(std::vector<BinTriplet, std::allocator<BinTriplet> >&)::{lambda(BinTriplet const&, BinTriplet const&)#1}>, long, __gnu_cxx::__ops::_Iter_comp_iter<sortBin(std::vector<BinTriplet, std::allocator<BinTriplet> >&)::{lambda(BinTriplet const&, BinTriplet const&)#1}>)
+  0.00      0.39     0.00     4855     0.00     0.00  Histogram::sum(double)
+  0.00      0.39     0.00     4674     0.00     0.00  Histogram::clear()
+  0.00      0.39     0.00     1942     0.00     0.00  Histogram::get_total()
+  0.00      0.39     0.00     1107     0.00     0.00  Histogram::uniform(std::vector<double, std::allocator<double> >&, int)
+  0.00      0.39     0.00     1107     0.00     0.00  void std::vector<BinTriplet, std::allocator<BinTriplet> >::_M_range_insert<__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > > >(__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, __gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, __gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, std::forward_iterator_tag)
+  0.00      0.39     0.00      971     0.00     0.00  _ZNSt6vectorIdSaIdEE19_M_emplace_back_auxIJRKdEEEvDpOT_
+  0.00      0.39     0.00      135     0.00     0.00  _ZNSt6vectorIP4DataSaIS1_EE19_M_emplace_back_auxIJRKS1_EEEvDpOT_
+  0.00      0.39     0.00       72     0.00     0.00  _ZNSt6vectorI10SplitPointSaIS0_EE19_M_emplace_back_auxIJRKS0_EEEvDpOT_
+  0.00      0.39     0.00       19     0.00     0.00  _ZNSt6vectorIP8TreeNodeSaIS1_EE19_M_emplace_back_auxIJRKS1_EEEvDpOT_
+  0.00      0.39     0.00       12     0.00     0.00  _ZNSt6vectorIP4DataSaIS1_EE19_M_emplace_back_auxIJS1_EEEvDpOT_
+  0.00      0.39     0.00       10     0.00     0.00  DecisionTree::init_histogram(std::vector<TreeNode*, std::allocator<TreeNode*> >&)
+  0.00      0.39     0.00        9     0.00     2.26  DecisionTree::find_best_split(TreeNode*, SplitPoint&)
+  0.00      0.39     0.00        5     0.00     0.00  _GLOBAL__sub_I__ZN10BinTripletC2Ev
+  0.00      0.39     0.00        4     0.00     0.00  std::_Deque_base<TreeNode*, std::allocator<TreeNode*> >::_M_initialize_map(unsigned long)
+  0.00      0.39     0.00        2     0.00     0.00  Dataset::open_read_data(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)
+  0.00      0.39     0.00        2     0.00    30.01  Dataset::streaming_read_data(int)
+  0.00      0.39     0.00        2     0.00     0.00  TreeNode::clear()
+  0.00      0.39     0.00        2     0.00    40.01  std::vector<Data, std::allocator<Data> >::~vector()
+  0.00      0.39     0.00        2     0.00     0.00  std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, char const*)
+  0.00      0.39     0.00        2     0.00     0.00  std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+  0.00      0.39     0.00        1     0.00     0.00  _GLOBAL__sub_I__Z5namesB5cxx11
+  0.00      0.39     0.00        1     0.00     0.00  _GLOBAL__sub_I__ZN10SplitPointC2Ev
+  0.00      0.39     0.00        1     0.00     0.00  _GLOBAL__sub_I__ZN4Data11read_a_dataEiiPSt14basic_ifstreamIcSt11char_traitsIcEE
+  0.00      0.39     0.00        1     0.00     0.00  DecisionTree::initialize(Dataset&, int)
+  0.00      0.39     0.00        1     0.00     0.00  DecisionTree::self_check()
+  0.00      0.39     0.00        1     0.00   210.04  DecisionTree::train_on_batch(Dataset&)
+  0.00      0.39     0.00        1     0.00     0.00  DecisionTree::__get_unlabeled(TreeNode*)
+  0.00      0.39     0.00        1     0.00     0.00  DecisionTree::batch_initialize(TreeNode*)
+  0.00      0.39     0.00        1     0.00   240.05  DecisionTree::train(Dataset&, int)
+  0.00      0.39     0.00        1     0.00     0.00  DecisionTree::DecisionTree(int, int, int)
+  0.00      0.39     0.00        1     0.00     0.00  DecisionTree::~DecisionTree()
+  0.00      0.39     0.00        1     0.00     0.00  Dataset::close_read_data()
+  0.00      0.39     0.00        1     0.00     0.00  Histogram::Histogram(int)
+  0.00      0.39     0.00        1     0.00     0.00  std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >::vector(std::initializer_list<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > const&)
+
+ %         the percentage of the total running time of the
+time       program used by this function.
+
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+ 
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+	   else blank.
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this 
+	   function is profiled, else blank.
+
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+	   the function in the gprof listing. If the index is
+	   in parenthesis it shows where it would appear in
+	   the gprof listing if it were to be printed.
+
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 2 byte(s) for 2.56% of 0.39 seconds
+
+index % time    self  children    called     name
+                                                 <spontaneous>
+[1]    100.0    0.00    0.39                 main [1]
+                0.00    0.24       1/1           DecisionTree::train(Dataset&, int) [2]
+                0.00    0.08       2/2           std::vector<Data, std::allocator<Data> >::~vector() [7]
+                0.04    0.03       1/1           DecisionTree::test(Dataset&) [8]
+                0.00    0.00       2/2           std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [43]
+                0.00    0.00       2/2           std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, char const*) [42]
+                0.00    0.00       2/5           _GLOBAL__sub_I__ZN10BinTripletC2Ev [38]
+                0.00    0.00       2/2           Dataset::open_read_data(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [40]
+                0.00    0.00       1/1           DecisionTree::DecisionTree(int, int, int) [51]
+                0.00    0.00       1/1           Dataset::close_read_data() [53]
+                0.00    0.00       1/1           DecisionTree::~DecisionTree() [52]
+-----------------------------------------------
+                0.00    0.24       1/1           main [1]
+[2]     61.5    0.00    0.24       1         DecisionTree::train(Dataset&, int) [2]
+                0.00    0.21       1/1           DecisionTree::train_on_batch(Dataset&) [3]
+                0.00    0.03       1/2           Dataset::streaming_read_data(int) [10]
+                0.00    0.00       1/1           DecisionTree::initialize(Dataset&, int) [47]
+-----------------------------------------------
+                0.00    0.21       1/1           DecisionTree::train(Dataset&, int) [2]
+[3]     53.8    0.00    0.21       1         DecisionTree::train_on_batch(Dataset&) [3]
+                0.06    0.12      10/10          DecisionTree::compress(std::vector<Data, std::allocator<Data> >&, std::vector<TreeNode*, std::allocator<TreeNode*> >&) [4]
+                0.00    0.02       9/9           DecisionTree::find_best_split(TreeNode*, SplitPoint&) [12]
+                0.01    0.00       9/9           TreeNode::split(SplitPoint&, TreeNode*, TreeNode*) [17]
+                0.00    0.00      10/10          DecisionTree::init_histogram(std::vector<TreeNode*, std::allocator<TreeNode*> >&) [20]
+                0.00    0.00      18/19          _ZNSt6vectorIP8TreeNodeSaIS1_EE19_M_emplace_back_auxIJRKS1_EEEvDpOT_ [36]
+                0.00    0.00      12/12          _ZNSt6vectorIP4DataSaIS1_EE19_M_emplace_back_auxIJS1_EEEvDpOT_ [37]
+                0.00    0.00       1/1           DecisionTree::batch_initialize(TreeNode*) [50]
+                0.00    0.00       1/1           DecisionTree::__get_unlabeled(TreeNode*) [49]
+                0.00    0.00       1/1           DecisionTree::self_check() [48]
+-----------------------------------------------
+                0.06    0.12      10/10          DecisionTree::train_on_batch(Dataset&) [3]
+[4]     46.1    0.06    0.12      10         DecisionTree::compress(std::vector<Data, std::allocator<Data> >&, std::vector<TreeNode*, std::allocator<TreeNode*> >&) [4]
+                0.03    0.09 1928148/1928148     Histogram::update(double) [5]
+-----------------------------------------------
+                0.03    0.09 1928148/1928148     DecisionTree::compress(std::vector<Data, std::allocator<Data> >&, std::vector<TreeNode*, std::allocator<TreeNode*> >&) [4]
+[5]     30.7    0.03    0.09 1928148         Histogram::update(double) [5]
+                0.05    0.00 3340329/3355881     _ZNSt6vectorI10BinTripletSaIS0_EE19_M_emplace_back_auxIJS0_EEEvDpOT_ [11]
+                0.02    0.00 3856296/3871345     std::vector<BinTriplet, std::allocator<BinTriplet> >::_M_shrink_to_fit() [14]
+                0.02    0.00 3856296/3873805     Histogram::check(int) [13]
+                0.00    0.00    5681/6788        void std::__introsort_loop<__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, long, __gnu_cxx::__ops::_Iter_comp_iter<sortBin(std::vector<BinTriplet, std::allocator<BinTriplet> >&)::{lambda(BinTriplet const&, BinTriplet const&)#1}> >(__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, __gnu_cxx::__ops::_Iter_comp_iter<sortBin(std::vector<BinTriplet, std::allocator<BinTriplet> >&)::{lambda(BinTriplet const&, BinTriplet const&)#1}>, long, __gnu_cxx::__ops::_Iter_comp_iter<sortBin(std::vector<BinTriplet, std::allocator<BinTriplet> >&)::{lambda(BinTriplet const&, BinTriplet const&)#1}>) [29]
+-----------------------------------------------
+                               65122             std::_Rb_tree<int, std::pair<int const, double>, std::_Select1st<std::pair<int const, double> >, std::less<int>, std::allocator<std::pair<int const, double> > >::_M_erase(std::_Rb_tree_node<std::pair<int const, double> >*) [6]
+                0.08    0.00  195366/195366      std::vector<Data, std::allocator<Data> >::~vector() [7]
+[6]     20.5    0.08    0.00  195366+65122   std::_Rb_tree<int, std::pair<int const, double>, std::_Select1st<std::pair<int const, double> >, std::less<int>, std::allocator<std::pair<int const, double> > >::_M_erase(std::_Rb_tree_node<std::pair<int const, double> >*) [6]
+                               65122             std::_Rb_tree<int, std::pair<int const, double>, std::_Select1st<std::pair<int const, double> >, std::less<int>, std::allocator<std::pair<int const, double> > >::_M_erase(std::_Rb_tree_node<std::pair<int const, double> >*) [6]
+-----------------------------------------------
+                0.00    0.08       2/2           main [1]
+[7]     20.5    0.00    0.08       2         std::vector<Data, std::allocator<Data> >::~vector() [7]
+                0.08    0.00  195366/195366      std::_Rb_tree<int, std::pair<int const, double>, std::_Select1st<std::pair<int const, double> >, std::less<int>, std::allocator<std::pair<int const, double> > >::_M_erase(std::_Rb_tree_node<std::pair<int const, double> >*) [6]
+-----------------------------------------------
+                0.04    0.03       1/1           main [1]
+[8]     17.9    0.04    0.03       1         DecisionTree::test(Dataset&) [8]
+                0.00    0.03       1/2           Dataset::streaming_read_data(int) [10]
+-----------------------------------------------
+                0.06    0.00   32561/32561       Dataset::streaming_read_data(int) [10]
+[9]     15.4    0.06    0.00   32561         Data::read_a_data(int, int, std::basic_ifstream<char, std::char_traits<char> >*) [9]
+                0.00    0.00 4005003/4005003     std::_Rb_tree<int, std::pair<int const, double>, std::_Select1st<std::pair<int const, double> >, std::less<int>, std::allocator<std::pair<int const, double> > >::_M_get_insert_hint_unique_pos(std::_Rb_tree_const_iterator<std::pair<int const, double> >, int const&) [27]
+-----------------------------------------------
+                0.00    0.03       1/2           DecisionTree::test(Dataset&) [8]
+                0.00    0.03       1/2           DecisionTree::train(Dataset&, int) [2]
+[10]    15.4    0.00    0.06       2         Dataset::streaming_read_data(int) [10]
+                0.06    0.00   32561/32561       Data::read_a_data(int, int, std::basic_ifstream<char, std::char_traits<char> >*) [9]
+-----------------------------------------------
+                0.00    0.00    2078/3355881     Histogram::uniform(std::vector<double, std::allocator<double> >&, int) [19]
+                0.00    0.00    3960/3355881     Histogram::merge(Histogram&, int) [15]
+                0.00    0.00    9514/3355881     Histogram::sum(double) [18]
+                0.05    0.00 3340329/3355881     Histogram::update(double) [5]
+[11]    12.8    0.05    0.00 3355881         _ZNSt6vectorI10BinTripletSaIS0_EE19_M_emplace_back_auxIJS0_EEEvDpOT_ [11]
+-----------------------------------------------
+                0.00    0.02       9/9           DecisionTree::train_on_batch(Dataset&) [3]
+[12]     5.2    0.00    0.02       9         DecisionTree::find_best_split(TreeNode*, SplitPoint&) [12]
+                0.01    0.00    1107/1107        Histogram::merge(Histogram&, int) [15]
+                0.01    0.00     971/971         get_gain(TreeNode*, SplitPoint&, int) [16]
+                0.00    0.00    1107/1107        Histogram::uniform(std::vector<double, std::allocator<double> >&, int) [19]
+                0.00    0.00   13284/202212      BinTriplet::BinTriplet() [28]
+                0.00    0.00      72/72          _ZNSt6vectorI10SplitPointSaIS0_EE19_M_emplace_back_auxIJRKS0_EEEvDpOT_ [35]
+-----------------------------------------------
+                0.00    0.00    2078/3873805     Histogram::uniform(std::vector<double, std::allocator<double> >&, int) [19]
+                0.00    0.00    2214/3873805     Histogram::merge(Histogram&, int) [15]
+                0.00    0.00    4674/3873805     DecisionTree::init_histogram(std::vector<TreeNode*, std::allocator<TreeNode*> >&) [20]
+                0.00    0.00    8543/3873805     Histogram::sum(double) [18]
+                0.02    0.00 3856296/3873805     Histogram::update(double) [5]
+[13]     5.1    0.02    0.00 3873805         Histogram::check(int) [13]
+-----------------------------------------------
+                0.00    0.00    2078/3871345     Histogram::uniform(std::vector<double, std::allocator<double> >&, int) [19]
+                0.00    0.00    4428/3871345     Histogram::merge(Histogram&, int) [15]
+                0.00    0.00    8543/3871345     Histogram::sum(double) [18]
+                0.02    0.00 3856296/3871345     Histogram::update(double) [5]
+[14]     5.1    0.02    0.00 3871345         std::vector<BinTriplet, std::allocator<BinTriplet> >::_M_shrink_to_fit() [14]
+-----------------------------------------------
+                0.01    0.00    1107/1107        DecisionTree::find_best_split(TreeNode*, SplitPoint&) [12]
+[15]     2.6    0.01    0.00    1107         Histogram::merge(Histogram&, int) [15]
+                0.00    0.00    3960/3355881     _ZNSt6vectorI10BinTripletSaIS0_EE19_M_emplace_back_auxIJS0_EEEvDpOT_ [11]
+                0.00    0.00    4428/3871345     std::vector<BinTriplet, std::allocator<BinTriplet> >::_M_shrink_to_fit() [14]
+                0.00    0.00    2214/3873805     Histogram::check(int) [13]
+                0.00    0.00    1107/1107        void std::vector<BinTriplet, std::allocator<BinTriplet> >::_M_range_insert<__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > > >(__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, __gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, __gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, std::forward_iterator_tag) [32]
+                0.00    0.00    1107/6788        void std::__introsort_loop<__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, long, __gnu_cxx::__ops::_Iter_comp_iter<sortBin(std::vector<BinTriplet, std::allocator<BinTriplet> >&)::{lambda(BinTriplet const&, BinTriplet const&)#1}> >(__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, __gnu_cxx::__ops::_Iter_comp_iter<sortBin(std::vector<BinTriplet, std::allocator<BinTriplet> >&)::{lambda(BinTriplet const&, BinTriplet const&)#1}>, long, __gnu_cxx::__ops::_Iter_comp_iter<sortBin(std::vector<BinTriplet, std::allocator<BinTriplet> >&)::{lambda(BinTriplet const&, BinTriplet const&)#1}>) [29]
+-----------------------------------------------
+                0.01    0.00     971/971         DecisionTree::find_best_split(TreeNode*, SplitPoint&) [12]
+[16]     2.6    0.01    0.00     971         get_gain(TreeNode*, SplitPoint&, int) [16]
+                0.00    0.00    1942/4855        Histogram::sum(double) [18]
+                0.00    0.00    1942/1942        Histogram::get_total() [31]
+-----------------------------------------------
+                0.01    0.00       9/9           DecisionTree::train_on_batch(Dataset&) [3]
+[17]     2.6    0.01    0.00       9         TreeNode::split(SplitPoint&, TreeNode*, TreeNode*) [17]
+                0.00    0.00     135/135         _ZNSt6vectorIP4DataSaIS1_EE19_M_emplace_back_auxIJRKS1_EEEvDpOT_ [34]
+-----------------------------------------------
+                0.00    0.00    1942/4855        get_gain(TreeNode*, SplitPoint&, int) [16]
+                0.00    0.00    2913/4855        Histogram::uniform(std::vector<double, std::allocator<double> >&, int) [19]
+[18]     0.1    0.00    0.00    4855         Histogram::sum(double) [18]
+                0.00    0.00    9514/3355881     _ZNSt6vectorI10BinTripletSaIS0_EE19_M_emplace_back_auxIJS0_EEEvDpOT_ [11]
+                0.00    0.00    8543/3871345     std::vector<BinTriplet, std::allocator<BinTriplet> >::_M_shrink_to_fit() [14]
+                0.00    0.00    8543/3873805     Histogram::check(int) [13]
+-----------------------------------------------
+                0.00    0.00    1107/1107        DecisionTree::find_best_split(TreeNode*, SplitPoint&) [12]
+[19]     0.0    0.00    0.00    1107         Histogram::uniform(std::vector<double, std::allocator<double> >&, int) [19]
+                0.00    0.00    2913/4855        Histogram::sum(double) [18]
+                0.00    0.00    2078/3355881     _ZNSt6vectorI10BinTripletSaIS0_EE19_M_emplace_back_auxIJS0_EEEvDpOT_ [11]
+                0.00    0.00    2078/3871345     std::vector<BinTriplet, std::allocator<BinTriplet> >::_M_shrink_to_fit() [14]
+                0.00    0.00    2078/3873805     Histogram::check(int) [13]
+                0.00    0.00     971/971         _ZNSt6vectorIdSaIdEE19_M_emplace_back_auxIJRKdEEEvDpOT_ [33]
+-----------------------------------------------
+                0.00    0.00      10/10          DecisionTree::train_on_batch(Dataset&) [3]
+[20]     0.0    0.00    0.00      10         DecisionTree::init_histogram(std::vector<TreeNode*, std::allocator<TreeNode*> >&) [20]
+                0.00    0.00    4674/3873805     Histogram::check(int) [13]
+                0.00    0.00    4674/4674        Histogram::clear() [30]
+-----------------------------------------------
+                0.00    0.00 4005003/4005003     Data::read_a_data(int, int, std::basic_ifstream<char, std::char_traits<char> >*) [9]
+[27]     0.0    0.00    0.00 4005003         std::_Rb_tree<int, std::pair<int const, double>, std::_Select1st<std::pair<int const, double> >, std::less<int>, std::allocator<std::pair<int const, double> > >::_M_get_insert_hint_unique_pos(std::_Rb_tree_const_iterator<std::pair<int const, double> >, int const&) [27]
+-----------------------------------------------
+                0.00    0.00   13284/202212      DecisionTree::find_best_split(TreeNode*, SplitPoint&) [12]
+                0.00    0.00  188928/202212      DecisionTree::initialize(Dataset&, int) [47]
+[28]     0.0    0.00    0.00  202212         BinTriplet::BinTriplet() [28]
+-----------------------------------------------
+                0.00    0.00    1107/6788        Histogram::merge(Histogram&, int) [15]
+                0.00    0.00    5681/6788        Histogram::update(double) [5]
+[29]     0.0    0.00    0.00    6788         void std::__introsort_loop<__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, long, __gnu_cxx::__ops::_Iter_comp_iter<sortBin(std::vector<BinTriplet, std::allocator<BinTriplet> >&)::{lambda(BinTriplet const&, BinTriplet const&)#1}> >(__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, __gnu_cxx::__ops::_Iter_comp_iter<sortBin(std::vector<BinTriplet, std::allocator<BinTriplet> >&)::{lambda(BinTriplet const&, BinTriplet const&)#1}>, long, __gnu_cxx::__ops::_Iter_comp_iter<sortBin(std::vector<BinTriplet, std::allocator<BinTriplet> >&)::{lambda(BinTriplet const&, BinTriplet const&)#1}>) [29]
+-----------------------------------------------
+                0.00    0.00    4674/4674        DecisionTree::init_histogram(std::vector<TreeNode*, std::allocator<TreeNode*> >&) [20]
+[30]     0.0    0.00    0.00    4674         Histogram::clear() [30]
+-----------------------------------------------
+                0.00    0.00    1942/1942        get_gain(TreeNode*, SplitPoint&, int) [16]
+[31]     0.0    0.00    0.00    1942         Histogram::get_total() [31]
+-----------------------------------------------
+                0.00    0.00    1107/1107        Histogram::merge(Histogram&, int) [15]
+[32]     0.0    0.00    0.00    1107         void std::vector<BinTriplet, std::allocator<BinTriplet> >::_M_range_insert<__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > > >(__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, __gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, __gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, std::forward_iterator_tag) [32]
+-----------------------------------------------
+                0.00    0.00     971/971         Histogram::uniform(std::vector<double, std::allocator<double> >&, int) [19]
+[33]     0.0    0.00    0.00     971         _ZNSt6vectorIdSaIdEE19_M_emplace_back_auxIJRKdEEEvDpOT_ [33]
+-----------------------------------------------
+                0.00    0.00     135/135         TreeNode::split(SplitPoint&, TreeNode*, TreeNode*) [17]
+[34]     0.0    0.00    0.00     135         _ZNSt6vectorIP4DataSaIS1_EE19_M_emplace_back_auxIJRKS1_EEEvDpOT_ [34]
+-----------------------------------------------
+                0.00    0.00      72/72          DecisionTree::find_best_split(TreeNode*, SplitPoint&) [12]
+[35]     0.0    0.00    0.00      72         _ZNSt6vectorI10SplitPointSaIS0_EE19_M_emplace_back_auxIJRKS0_EEEvDpOT_ [35]
+-----------------------------------------------
+                0.00    0.00       1/19          DecisionTree::__get_unlabeled(TreeNode*) [49]
+                0.00    0.00      18/19          DecisionTree::train_on_batch(Dataset&) [3]
+[36]     0.0    0.00    0.00      19         _ZNSt6vectorIP8TreeNodeSaIS1_EE19_M_emplace_back_auxIJRKS1_EEEvDpOT_ [36]
+-----------------------------------------------
+                0.00    0.00      12/12          DecisionTree::train_on_batch(Dataset&) [3]
+[37]     0.0    0.00    0.00      12         _ZNSt6vectorIP4DataSaIS1_EE19_M_emplace_back_auxIJS1_EEEvDpOT_ [37]
+-----------------------------------------------
+                0.00    0.00       1/5           __do_global_ctors_aux [83]
+                0.00    0.00       2/5           main [1]
+                0.00    0.00       2/5           _GLOBAL__sub_I__Z5namesB5cxx11 [44]
+[38]     0.0    0.00    0.00       5         _GLOBAL__sub_I__ZN10BinTripletC2Ev [38]
+-----------------------------------------------
+                0.00    0.00       2/4           DecisionTree::self_check() [48]
+                0.00    0.00       2/4           DecisionTree::__get_unlabeled(TreeNode*) [49]
+[39]     0.0    0.00    0.00       4         std::_Deque_base<TreeNode*, std::allocator<TreeNode*> >::_M_initialize_map(unsigned long) [39]
+-----------------------------------------------
+                0.00    0.00       2/2           main [1]
+[40]     0.0    0.00    0.00       2         Dataset::open_read_data(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [40]
+-----------------------------------------------
+                0.00    0.00       2/2           DecisionTree::~DecisionTree() [52]
+[41]     0.0    0.00    0.00       2         TreeNode::clear() [41]
+-----------------------------------------------
+                0.00    0.00       2/2           main [1]
+[42]     0.0    0.00    0.00       2         std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, char const*) [42]
+-----------------------------------------------
+                0.00    0.00       2/2           main [1]
+[43]     0.0    0.00    0.00       2         std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [43]
+-----------------------------------------------
+                0.00    0.00       1/1           __do_global_ctors_aux [83]
+[44]     0.0    0.00    0.00       1         _GLOBAL__sub_I__Z5namesB5cxx11 [44]
+                0.00    0.00       2/5           _GLOBAL__sub_I__ZN10BinTripletC2Ev [38]
+                0.00    0.00       1/1           std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >::vector(std::initializer_list<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > const&) [55]
+-----------------------------------------------
+                0.00    0.00       1/1           __do_global_ctors_aux [83]
+[45]     0.0    0.00    0.00       1         _GLOBAL__sub_I__ZN10SplitPointC2Ev [45]
+-----------------------------------------------
+                0.00    0.00       1/1           __do_global_ctors_aux [83]
+[46]     0.0    0.00    0.00       1         _GLOBAL__sub_I__ZN4Data11read_a_dataEiiPSt14basic_ifstreamIcSt11char_traitsIcEE [46]
+-----------------------------------------------
+                0.00    0.00       1/1           DecisionTree::train(Dataset&, int) [2]
+[47]     0.0    0.00    0.00       1         DecisionTree::initialize(Dataset&, int) [47]
+                0.00    0.00  188928/202212      BinTriplet::BinTriplet() [28]
+                0.00    0.00       1/1           Histogram::Histogram(int) [54]
+-----------------------------------------------
+                0.00    0.00       1/1           DecisionTree::train_on_batch(Dataset&) [3]
+[48]     0.0    0.00    0.00       1         DecisionTree::self_check() [48]
+                0.00    0.00       2/4           std::_Deque_base<TreeNode*, std::allocator<TreeNode*> >::_M_initialize_map(unsigned long) [39]
+-----------------------------------------------
+                0.00    0.00       1/1           DecisionTree::train_on_batch(Dataset&) [3]
+[49]     0.0    0.00    0.00       1         DecisionTree::__get_unlabeled(TreeNode*) [49]
+                0.00    0.00       2/4           std::_Deque_base<TreeNode*, std::allocator<TreeNode*> >::_M_initialize_map(unsigned long) [39]
+                0.00    0.00       1/19          _ZNSt6vectorIP8TreeNodeSaIS1_EE19_M_emplace_back_auxIJRKS1_EEEvDpOT_ [36]
+-----------------------------------------------
+                0.00    0.00       1/1           DecisionTree::train_on_batch(Dataset&) [3]
+[50]     0.0    0.00    0.00       1         DecisionTree::batch_initialize(TreeNode*) [50]
+-----------------------------------------------
+                0.00    0.00       1/1           main [1]
+[51]     0.0    0.00    0.00       1         DecisionTree::DecisionTree(int, int, int) [51]
+-----------------------------------------------
+                0.00    0.00       1/1           main [1]
+[52]     0.0    0.00    0.00       1         DecisionTree::~DecisionTree() [52]
+                0.00    0.00       2/2           TreeNode::clear() [41]
+-----------------------------------------------
+                0.00    0.00       1/1           main [1]
+[53]     0.0    0.00    0.00       1         Dataset::close_read_data() [53]
+-----------------------------------------------
+                0.00    0.00       1/1           DecisionTree::initialize(Dataset&, int) [47]
+[54]     0.0    0.00    0.00       1         Histogram::Histogram(int) [54]
+-----------------------------------------------
+                0.00    0.00       1/1           _GLOBAL__sub_I__Z5namesB5cxx11 [44]
+[55]     0.0    0.00    0.00       1         std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >::vector(std::initializer_list<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > const&) [55]
+-----------------------------------------------
+
+ This table describes the call tree of the program, and was sorted by
+ the total amount of time spent in each function and its children.
+
+ Each entry in this table consists of several lines.  The line with the
+ index number at the left hand margin lists the current function.
+ The lines above it list the functions that called this function,
+ and the lines below it list the functions this one called.
+ This line lists:
+     index	A unique number given to each element of the table.
+		Index numbers are sorted numerically.
+		The index number is printed next to every function name so
+		it is easier to look up where the function in the table.
+
+     % time	This is the percentage of the `total' time that was spent
+		in this function and its children.  Note that due to
+		different viewpoints, functions excluded by options, etc,
+		these numbers will NOT add up to 100%.
+
+     self	This is the total amount of time spent in this function.
+
+     children	This is the total amount of time propagated into this
+		function by its children.
+
+     called	This is the number of times the function was called.
+		If the function called itself recursively, the number
+		only includes non-recursive calls, and is followed by
+		a `+' and the number of recursive calls.
+
+     name	The name of the current function.  The index number is
+		printed after it.  If the function is a member of a
+		cycle, the cycle number is printed between the
+		function's name and the index number.
+
+
+ For the function's parents, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the function into this parent.
+
+     children	This is the amount of time that was propagated from
+		the function's children into this parent.
+
+     called	This is the number of times this parent called the
+		function `/' the total number of times the function
+		was called.  Recursive calls to the function are not
+		included in the number after the `/'.
+
+     name	This is the name of the parent.  The parent's index
+		number is printed after it.  If the parent is a
+		member of a cycle, the cycle number is printed between
+		the name and the index number.
+
+ If the parents of the function cannot be determined, the word
+ `<spontaneous>' is printed in the `name' field, and all the other
+ fields are blank.
+
+ For the function's children, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the child into the function.
+
+     children	This is the amount of time that was propagated from the
+		child's children to the function.
+
+     called	This is the number of times the function called
+		this child `/' the total number of times the child
+		was called.  Recursive calls by the child are not
+		listed in the number after the `/'.
+
+     name	This is the name of the child.  The child's index
+		number is printed after it.  If the child is a
+		member of a cycle, the cycle number is printed
+		between the name and the index number.
+
+ If there are any cycles (circles) in the call graph, there is an
+ entry for the cycle-as-a-whole.  This entry shows who called the
+ cycle (as parents) and the members of the cycle (as children.)
+ The `+' recursive calls entry shows the number of function calls that
+ were internal to the cycle, and the calls entry for each member shows,
+ for that member, how many times it was called from other members of
+ the cycle.
+
+
+Index by function name
+
+  [44] _GLOBAL__sub_I__Z5namesB5cxx11 [51] DecisionTree::DecisionTree(int, int, int) [39] std::_Deque_base<TreeNode*, std::allocator<TreeNode*> >::_M_initialize_map(unsigned long)
+  [38] _GLOBAL__sub_I__ZN10BinTripletC2Ev [52] DecisionTree::~DecisionTree() [32] void std::vector<BinTriplet, std::allocator<BinTriplet> >::_M_range_insert<__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > > >(__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, __gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, __gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, std::forward_iterator_tag)
+  [45] _GLOBAL__sub_I__ZN10SplitPointC2Ev [9] Data::read_a_data(int, int, std::basic_ifstream<char, std::char_traits<char> >*) [14] std::vector<BinTriplet, std::allocator<BinTriplet> >::_M_shrink_to_fit()
+  [46] _GLOBAL__sub_I__ZN4Data11read_a_dataEiiPSt14basic_ifstreamIcSt11char_traitsIcEE [40] Dataset::open_read_data(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [11] _ZNSt6vectorI10BinTripletSaIS0_EE19_M_emplace_back_auxIJS0_EEEvDpOT_
+  [16] get_gain(TreeNode*, SplitPoint&, int) [53] Dataset::close_read_data() [35] _ZNSt6vectorI10SplitPointSaIS0_EE19_M_emplace_back_auxIJRKS0_EEEvDpOT_
+  [28] BinTriplet::BinTriplet() [10] Dataset::streaming_read_data(int) [7] std::vector<Data, std::allocator<Data> >::~vector()
+  [47] DecisionTree::initialize(Dataset&, int) [41] TreeNode::clear() [55] std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >::vector(std::initializer_list<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > const&)
+  [48] DecisionTree::self_check() [17] TreeNode::split(SplitPoint&, TreeNode*, TreeNode*) [34] _ZNSt6vectorIP4DataSaIS1_EE19_M_emplace_back_auxIJRKS1_EEEvDpOT_
+  [20] DecisionTree::init_histogram(std::vector<TreeNode*, std::allocator<TreeNode*> >&) [18] Histogram::sum(double) [37] _ZNSt6vectorIP4DataSaIS1_EE19_M_emplace_back_auxIJS1_EEEvDpOT_
+   [3] DecisionTree::train_on_batch(Dataset&) [13] Histogram::check(int) [36] _ZNSt6vectorIP8TreeNodeSaIS1_EE19_M_emplace_back_auxIJRKS1_EEEvDpOT_
+  [49] DecisionTree::__get_unlabeled(TreeNode*) [30] Histogram::clear() [33] _ZNSt6vectorIdSaIdEE19_M_emplace_back_auxIJRKdEEEvDpOT_
+  [12] DecisionTree::find_best_split(TreeNode*, SplitPoint&) [15] Histogram::merge(Histogram&, int) [27] std::_Rb_tree<int, std::pair<int const, double>, std::_Select1st<std::pair<int const, double> >, std::less<int>, std::allocator<std::pair<int const, double> > >::_M_get_insert_hint_unique_pos(std::_Rb_tree_const_iterator<std::pair<int const, double> >, int const&)
+  [50] DecisionTree::batch_initialize(TreeNode*) [5] Histogram::update(double) [6] std::_Rb_tree<int, std::pair<int const, double>, std::_Select1st<std::pair<int const, double> >, std::less<int>, std::allocator<std::pair<int const, double> > >::_M_erase(std::_Rb_tree_node<std::pair<int const, double> >*)
+   [8] DecisionTree::test(Dataset&) [19] Histogram::uniform(std::vector<double, std::allocator<double> >&, int) [29] void std::__introsort_loop<__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, long, __gnu_cxx::__ops::_Iter_comp_iter<sortBin(std::vector<BinTriplet, std::allocator<BinTriplet> >&)::{lambda(BinTriplet const&, BinTriplet const&)#1}> >(__gnu_cxx::__normal_iterator<BinTriplet*, std::vector<BinTriplet, std::allocator<BinTriplet> > >, __gnu_cxx::__ops::_Iter_comp_iter<sortBin(std::vector<BinTriplet, std::allocator<BinTriplet> >&)::{lambda(BinTriplet const&, BinTriplet const&)#1}>, long, __gnu_cxx::__ops::_Iter_comp_iter<sortBin(std::vector<BinTriplet, std::allocator<BinTriplet> >&)::{lambda(BinTriplet const&, BinTriplet const&)#1}>)
+   [2] DecisionTree::train(Dataset&, int) [31] Histogram::get_total() [42] std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, char const*)
+   [4] DecisionTree::compress(std::vector<Data, std::allocator<Data> >&, std::vector<TreeNode*, std::allocator<TreeNode*> >&) [54] Histogram::Histogram(int) [43] std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
