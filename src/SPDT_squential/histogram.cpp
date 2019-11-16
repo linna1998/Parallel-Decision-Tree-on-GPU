@@ -29,9 +29,14 @@ Histogram::Histogram(const int max_bin) {
 }
 
 int Histogram::get_total() {
-	int t=0;	
-	for (int i=0; i<bin_size; i++){
-		t += bins[i].freq;
+	int t = 0;	
+	int i = 0;	
+	// #pragma omp parallel private(i)
+	{
+		// #pragma omp for schedule(dynamic) reduction(+:t)
+		for (i = 0; i < bin_size; i++){
+			t += bins[i].freq;
+		}
 	}
 	return t;
 }

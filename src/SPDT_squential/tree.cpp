@@ -273,11 +273,12 @@ double DecisionTree::test(Dataset &test_data) {
     int correct_num = 0;
     test_data.streaming_read_data(test_data.num_of_data);
 
+    // #pragma omp parallel for schedule(dynamic) reduction(+:correct_num)        
     for (i = 0; i < test_data.num_of_data; i++) {
         // printf("lable 1: %d, label 2: %d\n", 
         //     navigate(test_data.dataset[i])->label,
         //     test_data.dataset[i].label);
-        assert(navigate(test_data.dataset[i])->label != -1);
+        // dbg_assert(navigate(test_data.dataset[i])->label != -1);
         if (navigate(test_data.dataset[i])->label == test_data.dataset[i].label) {
             correct_num++;
         }
@@ -328,7 +329,7 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
 */
 void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 {
-    std::vector<SplitPoint> results;
+    std::vector<SplitPoint> results;    
     for (int i = 0; i < this->datasetPointer->num_of_features; i++)
     {
         // merge different labels
@@ -415,9 +416,10 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             break;
         }       
         init_histogram(unlabeled_leaf);        
-        compress(train_data.dataset, unlabeled_leaf);       
-        for (auto &cur_leaf : unlabeled_leaf)
-        {            
+        compress(train_data.dataset, unlabeled_leaf);    
+        
+        for (int i = 0; i < unlabeled_leaf.size(); i++) {
+            TreeNode* cur_leaf = unlabeled_leaf[i];            
             if (is_terminated(cur_leaf))
             {         
                 cur_leaf->set_label();
@@ -455,16 +457,18 @@ void DecisionTree::train_on_batch(Dataset &train_data)
  * Each unlabeled leaf would have a (num_feature, num_class) histograms
  * This function takes the assumption that each leaf is re-initialized (we use a batch mode)
 */
-void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_leaf)
-{
+void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabeled_leaf) {
     int feature_id = 0, class_id = 0;
     // Construct the histogram. and navigate each data to its leaf.
-    for (auto& node: unlabled_leaf){
-        for (auto &d: node->data_ptr)
-        {
+    // #pragma omp parallel for schedule(dynamic)    
+    for (int i = 0; i < unlabeled_leaf.size(); i++) {
+        TreeNode* node = unlabeled_leaf[i];
+        if (node->data_ptr.size() > 0) {
             node->has_new_data = true;
-            for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
-            {            
+        }                
+        for (int i = 0; i < node->data_ptr.size(); i++) {
+            Data* d = node->data_ptr[i];                               
+            for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++) {            
                 if (d->values.find(attr) != d->values.end()) {
                     (*(node->histogram_ptr))[attr][d->label].update(d->values[attr]);
                 }     
@@ -544,16 +548,19 @@ void DecisionTree::init_histogram(vector<TreeNode *> &unlabeled_leaf)
     int c = 0;      
     assert(unlabeled_leaf.size() <= max_num_leaves);
     
-    for (auto &p : unlabeled_leaf)
-    {
-        p->histogram_id = c++;
-        for (int feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++)
+    for (auto &p : unlabeled_leaf) {
+        p->histogram_id = c++;  
+    }   
+    // #pragma omp parallel for schedule(dynamic)   
+    for (int i = 0; i < unlabeled_leaf.size(); i++) {
+        TreeNode* p = unlabeled_leaf[i];      
+        for (int feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++) {           
             for (int class_id = 0; class_id < datasetPointer->num_of_classes; class_id++) {                
                 histogram[p->histogram_id][feature_id][class_id].clear();
                 histogram[p->histogram_id][feature_id][class_id].bins = &bin_ptr[RLOC(p->histogram_id, feature_id, class_id, datasetPointer->num_of_features, datasetPointer->num_of_classes, max_bin_size)];                
                 histogram[p->histogram_id][feature_id][class_id].check(__LINE__);
-            }                
-
+            }     
+        }           
         p->histogram_ptr = &histogram[p->histogram_id];   
     }
 }

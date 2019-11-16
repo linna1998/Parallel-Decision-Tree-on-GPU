@@ -3,7 +3,7 @@ OUTPUTDIR := bin/
 #-std=c++14
 
 COPT = -O3
-CFLAGS := -std=c++11 -fvisibility=hidden -lpthread -pg $(COPT)
+CFLAGS := -std=c++11 -fvisibility=hidden -lpthread -pg -fopenmp $(COPT)
 
 SOURCES := src/SPDT_squential/histogram.cpp src/SPDT_squential/main.cpp src/SPDT_squential/parser.cpp src/SPDT_squential/tree.cpp
 

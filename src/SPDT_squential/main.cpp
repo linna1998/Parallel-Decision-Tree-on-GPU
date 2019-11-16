@@ -1,11 +1,11 @@
 #include "tree.h"
 #include <time.h>
 
-vector<string> names = {"a1a", "ijcnn1"};
+vector<string> names = {"a1a", "ijcnn1", "avazu-app"};
 
-int trainSize[2] = {1605, 49990};
-int testSize[2] = {30956, 91701};
-int featureNum[2] = {123, 22};
+int trainSize[3] = {1605, 49990, 40428967};
+int testSize[3] = {30956, 91701, 4577464};
+int featureNum[3] = {123, 22, 1000000};
 
 
 int main() {
