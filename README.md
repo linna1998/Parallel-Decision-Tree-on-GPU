@@ -93,19 +93,23 @@ Much existing publication focus on building communication-efficient and scalable
 2. Language: mainly C/C++, CUDA
 
 ## Schedule:
-10.30 Finish proposal and website.
+10.30 Finish proposal and website. [Anxiang Zhang, Ke Ding] 
 
-11.6 Finish the sequential version. Find the dataset for evaluation.
+11.8 Find more references, find the dataset for evaluation and finish the data set I/O. [Anxiang Zhang, Ke Ding]
 
-11.13 Finish the CPU data parallel version.
+11.12 Drafted the Histogram part of this project. [Ke Ding]
 
-11.22 Project Milestone. Finish basic GPU parallel version.
+11.12 Drafted the Tree construction part of this project. [Anxiang Zhang]
 
-11.27 Improve GPU parallel version.
+11.15 Debug and finish the CPU sequential version. [Anxiang Zhang, Ke Ding]
 
-12.4 Evaluate and find the trade-offs between different implementations.
+(expected)11.22 Finish basic CPU parallel version(openMP, openMPI).
 
-12.10 Finish final report and poster.
+(expected)11.29 Finish the GPU parallel version.
+
+(expected)12.4 Evaluate and find the trade-offs between different implementations.
+
+(expected)12.10 Finish final report and poster.
 
 ## Dataset
 LIBSVM dataset
