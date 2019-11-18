@@ -103,6 +103,8 @@ Much existing publication focus on building communication-efficient and scalable
 
 11.15 Debug and finish the CPU sequential version. [Anxiang Zhang, Ke Ding]
 
+11.17 Drafted the CPU parallel version with OpenMP. [Ke Ding]
+
 (expected)11.22 Finish basic CPU parallel version(openMP, openMPI).
 
 (expected)11.29 Finish the GPU parallel version.
