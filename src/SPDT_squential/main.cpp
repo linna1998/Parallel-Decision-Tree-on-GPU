@@ -1,16 +1,16 @@
 #include "tree.h"
 #include <time.h>
 
-vector<string> names = {"a1a", "ijcnn1", "avazu-app"};
+vector<string> names = {"a1a", "ijcnn1", "avazu-app", "rcv1"};
 
-int trainSize[3] = {1605, 49990, 40428967};
-int testSize[3] = {30956, 91701, 4577464};
-int featureNum[3] = {123, 22, 1000000};
+vector<int> trainSize = {1605, 49990, 40428967, 20242};
+vector<int> testSize = {30956, 91701, 4577464, 677399};
+vector<int> featureNum = {123, 22, 1000000, 47236};
 
 
 int main() {
 
-    int index = 1;
+    int index = 3;
     clock_t start, end;
     double cpu_time_used;
 
