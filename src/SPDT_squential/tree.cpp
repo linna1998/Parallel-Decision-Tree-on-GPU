@@ -111,22 +111,26 @@ void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
     this->split_ptr = best_split;
     this->entropy = best_split.entropy;
     double split_value = best_split.feature_value;
-    int num_pos_lebel_left=0;
-    int num_pos_lebel_right=0;
-    for (auto &p : this->data_ptr)
+    int num_pos_label_left=0;
+    int num_pos_label_right=0;
+    
+    // shared vector in openmp parallel ?
+    // #pragma omp parallel for schedule(dynamic) shared(right, left, num_pos_label_right, num_pos_label_left)
+    for (int i = 0; i < this->data_ptr.size(); i++)
     {
+        Data* p = this->data_ptr[i];
         double p_value = p->values[best_split.feature_id];
-        if (best_split.decision_rule(*p)){
+        if (best_split.decision_rule(*p)) {
             right->data_ptr.push_back(p);
-            num_pos_lebel_right = (p->label == POS_LABEL) ? num_pos_lebel_right+1 : num_pos_lebel_right;
+            num_pos_label_right = (p->label == POS_LABEL) ? num_pos_label_right+1 : num_pos_label_right;
         }
-        else{
+        else {
             left->data_ptr.push_back(p);
-            num_pos_lebel_left = (p->label == POS_LABEL) ? num_pos_lebel_left+1 : num_pos_lebel_left;
+            num_pos_label_left = (p->label == POS_LABEL) ? num_pos_label_left+1 : num_pos_label_left;
         }
     }
-    left->num_pos_label = num_pos_lebel_left;
-    right->num_pos_label = num_pos_lebel_right;
+    left->num_pos_label = num_pos_label_left;
+    right->num_pos_label = num_pos_label_right;
 
     dbg_assert(left->num_pos_label >= 0);
     dbg_assert(right->num_pos_label >= 0);
@@ -323,31 +327,63 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     dbg_ensures(split.gain >= -EPS);
 }
 
+void reduce(std::vector<SplitPoint> *v1, int begin, int end) {
+    if (end - begin == 1) return;
+    int pivot = (begin + end)/2;
+    #pragma omp task
+    reduce(v1, begin, pivot);
+    #pragma omp task
+    reduce(v1, pivot, end);
+    #pragma omp taskwait
+    v1[begin].insert(v1[begin].end(), v1[pivot].begin(), v1[pivot].end());    
+}
+
 /*
  * This function return the best split point at a given leaf node.
  * Best split is store in `split`
 */
 void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 {
-    std::vector<SplitPoint> results;    
-    for (int i = 0; i < this->datasetPointer->num_of_features; i++)
-    {
-        // merge different labels
-        Histogram& hist = (*node->histogram_ptr)[i][0];
-        Histogram merged_hist;
-        merged_hist = hist;
-        for (int k = 1; k < this->datasetPointer->num_of_classes; k++)
-            merged_hist.merge((*node->histogram_ptr)[i][k], this->max_bin_size);
+    // Ref: https://stackoverflow.com/questions/36336837/vector-filling-across-openmp-threads
+    // Ref: http://www.cplusplus.com/reference/vector/vector/reserve/
+    std::vector<SplitPoint> results;
+    // results.reserve(this->datasetPointer->num_of_features);
 
-        std::vector<double> possible_splits;
-        merged_hist.uniform(possible_splits, merged_hist.bin_size);
-        for (auto& split_value: possible_splits)
+    std::vector<SplitPoint> *v1p;
+    #pragma omp parallel
+    {
+        #pragma omp single
         {
-            SplitPoint t = SplitPoint(i, split_value);
-            get_gain(node, t, i);
-            results.push_back(t);
+            v1p = new std::vector<SplitPoint>[omp_get_num_threads()];        
         }
+
+        #pragma omp parallel for schedule(dynamic) 
+        for (int i = 0; i < this->datasetPointer->num_of_features; i++)
+        {        
+            // merge different labels
+            Histogram& hist = (*node->histogram_ptr)[i][0];
+            Histogram merged_hist;
+            merged_hist = hist;
+            for (int k = 1; k < this->datasetPointer->num_of_classes; k++)
+                merged_hist.merge((*node->histogram_ptr)[i][k], this->max_bin_size);
+
+            std::vector<double> possible_splits;
+            merged_hist.uniform(possible_splits, merged_hist.bin_size);
+            for (auto& split_value: possible_splits)
+            {
+                SplitPoint t = SplitPoint(i, split_value);
+                get_gain(node, t, i);
+                v1p[omp_get_thread_num()].push_back(t);
+                // results.push_back(t);
+            }
+        }
+
+        #pragma omp single
+        reduce(v1p, 0, omp_get_num_threads());
     }
+    results = v1p[0];
+    delete[] v1p;
+
     std::vector<SplitPoint>::iterator best_split = std::max_element(results.begin(), results.end(),
                                                                     [](const SplitPoint &l, const SplitPoint &r) { return l.gain < r.gain; });
 

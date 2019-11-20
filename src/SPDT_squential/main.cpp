@@ -10,7 +10,7 @@ vector<int> featureNum = {123, 22, 1000000, 47236};
 
 int main() {
 
-    int index = 3;
+    int index = 1;
     clock_t start, end;
     double cpu_time_used;
 

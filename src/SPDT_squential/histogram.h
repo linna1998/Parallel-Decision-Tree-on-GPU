@@ -19,7 +19,7 @@ public:
     SplitPoint();
     SplitPoint(int feature_id, double feature_value);
     bool decision_rule(Data& data);
-    inline SplitPoint& operator = (SplitPoint& split){
+    inline SplitPoint& operator = (const SplitPoint& split){
         this->feature_id = split.feature_id;
         this->feature_value = split.feature_value;
 		this->gain = split.gain;

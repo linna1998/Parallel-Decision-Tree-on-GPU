@@ -5,6 +5,7 @@
 #include <string.h>
 #include "parser.h"
 #include "histogram.h"
+#include <omp.h>
 
 typedef std::vector<Histogram> Histogram_FEATURE;
 typedef std::vector<Histogram_FEATURE> Histogram_LEAF;
