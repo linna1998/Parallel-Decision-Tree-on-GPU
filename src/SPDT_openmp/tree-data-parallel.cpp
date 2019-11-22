@@ -471,7 +471,9 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_lea
     start = clock();       
     int feature_id = 0, class_id = 0;
     // Construct the histogram. and navigate each data to its leaf.
-    for (auto& node: unlabled_leaf){
+    #pragma omp parallel for schedule(dynamic)
+    for (int i=0; i<unlabled_leaf.size(); i++){
+        TreeNode* node = unlabled_leaf[i];
         for (auto &d: node->data_ptr)
         {
             node->has_new_data = true;

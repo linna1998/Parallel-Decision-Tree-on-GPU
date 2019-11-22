@@ -11,7 +11,7 @@ SOURCES_OPENMP := src/SPDT_openmp/histogram.cpp \
 				  src/SPDT_openmp/main.cpp 
 
 FEATURE_PARALLEL := src/SPDT_openmp/tree-feature-parallel.cpp
-NODE_PARALLEL := src/SPDT_openmp/tree-node-parallel.cpp
+DATA_PARALLEL := src/SPDT_openmp/tree-data-parallel.cpp
 
 
 HEADERS := src/SPDT_squential/*.h
@@ -20,7 +20,7 @@ HEADERS_OPENMP := src/SPDT_openmp/*.h
 TARGETBIN := decision-tree
 TARGETBIN_DBG := decision-tree-dbg
 TARGETBIN_FEATURE := decision-tree-feature
-TARGETBIN_NODE := decision-tree-node
+TARGETBIN_DATA := decision-tree-data
 
 
 # Additional flags used to compile decision-tree-dbg
@@ -53,16 +53,16 @@ $(TARGETBIN_DBG): CFLAGS += $(CFLAGS_DBG)
 $(TARGETBIN_DBG): $(HEADERS)
 	$(CXX) -o $@ $^ $(CFLAGS) $(SOURCES)
 
-node: $(TARGETBIN_NODE)
+data: $(TARGETBIN_DATA)
 
-$(TARGETBIN_NODE): $(SOURCES_OPENMP) $(HEADERS_OPENMP) $(NODE_PARALLEL)
-	$(CXX) -o $@ $(CFLAGS) -fopenmp $(SOURCES_OPENMP) $(NODE_PARALLEL)
+$(TARGETBIN_DATA): $(SOURCES_OPENMP) $(HEADERS_OPENMP) $(DATA_PARALLEL)
+	$(CXX) -o $@ $(CFLAGS) -fopenmp $(SOURCES_OPENMP) $(DATA_PARALLEL)
 
 
 clean:
 	rm -rf ./$(TARGETBIN)
 	rm -rf ./$(TARGETBIN_DBG)
-	rm -rf ./$(TARGETBIN_NODE)
+	rm -rf ./$(TARGETBIN_DATA)
 	rm -rf ./$(TARGETBIN_FEATURE)
 
 
