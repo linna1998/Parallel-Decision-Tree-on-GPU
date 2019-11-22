@@ -76,16 +76,16 @@ int main(int argc, char **argv) {
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
     printf("train time: %f\n", cpu_time_used);
     
-    // // test
-    // string testName = "./data/" + names[index] + ".test.txt";
-    // Dataset testDataset(2, testSize[index], featureNum[index]);
-    // testDataset.open_read_data(testName);	
+    // test
+    string testName = "./data/" + names[index] + ".test.txt";
+    Dataset testDataset(2, testSize[index], featureNum[index]);
+    testDataset.open_read_data(testName);	
 
-    // start = clock();   
-    // printf("correct rate: %f\n", decisionTree.test(testDataset));     
-    // end = clock();
-    // cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    // printf("test time: %f\n", cpu_time_used);
+    start = clock();   
+    printf("correct rate: %f\n", decisionTree.test(testDataset));     
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("test time: %f\n", cpu_time_used);
 
     return 0;
 

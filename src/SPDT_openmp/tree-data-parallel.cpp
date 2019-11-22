@@ -5,7 +5,12 @@
 #include <stdio.h>
 #include <algorithm>
 #include <math.h>
+#include <time.h>
 
+
+#define NUM_OF_THREADS 8
+double COMPRESS_TIME = 0;
+double SPLIT_TIME = 0;
 
 /*
  * For A[][M][N][Z]
@@ -39,19 +44,6 @@ inline int RLOC(int i, int& M, int &N, int& Z){
     return N*Z*M*i;
 }
 
-SplitPoint::SplitPoint()
-{
-    feature_id = -1;
-    feature_value = 0;
-    entropy = 0;
-}
-
-SplitPoint::SplitPoint(int feature_id, double feature_value)
-{
-    this->feature_id = feature_id;
-    this->feature_value = feature_value;
-    this->entropy = 0;
-}
 /*
  * Reture True if the data is larger or equal than the split value
  */
@@ -111,26 +103,22 @@ void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
     this->split_ptr = best_split;
     this->entropy = best_split.entropy;
     double split_value = best_split.feature_value;
-    int num_pos_label_left=0;
-    int num_pos_label_right=0;
-    
-    // shared vector in openmp parallel ?
-    // #pragma omp parallel for schedule(dynamic) shared(right, left, num_pos_label_right, num_pos_label_left)
-    for (int i = 0; i < this->data_ptr.size(); i++)
+    int num_pos_lebel_left=0;
+    int num_pos_lebel_right=0;
+    for (auto &p : this->data_ptr)
     {
-        Data* p = this->data_ptr[i];
         double p_value = p->values[best_split.feature_id];
-        if (best_split.decision_rule(*p)) {
+        if (best_split.decision_rule(*p)){
             right->data_ptr.push_back(p);
-            num_pos_label_right = (p->label == POS_LABEL) ? num_pos_label_right+1 : num_pos_label_right;
+            num_pos_lebel_right = (p->label == POS_LABEL) ? num_pos_lebel_right+1 : num_pos_lebel_right;
         }
-        else {
+        else{
             left->data_ptr.push_back(p);
-            num_pos_label_left = (p->label == POS_LABEL) ? num_pos_label_left+1 : num_pos_label_left;
+            num_pos_lebel_left = (p->label == POS_LABEL) ? num_pos_lebel_left+1 : num_pos_lebel_left;
         }
     }
-    left->num_pos_label = num_pos_label_left;
-    right->num_pos_label = num_pos_label_right;
+    left->num_pos_label = num_pos_lebel_left;
+    right->num_pos_label = num_pos_lebel_right;
 
     dbg_assert(left->num_pos_label >= 0);
     dbg_assert(right->num_pos_label >= 0);
@@ -193,14 +181,14 @@ DecisionTree::~DecisionTree(){
     root->clear();
 }
 
-DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size)
+DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size, int max_bin_size)
 {
     this->max_num_leaves = max_num_leaves;
     this->max_depth = max_depth;
     this->min_node_size = min_node_size;
     this->depth = 0;
     this->num_leaves = 0;
-    this->max_bin_size = 12;
+    this->max_bin_size = max_bin_size;
     this->cur_depth = 0;
     this->root = NULL;
     this->bin_ptr = NULL;
@@ -268,6 +256,7 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
 	}		
 
 	train_data.close_read_data();    
+    printf("COMPRESS TIME: %f\nSPLIT TIME: %f\n", COMPRESS_TIME, SPLIT_TIME);   
     return;
 }
 
@@ -277,12 +266,11 @@ double DecisionTree::test(Dataset &test_data) {
     int correct_num = 0;
     test_data.streaming_read_data(test_data.num_of_data);
 
-    // #pragma omp parallel for schedule(dynamic) reduction(+:correct_num)        
     for (i = 0; i < test_data.num_of_data; i++) {
         // printf("lable 1: %d, label 2: %d\n", 
         //     navigate(test_data.dataset[i])->label,
         //     test_data.dataset[i].label);
-        // dbg_assert(navigate(test_data.dataset[i])->label != -1);
+        assert(navigate(test_data.dataset[i])->label != -1);
         if (navigate(test_data.dataset[i])->label == test_data.dataset[i].label) {
             correct_num++;
         }
@@ -327,69 +315,53 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     dbg_ensures(split.gain >= -EPS);
 }
 
-void reduce(std::vector<SplitPoint> *v1, int begin, int end) {
-    if (end - begin == 1) return;
-    int pivot = (begin + end)/2;
-    #pragma omp task
-    reduce(v1, begin, pivot);
-    #pragma omp task
-    reduce(v1, pivot, end);
-    #pragma omp taskwait
-    v1[begin].insert(v1[begin].end(), v1[pivot].begin(), v1[pivot].end());    
-}
-
 /*
  * This function return the best split point at a given leaf node.
  * Best split is store in `split`
 */
 void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
-{
-    // Ref: https://stackoverflow.com/questions/36336837/vector-filling-across-openmp-threads
-    // Ref: http://www.cplusplus.com/reference/vector/vector/reserve/
-    std::vector<SplitPoint> results;
-    // results.reserve(this->datasetPointer->num_of_features);
+{    
+    clock_t start, end;
+    start = clock();    
 
-    std::vector<SplitPoint> *v1p;
-    #pragma omp parallel
+    SplitPoint results[NUM_OF_THREADS];
+    for (int j = 0; j<NUM_OF_THREADS; j++)
+        results[j] = SplitPoint();
+
+    int tot = 0; // used to count the number of results
+    #pragma omp barrier
+    #pragma omp parallel for schedule(static) num_threads(NUM_OF_THREADS)
+    for (int i = 0; i < this->datasetPointer->num_of_features; i++)
     {
-        #pragma omp single
+        int tid = omp_get_thread_num();
+        // merge different labels
+        Histogram& hist = (*node->histogram_ptr)[i][0];
+        Histogram merged_hist;
+        merged_hist = hist;
+        for (int k = 1; k < this->datasetPointer->num_of_classes; k++)
+            merged_hist.merge((*node->histogram_ptr)[i][k], this->max_bin_size);
+
+        std::vector<double> possible_splits;
+        merged_hist.uniform(possible_splits, merged_hist.bin_size);
+        for (int j=0; j<possible_splits.size(); j++)
         {
-            v1p = new std::vector<SplitPoint>[omp_get_num_threads()];        
+            SplitPoint t = SplitPoint(i, possible_splits[j]);
+            get_gain(node, t, i);
+            if (t.gain > results[tid].gain)
+                results[tid] = t;
         }
-
-        #pragma omp parallel for schedule(dynamic) 
-        for (int i = 0; i < this->datasetPointer->num_of_features; i++)
-        {        
-            // merge different labels
-            Histogram& hist = (*node->histogram_ptr)[i][0];
-            Histogram merged_hist;
-            merged_hist = hist;
-            for (int k = 1; k < this->datasetPointer->num_of_classes; k++)
-                merged_hist.merge((*node->histogram_ptr)[i][k], this->max_bin_size);
-
-            std::vector<double> possible_splits;
-            merged_hist.uniform(possible_splits, merged_hist.bin_size);
-            for (auto& split_value: possible_splits)
-            {
-                SplitPoint t = SplitPoint(i, split_value);
-                get_gain(node, t, i);
-                v1p[omp_get_thread_num()].push_back(t);
-                // results.push_back(t);
-            }
-        }
-
-        #pragma omp single
-        reduce(v1p, 0, omp_get_num_threads());
     }
-    results = v1p[0];
-    delete[] v1p;
-
-    std::vector<SplitPoint>::iterator best_split = std::max_element(results.begin(), results.end(),
-                                                                    [](const SplitPoint &l, const SplitPoint &r) { return l.gain < r.gain; });
-
-    split.feature_id = best_split->feature_id;
-    split.feature_value = best_split->feature_value;
-    split.gain = best_split->gain;
+    SplitPoint best_split;
+    best_split = results[0];
+    for(int ii=0; ii<NUM_OF_THREADS; ii++){
+        if (results[ii].gain > best_split.gain)
+            best_split = results[ii];
+    }
+    split.feature_id = best_split.feature_id;
+    split.feature_value = best_split.feature_value;
+    split.gain = best_split.gain;
+    end = clock();   
+    SPLIT_TIME += ((double) (end - start)) / CLOCKS_PER_SEC; 
 }
 
 /* 
@@ -451,11 +423,11 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             }
             break;
         }       
-        init_histogram(unlabeled_leaf);        
-        compress(train_data.dataset, unlabeled_leaf);    
-        
-        for (int i = 0; i < unlabeled_leaf.size(); i++) {
-            TreeNode* cur_leaf = unlabeled_leaf[i];            
+        init_histogram(unlabeled_leaf);     
+        compress(train_data.dataset, unlabeled_leaf);  
+
+        for (auto &cur_leaf : unlabeled_leaf)
+        {            
             if (is_terminated(cur_leaf))
             {         
                 cur_leaf->set_label();
@@ -493,24 +465,26 @@ void DecisionTree::train_on_batch(Dataset &train_data)
  * Each unlabeled leaf would have a (num_feature, num_class) histograms
  * This function takes the assumption that each leaf is re-initialized (we use a batch mode)
 */
-void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabeled_leaf) {
+void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_leaf)
+{
+    clock_t start, end;
+    start = clock();       
     int feature_id = 0, class_id = 0;
     // Construct the histogram. and navigate each data to its leaf.
-    // #pragma omp parallel for schedule(dynamic)    
-    for (int i = 0; i < unlabeled_leaf.size(); i++) {
-        TreeNode* node = unlabeled_leaf[i];
-        if (node->data_ptr.size() > 0) {
+    for (auto& node: unlabled_leaf){
+        for (auto &d: node->data_ptr)
+        {
             node->has_new_data = true;
-        }                
-        for (int i = 0; i < node->data_ptr.size(); i++) {
-            Data* d = node->data_ptr[i];                               
-            for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++) {            
+            for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
+            {            
                 if (d->values.find(attr) != d->values.end()) {
                     (*(node->histogram_ptr))[attr][d->label].update(d->values[attr]);
                 }     
             }
         }
     }
+    end = clock();   
+    COMPRESS_TIME += ((double) (end - start)) / CLOCKS_PER_SEC; 
 }
 /*
  * initialize each leaf as unlabeled.
@@ -537,7 +511,6 @@ void DecisionTree::batch_initialize(TreeNode *node)
     return;
 }
 void DecisionTree::self_check(){
-    #ifdef DEBUG
     queue<TreeNode *> q;
     q.push(root);
     int count_leaf=0;
@@ -572,7 +545,6 @@ void DecisionTree::self_check(){
     dbg_printf("------------------------------------------------\n");
     dbg_printf("| Num_leaf: %d, num_nodes: %d, max_depth: %d | \n", num_leaves, num_nodes, cur_depth);
     dbg_printf("------------------------------------------------\n");
-    #endif
 
 }
 /*
@@ -584,19 +556,16 @@ void DecisionTree::init_histogram(vector<TreeNode *> &unlabeled_leaf)
     int c = 0;      
     assert(unlabeled_leaf.size() <= max_num_leaves);
     
-    for (auto &p : unlabeled_leaf) {
-        p->histogram_id = c++;  
-    }   
-    // #pragma omp parallel for schedule(dynamic)   
-    for (int i = 0; i < unlabeled_leaf.size(); i++) {
-        TreeNode* p = unlabeled_leaf[i];      
-        for (int feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++) {           
+    for (auto &p : unlabeled_leaf)
+    {
+        p->histogram_id = c++;
+        for (int feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++)
             for (int class_id = 0; class_id < datasetPointer->num_of_classes; class_id++) {                
                 histogram[p->histogram_id][feature_id][class_id].clear();
                 histogram[p->histogram_id][feature_id][class_id].bins = &bin_ptr[RLOC(p->histogram_id, feature_id, class_id, datasetPointer->num_of_features, datasetPointer->num_of_classes, max_bin_size)];                
                 histogram[p->histogram_id][feature_id][class_id].check(__LINE__);
-            }     
-        }           
+            }                
+
         p->histogram_ptr = &histogram[p->histogram_id];   
     }
 }

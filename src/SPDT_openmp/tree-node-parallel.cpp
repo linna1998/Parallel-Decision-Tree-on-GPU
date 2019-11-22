@@ -7,6 +7,9 @@
 #include <math.h>
 #include <time.h>
 
+#define NUM_OF_THREADS 8
+double COMPRESS_TIME = 0;
+double SPLIT_TIME = 0;
 
 /*
  * For A[][M][N][Z]
@@ -40,19 +43,6 @@ inline int RLOC(int i, int& M, int &N, int& Z){
     return N*Z*M*i;
 }
 
-SplitPoint::SplitPoint()
-{
-    feature_id = -1;
-    feature_value = 0;
-    entropy = 0;
-}
-
-SplitPoint::SplitPoint(int feature_id, double feature_value)
-{
-    this->feature_id = feature_id;
-    this->feature_value = feature_value;
-    this->entropy = 0;
-}
 /*
  * Reture True if the data is larger or equal than the split value
  */
@@ -345,52 +335,37 @@ void reduce(std::vector<SplitPoint> *v1, int begin, int end) {
 */
 void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 {
-    // Ref: https://stackoverflow.com/questions/36336837/vector-filling-across-openmp-threads
-    // Ref: http://www.cplusplus.com/reference/vector/vector/reserve/
-    std::vector<SplitPoint> results;
-    // results.reserve(this->datasetPointer->num_of_features);
-
-    std::vector<SplitPoint> *v1p;
-    #pragma omp parallel
+    clock_t start, end;
+    start = clock();    
+    SplitPoint best_split = SplitPoint();
+    int tot = 0; // used to count the number of results
+    #pragma omp barrier
+    #pragma omp parallel for schedule(static) num_threads(NUM_OF_THREADS)
+    for (int i = 0; i < this->datasetPointer->num_of_features; i++)
     {
-        #pragma omp single
+        int tid = omp_get_thread_num();
+        // merge different labels
+        Histogram& hist = (*node->histogram_ptr)[i][0];
+        Histogram merged_hist;
+        merged_hist = hist;
+        for (int k = 1; k < this->datasetPointer->num_of_classes; k++)
+            merged_hist.merge((*node->histogram_ptr)[i][k], this->max_bin_size);
+
+        std::vector<double> possible_splits;
+        merged_hist.uniform(possible_splits, merged_hist.bin_size);
+        for (int j=0; j<possible_splits.size(); j++)
         {
-            v1p = new std::vector<SplitPoint>[omp_get_num_threads()];        
+            SplitPoint t = SplitPoint(i, possible_splits[j]);
+            get_gain(node, t, i);
+            if (t.gain > best_split.gain)
+                best_split = t;
         }
-
-        #pragma omp parallel for schedule(dynamic) 
-        for (int i = 0; i < this->datasetPointer->num_of_features; i++)
-        {        
-            // merge different labels
-            Histogram& hist = (*node->histogram_ptr)[i][0];
-            Histogram merged_hist;
-            merged_hist = hist;
-            for (int k = 1; k < this->datasetPointer->num_of_classes; k++)
-                merged_hist.merge((*node->histogram_ptr)[i][k], this->max_bin_size);
-
-            std::vector<double> possible_splits;
-            merged_hist.uniform(possible_splits, merged_hist.bin_size);
-            for (auto& split_value: possible_splits)
-            {
-                SplitPoint t = SplitPoint(i, split_value);
-                get_gain(node, t, i);
-                v1p[omp_get_thread_num()].push_back(t);
-                // results.push_back(t);
-            }
-        }
-
-        #pragma omp single
-        reduce(v1p, 0, omp_get_num_threads());
     }
-    results = v1p[0];
-    delete[] v1p;
-
-    std::vector<SplitPoint>::iterator best_split = std::max_element(results.begin(), results.end(),
-                                                                    [](const SplitPoint &l, const SplitPoint &r) { return l.gain < r.gain; });
-
-    split.feature_id = best_split->feature_id;
-    split.feature_value = best_split->feature_value;
-    split.gain = best_split->gain;
+    split.feature_id = best_split.feature_id;
+    split.feature_value = best_split.feature_value;
+    split.gain = best_split.gain;
+    end = clock();   
+    SPLIT_TIME += ((double) (end - start)) / CLOCKS_PER_SEC; 
 }
 
 /* 
@@ -499,6 +474,8 @@ void DecisionTree::train_on_batch(Dataset &train_data)
  * This function takes the assumption that each leaf is re-initialized (we use a batch mode)
 */
 void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabeled_leaf) {
+    clock_t start, end;
+    start = clock();
     int feature_id = 0, class_id = 0;
     // Construct the histogram. and navigate each data to its leaf.
     // #pragma omp parallel for schedule(dynamic)    
@@ -516,6 +493,8 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabeled_le
             }
         }
     }
+    end = clock();   
+    COMPRESS_TIME += ((double) (end - start)) / CLOCKS_PER_SEC; 
 }
 /*
  * initialize each leaf as unlabeled.

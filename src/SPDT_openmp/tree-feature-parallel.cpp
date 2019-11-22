@@ -7,6 +7,8 @@
 #include <math.h>
 #include <time.h>
 
+
+#define NUM_OF_THREADS 8
 double COMPRESS_TIME = 0;
 double SPLIT_TIME = 0;
 
@@ -42,19 +44,6 @@ inline int RLOC(int i, int& M, int &N, int& Z){
     return N*Z*M*i;
 }
 
-SplitPoint::SplitPoint()
-{
-    feature_id = -1;
-    feature_value = 0;
-    entropy = 0;
-}
-
-SplitPoint::SplitPoint(int feature_id, double feature_value)
-{
-    this->feature_id = feature_id;
-    this->feature_value = feature_value;
-    this->entropy = 0;
-}
 /*
  * Reture True if the data is larger or equal than the split value
  */
@@ -334,12 +323,17 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 {    
     clock_t start, end;
     start = clock();    
-    SplitPoint* results = new SplitPoint[this->max_bin_size * this->datasetPointer->num_of_features];
+
+    SplitPoint results[NUM_OF_THREADS];
+    for (int j = 0; j<NUM_OF_THREADS; j++)
+        results[j] = SplitPoint();
+
     int tot = 0; // used to count the number of results
     #pragma omp barrier
-    #pragma omp parallel for schedule(dynamic) num_threads(2)
+    #pragma omp parallel for schedule(static) num_threads(NUM_OF_THREADS)
     for (int i = 0; i < this->datasetPointer->num_of_features; i++)
     {
+        int tid = omp_get_thread_num();
         // merge different labels
         Histogram& hist = (*node->histogram_ptr)[i][0];
         Histogram merged_hist;
@@ -353,19 +347,19 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
         {
             SplitPoint t = SplitPoint(i, possible_splits[j]);
             get_gain(node, t, i);
-            #pragma omp critical
-            {
-                results[tot] = t;
-                tot ++;
-            }
+            if (t.gain > results[tid].gain)
+                results[tid] = t;
         }
     }
-    SplitPoint best_split = std::max(results[0], results[tot], [](const SplitPoint &l, const SplitPoint &r) { return l.gain < r.gain; });
-
+    SplitPoint best_split;
+    best_split = results[0];
+    for(int ii=0; ii<NUM_OF_THREADS; ii++){
+        if (results[ii].gain > best_split.gain)
+            best_split = results[ii];
+    }
     split.feature_id = best_split.feature_id;
     split.feature_value = best_split.feature_value;
     split.gain = best_split.gain;
-    delete[] results;
     end = clock();   
     SPLIT_TIME += ((double) (end - start)) / CLOCKS_PER_SEC; 
 }

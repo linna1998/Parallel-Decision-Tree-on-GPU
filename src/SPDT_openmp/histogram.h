@@ -16,8 +16,20 @@ public:
     double feature_value;
 	double gain;
 	double entropy;
-    SplitPoint();
-    SplitPoint(int feature_id, double feature_value);
+	SplitPoint()
+	{	
+		feature_id = -1;
+		feature_value = 0;
+		entropy = 0.f;
+		gain = 0.f;
+	};
+    SplitPoint(int feature_id, double feature_value){
+		this->feature_id = feature_id;
+    	this->feature_value = feature_value;
+    	this->entropy = 0.f;
+		this->gain = 0.f;
+	};
+
     bool decision_rule(Data& data);
     inline SplitPoint& operator = (const SplitPoint& split){
         this->feature_id = split.feature_id;
