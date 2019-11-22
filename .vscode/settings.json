@@ -65,7 +65,11 @@
         "utility": "cpp",
         "vector": "cpp",
         "*.tcc": "cpp",
+<<<<<<< HEAD
         "clocale": "cpp",
         "iomanip": "cpp"
+=======
+        "clocale": "cpp"
+>>>>>>> ed1cb35f0b3e4e1aafc67acca19407928ad097ad
     }
 }
