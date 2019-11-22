@@ -1,4 +1,2 @@
-.vscode
 data/rcv1.test.txt
 data/covtype.train.txt
-.DS_Store
