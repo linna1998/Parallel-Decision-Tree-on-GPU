@@ -29,9 +29,8 @@
 
 #define EPS 1e-9
 
-static double COMPRESS_TIME = 0;
-static double SPLIT_TIME = 0;
-static long long number = 0;
+double COMPRESS_TIME = 0;
+double SPLIT_TIME = 0;
 
 class SplitPoint{
 public:
@@ -100,7 +99,18 @@ public:
 
     DecisionTree();
     ~DecisionTree();
-    DecisionTree(int max_num_leaves, int max_depth, int min_node_size);
+    DecisionTree(int max_num_leaves, int max_depth, int min_node_size){
+        this->max_num_leaves = max_num_leaves;
+        this->max_depth = max_depth;
+        this->min_node_size = min_node_size;
+        this->depth = 0;
+        this->num_leaves = 0;    
+        this->cur_depth = 0;
+        this->root = NULL;    
+        this->min_gain = 1e-3;
+        this->num_nodes = 0;
+    };
+    
     void self_check();
     void train(Dataset& train_data, const int batch_size = 64);
     void train_on_batch(Dataset& train_data);

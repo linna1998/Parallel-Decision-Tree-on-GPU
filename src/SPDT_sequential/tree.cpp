@@ -156,19 +156,6 @@ DecisionTree::~DecisionTree(){
     root->clear();
 }
 
-DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size)
-{
-    this->max_num_leaves = max_num_leaves;
-    this->max_depth = max_depth;
-    this->min_node_size = min_node_size;
-    this->depth = 0;
-    this->num_leaves = 0;    
-    this->cur_depth = 0;
-    this->root = NULL;    
-    this->min_gain = 1e-3;
-    this->num_nodes = 0;
-}
-
 /* 
  * Return true if the node should be a leaf.
  * This is determined by the min-node-size, max-depth, max_num_leaves
@@ -349,4 +336,108 @@ void DecisionTree::compress(vector<Data> &data)
 
     end = clock();   
     COMPRESS_TIME += ((double) (end - start)) / CLOCKS_PER_SEC; 
+}
+
+
+/*
+ * Serial version of training.
+*/
+void DecisionTree::train_on_batch(Dataset &train_data)
+{
+    
+    for(auto& data: train_data.dataset)
+        root->data_ptr.push_back(&data);
+
+    double pos_rate = ((double) train_data.num_pos_label) / train_data.num_of_data;
+    dbg_assert(pos_rate > 0 && pos_rate < 1);
+    root->num_pos_label = train_data.num_pos_label;
+    root->entropy = - pos_rate * log2(pos_rate) - (1-pos_rate) * log2((1-pos_rate));
+    batch_initialize(root); // Reinitialize every leaf in T as unlabeled.
+    vector<TreeNode *> unlabeled_leaf = __get_unlabeled(root);
+    dbg_assert(unlabeled_leaf.size() <= max_num_leaves);
+    while (!unlabeled_leaf.empty())
+    {        
+        // each while loop would add a new level node.
+        this->cur_depth++;
+        printf("depth [%d] finished\n", this->cur_depth);
+        vector<TreeNode *> unlabeled_leaf_new; 
+        if (unlabeled_leaf.size() > max_num_leaves) {
+            for (int i = 0; i < unlabeled_leaf.size(); i++) {
+                unlabeled_leaf[i]->set_label();
+                this->num_leaves++;
+            }
+            break;
+        }       
+        init_histogram(unlabeled_leaf); 
+        compress(train_data.dataset); 
+        for (auto &cur_leaf : unlabeled_leaf)
+        {            
+            if (is_terminated(cur_leaf))
+            {         
+                cur_leaf->set_label();
+                this->num_leaves++;             
+            }
+            else
+            {                
+                SplitPoint best_split;
+                find_best_split(cur_leaf, best_split);
+                dbg_ensures(best_split.gain >= -EPS);
+                if (best_split.gain <= min_gain){
+                    dbg_printf("Node terminated: gain=%.4f <= %.4f\n", min_node_size, best_split.gain, min_gain);
+                    cur_leaf->set_label();
+                    this->num_leaves++;               
+                    continue;
+                }
+                cur_leaf->left_node = new TreeNode(this->cur_depth, this->num_nodes++);
+                cur_leaf->right_node = new TreeNode(this->cur_depth, this->num_nodes++);
+                cur_leaf->split(best_split, cur_leaf->left_node, cur_leaf->right_node);
+                cur_leaf->is_leaf = false;
+                cur_leaf->label = -1;
+                unlabeled_leaf_new.push_back(cur_leaf->left_node);
+                unlabeled_leaf_new.push_back(cur_leaf->right_node);
+            }
+        }
+        unlabeled_leaf = unlabeled_leaf_new;
+        unlabeled_leaf_new.clear(); 
+    }
+    self_check();    
+}
+
+
+void DecisionTree::self_check(){
+    queue<TreeNode *> q;
+    q.push(root);
+    int count_leaf=0;
+    int count_nodes=0;
+    while (!q.empty())
+    {
+        auto tmp_ptr = q.front();
+        q.pop();
+        count_nodes++;
+        if (tmp_ptr == NULL)
+        {
+            // should never reach here.
+            fprintf(stderr, "ERROR: The tree contains node that have only one child\n");
+            exit(-1);
+        }
+        else if ((tmp_ptr->left_node == NULL) && (tmp_ptr->right_node == NULL))
+        {
+            dbg_requires(tmp_ptr->is_leaf);
+            dbg_requires(tmp_ptr->label == POS_LABEL || tmp_ptr->label == NEG_LABEL);
+            count_leaf++;
+        }
+        else
+        {
+            dbg_requires(!tmp_ptr->is_leaf);
+            dbg_requires(tmp_ptr->label == -1);
+            q.push(tmp_ptr->left_node);
+            q.push(tmp_ptr->right_node);
+        }
+    }
+    dbg_assert(count_leaf == num_leaves);
+    dbg_assert(count_nodes == num_nodes);
+    dbg_printf("------------------------------------------------\n");
+    dbg_printf("| Num_leaf: %d, num_nodes: %d, max_depth: %d | \n", num_leaves, num_nodes, cur_depth);
+    dbg_printf("------------------------------------------------\n");
+
 }
