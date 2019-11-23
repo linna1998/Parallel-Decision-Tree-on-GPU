@@ -197,7 +197,62 @@ void merge_array(int histogram_id1, int feature_id1, int label1, int histogram_i
         set_bin_freq(histo1, i, get_bin_freq(histo_merge, i));
         set_bin_value(histo1, i, get_bin_value(histo_merge, i));
     }
-	delete histo_merge[];
+	delete []histo_merge;
+	return;
+}
+
+void uniform_array(std::vector<double> &u, int histogram_id, int feature_id, int label) {	
+    double *histo = get_histogram_array(histogram_id, feature_id, label);
+    int bin_size = get_bin_size(*histo);
+    int B = bin_size;
+	double tmpsum = 0;
+	double s = 0;
+	int index = 0;
+	double a = 0, b = 0, c = 0, d = 0, z = 0;	
+	double uj = 0;
+	u.clear();
+
+	if (bin_size <= 1) {
+		return;
+	}
+	
+	for (int i = 0; i < bin_size; i++) {
+		tmpsum += get_bin_freq(histo, i);
+	}	
+
+	for (int j = 0; j <= B - 2; j++) {
+		s = tmpsum * (j + 1) / B;		
+		
+		for (index = 0; index + 1 < bin_size; index++) {
+			
+			if (sum_array(histogram_id, feature_id, label, get_bin_value(histo, index)) < s
+				&& s < sum_array(histogram_id, feature_id, label, get_bin_value(histo, index + 1))) {
+				break;
+			}
+		}
+
+		d = s - sum_array(histogram_id, feature_id, label, get_bin_value(histo, index));
+
+		a = get_bin_freq(histo, index + 1) - get_bin_freq(histo, index);
+		b = 2 * get_bin_freq(histo, index);
+		c = -2 * d;		
+		
+		if (abs(a) > EPS && b * b - 4 * a * c >= 0) {
+			z = -b + sqrt(b * b - 4 * a * c);
+			z = z / (2 * a);
+		} else if (abs(b) > EPS) {
+			// b * z + c = 0
+			z = -c / b;
+		} else {
+			z = 0;
+		}
+		if (z < 0) z = 0;
+		if (z > 1) z = 1;
+		
+		uj = get_bin_value(histo, index) + z * (get_bin_value(histo, index + 1) - get_bin_value(histo, index));		
+		u.push_back(uj);				
+	}
+	
 	return;
 }
 

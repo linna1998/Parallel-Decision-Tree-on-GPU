@@ -303,11 +303,10 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
         for (int k = 1; k < this->datasetPointer->num_of_classes; k++) {
             merge_array(node->histogram_id, i, 0, node->histogram_id, i, k);
         }
-
-        // TODO
-
+        
         std::vector<double> possible_splits;
-        merged_hist.uniform(possible_splits, merged_hist.bin_size);
+        uniform_array(possible_splits, node->histogram_id, i, 0);
+
         dbg_assert(possible_splits.size() <= this->max_bin_size);
         for (auto& split_value: possible_splits)
         {
