@@ -303,7 +303,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
         for (int k = 1; k < this->datasetPointer->num_of_classes; k++) {
             merge_array(node->histogram_id, i, 0, node->histogram_id, i, k);
         }
-        
+
         std::vector<double> possible_splits;
         uniform_array(possible_splits, node->histogram_id, i, 0);
 
@@ -518,15 +518,7 @@ void DecisionTree::init_histogram(vector<TreeNode *> &unlabeled_leaf)
     
     for (auto &p : unlabeled_leaf)
     {
-        p->histogram_id = c++;
-        for (int feature_id = 0; feature_id < datasetPointer->num_of_features; feature_id++)
-            for (int class_id = 0; class_id < datasetPointer->num_of_classes; class_id++) {                
-                histogram[p->histogram_id][feature_id][class_id].clear();
-                histogram[p->histogram_id][feature_id][class_id].bins = &bin_ptr[RLOC(p->histogram_id, feature_id, class_id, datasetPointer->num_of_features, datasetPointer->num_of_classes, max_bin_size)];                
-                histogram[p->histogram_id][feature_id][class_id].check(__LINE__);
-            }                
-
-        p->histogram_ptr = &histogram[p->histogram_id];   
+        p->histogram_id = c++;         
     }
 }
 
