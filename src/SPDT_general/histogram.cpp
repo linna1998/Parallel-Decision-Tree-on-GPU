@@ -19,12 +19,14 @@ Histogram::Histogram(const int max_bin, BinTriplet* _bins) {
 		exit(1);
 	}
 	this->bins = _bins;
-	this->max_bin = max_bin;
+	// A trick here
+	// Use the last empty place for in-place update function
+	this->max_bin = max_bin - 1;
 	this->bin_size = 0;	
 }
 
 Histogram::Histogram(const int max_bin) {	
-	this->max_bin = max_bin;
+	this->max_bin = max_bin - 1;
 	this->bin_size = 0;	
 }
 
@@ -107,35 +109,77 @@ void mergeBin(std::vector<BinTriplet>& vec) {
 	mergeSame(vec);
 }
 
-void Histogram::update(double value) {	
-	check(__LINE__);		
-	std::vector<BinTriplet> vec;
-	ptr2vec(vec);	
+// size of the bin: reduce by one
+void Histogram::mergeBinArray() {
+	BinTriplet newbin;
+	int index = 0;
 
+	// find the min value of difference
+	for (int i = 0; i < bin_size - 1; i++) {
+		if (bins[i + 1].value - bins[i].value
+			< bins[index + 1].value - bins[index].value) {
+			index = i;
+		}
+	}
+
+	// merge bins[index], bins[index + 1] into a new element
+	newbin.freq = bins[index].freq + bins[index + 1].freq;
+	newbin.value = (bins[index].value * bins[index].freq
+		+ bins[index + 1].value * bins[index + 1].freq) /
+		newbin.freq;
+
+	// change vec[index] with newbin
+	bins[index].freq = newbin.freq;
+	bins[index].value = newbin.value;	
+
+	// erase vec[index + 1]
+	for (int i = index + 1; i <= bin_size - 2; i++) {
+		bins[i].freq = bins[i + 1].freq;
+		bins[i].value = bins[i + 1].value;
+ 	}
+	bin_size--;
+	
+	mergeSameArray();
+}
+
+void Histogram::update(double value) {	
+	int index = 0;	
 	// If there are values in the bin equals to the value here
-	for (int i = 0; i < vec.size(); i++) {
-		if (abs(vec[i].value - value) < EPS) {			
-			vec[i].freq++;
-			vec2ptr(vec);
-			check(__LINE__);					
+	for (int i = 0; i < bin_size; i++) {
+		if (abs(bins[i].value - value) < EPS) {			
+			bins[i].freq++;					
 			return;
 		}
 	}
 
-	vec.push_back(BinTriplet(value, 1));	
+	// put the next element into the correct place in bin_size
+	// find the index to insert value
+	// bins[index - 1].value < value
+	// bins[index].value > value
+	for (int i = 0; i < bin_size; i++) {
+		if (bins[i].value > value) {
+			index = i;
+			break;
+		}
+	}
 
-	sortBin(vec);		
+	// move the [index, bin_size - 1] an element further
+	for (int i = bin_size; i >= index + 1; i--) {
+		bins[i].value = bins[i - 1].value;
+		bins[i].freq = bins[i - 1].freq;		
+	}
+	bin_size++;
 
-	if (vec.size() <= max_bin) {
-		vec2ptr(vec);			
-		check(__LINE__);		
+	// put value into the place of bins[index]
+	bins[index].value = value;
+	bins[index].freq = 1;	
+
+	if (bin_size <= max_bin) {
 		return;
 	}
 	
-	mergeBin(vec);	
-	
-	vec2ptr(vec);	
-	check(__LINE__);	
+	mergeBinArray();	
+			
 	return;
 }
 
@@ -217,7 +261,22 @@ void mergeSame(std::vector<BinTriplet>& vec) {
 	}
 }
 
-void Histogram::merge(Histogram &h, int B) {
+void Histogram::mergeSameArray() {
+	for (int i = 0; i + 1 < bin_size; i++) {
+		if (abs(bins[i].value - bins[i + 1].value) < EPS) {
+			bins[i].freq += bins[i + 1].freq;			
+			// erase vec[i + 1]
+			for (int j = i + 1; j <= bin_size - 2; j++) {
+				bins[j].freq = bins[j + 1].freq;
+				bins[j].value = bins[j + 1].value;
+			}
+			bin_size--;
+			i--;
+		}
+	}
+}
+
+void Histogram::merge(Histogram &h) {
 	check(__LINE__);
 	int index = 0;
 	std::vector<BinTriplet> vec;
@@ -233,7 +292,7 @@ void Histogram::merge(Histogram &h, int B) {
 	// merge the same values in vec
 	mergeSame(vec);
 
-	while (vec.size() > B) {
+	while (vec.size() > max_bin) {
 		mergeBin(vec);		
 	}
 

@@ -52,9 +52,11 @@ public:
 
 	void ptr2vec(std::vector<BinTriplet>& res);
 	void vec2ptr(std::vector<BinTriplet>& vec);	
+	void mergeBinArray();
+	void mergeSameArray();
     void update(double value);
     double sum(double value);
-    void merge(Histogram &h, int B);
+    void merge(Histogram &h);
 	void uniform(std::vector<double> &u, int B);
 	void print();
 	void check(int lineno);

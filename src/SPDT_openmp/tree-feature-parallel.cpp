@@ -353,7 +353,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
         Histogram merged_hist;
         merged_hist = hist;
         for (int k = 1; k < this->datasetPointer->num_of_classes; k++)
-            merged_hist.merge((*node->histogram_ptr)[i][k], this->max_bin_size);
+            merged_hist.merge((*node->histogram_ptr)[i][k]);
 
         std::vector<double> possible_splits;
         merged_hist.uniform(possible_splits, merged_hist.bin_size);
