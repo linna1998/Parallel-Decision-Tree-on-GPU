@@ -32,7 +32,7 @@ class BinTriplet {
 public:
     double value;
     int freq; // number of samples in this bin    
-	char padding[48];
+	// char padding[48];
 	BinTriplet();
 	BinTriplet(double _value, int _freq);
 };

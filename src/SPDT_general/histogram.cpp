@@ -141,68 +141,64 @@ void Histogram::update(double value) {
 
 double Histogram::sum(double value) {
 	check(__LINE__);
-	std::vector<BinTriplet> vec;
 	int index = 0;
 	double mb = 0;
 	double s = 0;
-	ptr2vec(vec);
 
 	if (bin_size == 1) {
-		return vec[0].freq;
+		return bins[0].freq;
 	}
 
-	if (value < vec[0].value) {
+	if (value < bins[0].value) {
 		return 0;
 	}
 
-	if (value >= vec[vec.size() - 1].value) {
-		for (int i = 0; i < vec.size(); i++) {
-			s += vec[i].freq;			
+	if (value >= bins[bin_size - 1].value) {
+		for (int i = 0; i < bin_size; i++) {
+			s += bins[i].freq;			
 		}
 		return s;
 	}
 
-	for (index = 0; index + 1 < vec.size(); index++) {
-		if (vec[index].value <= value && vec[index + 1].value > value) {
+	for (index = 0; index + 1 < bin_size; index++) {
+		if (bins[index].value <= value && bins[index + 1].value > value) {
 			break;
 		}
 	}		
 
-	if (abs(vec[index + 1].value - vec[index].value) <= EPS) {
-		printVector(vec);
+	if (abs(bins[index + 1].value - bins[index].value) <= EPS) {
+		// printVector(vec);
 		printf("index: %d\n", index);
 		printf("value: %f\n", value);
 		exit(1);
 	}
 
-	if (abs(vec[index + 1].value - vec[index].value) > EPS) {
-		mb = (vec[index + 1].freq - vec[index].freq);
-		mb = mb * (value - vec[index].value);
-		mb = mb / (vec[index + 1].value - vec[index].value);
-		mb = vec[index].freq + mb;
+	if (abs(bins[index + 1].value - bins[index].value) > EPS) {
+		mb = (bins[index + 1].freq - bins[index].freq);
+		mb = mb * (value - bins[index].value);
+		mb = mb / (bins[index + 1].value - bins[index].value);
+		mb = bins[index].freq + mb;
 	} else {
 		fprintf(stderr, "abs(vec[index + 1].value - vec[index].value) > EPS");
 		exit(-1);
-		mb = vec[index].freq;
+		mb = bins[index].freq;
 	}
 	
-	if (abs(vec[index + 1].value - vec[index].value) > EPS) {
-		s = (vec[index].freq + mb) / 2;
-		s = s * (value - vec[index].value);
-		s = s / (vec[index + 1].value - vec[index].value);
+	if (abs(bins[index + 1].value - bins[index].value) > EPS) {
+		s = (bins[index].freq + mb) / 2;
+		s = s * (value - bins[index].value);
+		s = s / (bins[index + 1].value - bins[index].value);
 	} else {
 		fprintf(stderr, "(vec[index + 1].value - vec[index].value) == 0");
 		exit(-1);
-		s = (vec[index].freq + mb) / 2;
+		s = (bins[index].freq + mb) / 2;
 	}
-
 
 	for (int j = 0; j < index; j++) {
-		s = s + vec[j].freq;
+		s = s + bins[j].freq;
 	}
 
-	s = s + ((double)vec[index].freq) / 2;
-	vec2ptr(vec);
+	s = s + ((double)bins[index].freq) / 2;
 	check(__LINE__);
 	return s;
 }
@@ -281,34 +277,31 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 	int index = 0;
 	double a = 0, b = 0, c = 0, d = 0, z = 0;	
 	double uj = 0;
-	std::vector<BinTriplet> vec;
-	ptr2vec(vec);
-
 	u.clear();
 
-	if (vec.size() <= 1) {
+	if (bin_size <= 1) {
 		return;
 	}
 	
-	for (int i = 0; i < vec.size(); i++) {
-		tmpsum += vec[i].freq;
+	for (int i = 0; i < bin_size; i++) {
+		tmpsum += bins[i].freq;
 	}	
 
 	for (int j = 0; j <= B - 2; j++) {
 		s = tmpsum * (j + 1) / B;		
 		
-		for (index = 0; index + 1 < vec.size(); index++) {
+		for (index = 0; index + 1 < bin_size; index++) {
 			
-			if (sum(vec[index].value) < s
-				&& s < sum(vec[index + 1].value)) {
+			if (sum(bins[index].value) < s
+				&& s < sum(bins[index + 1].value)) {
 				break;
 			}
 		}
 
-		d = s - sum(vec[index].value);		
+		d = s - sum(bins[index].value);		
 
-		a = vec[index + 1].freq - vec[index].freq;
-		b = 2 * vec[index].freq;
+		a = bins[index + 1].freq - bins[index].freq;
+		b = 2 * bins[index].freq;
 		c = -2 * d;		
 		
 		if (abs(a) > EPS && b * b - 4 * a * c >= 0) {
@@ -323,10 +316,9 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 		if (z < 0) z = 0;
 		if (z > 1) z = 1;
 		
-		uj = vec[index].value + z * (vec[index + 1].value - vec[index].value);		
+		uj = bins[index].value + z * (bins[index + 1].value - bins[index].value);		
 		u.push_back(uj);				
 	}
-	vec2ptr(vec);	
 	check(__LINE__);
 	return;
 }
