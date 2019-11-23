@@ -10,38 +10,6 @@
 double COMPRESS_TIME = 0;
 double SPLIT_TIME = 0;
 
-/*
- * For A[][M][N][Z]
- * A[i][j][k][e] = A[N*Z*M*i+Z*N*j+k*Z+e]
- */
-inline int RLOC(int i, int j, int k, int e, int& M, int &N, int& Z){
-    return N*Z*M*i+Z*N*j+k*Z*k+e;
-}
-
-/*
- * For A[][M][N][Z]
- * A[i][j][k] = A[N*Z*M*i+Z*N*j+k*Z]
- */
-inline int RLOC(int i, int j, int k, int& M, int &N, int& Z){
-    return N*Z*M*i+Z*N*j+k*Z*k;
-}
-
-/*
- * For A[][M][N][Z]
- * A[i][j] = A[N*Z*M*i+Z*N*j]
- */
-inline int RLOC(int i, int j, int& M, int &N, int& Z){
-    return N*Z*M*i+Z*N*j;
-}
-
-/*
- * For A[][M][N][Z]
- * A[i] = A[N*Z*M*i]
- */
-inline int RLOC(int i, int& M, int &N, int& Z){
-    return N*Z*M*i;
-}
-
 SplitPoint::SplitPoint()
 {
     feature_id = -1;
@@ -177,32 +145,27 @@ DecisionTree::DecisionTree()
     this->max_depth = -1;
     this->min_node_size = 1;
     this->depth = 0;
-    this->num_leaves = 0;
-    this->max_bin_size = 12;
+    this->num_leaves = 0;    
     this->cur_depth = 0;
-    this->root = NULL;
-    this->bin_ptr = NULL;
+    this->root = NULL;    
     this->min_gain = 1e-3;
     this->num_nodes = 0;
 
 }
 
-DecisionTree::~DecisionTree(){
-    delete[] bin_ptr;
+DecisionTree::~DecisionTree(){    
     root->clear();
 }
 
-DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size, int max_bin_size)
+DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size)
 {
     this->max_num_leaves = max_num_leaves;
     this->max_depth = max_depth;
     this->min_node_size = min_node_size;
     this->depth = 0;
-    this->num_leaves = 0;
-    this->max_bin_size = max_bin_size;
+    this->num_leaves = 0;    
     this->cur_depth = 0;
-    this->root = NULL;
-    this->bin_ptr = NULL;
+    this->root = NULL;    
     this->min_gain = 1e-3;
     this->num_nodes = 0;
 }
@@ -243,15 +206,14 @@ bool DecisionTree::is_terminated(TreeNode *node)
 void DecisionTree::initialize(Dataset &train_data, const int batch_size){
     this->datasetPointer = &train_data;
     root = new TreeNode(0, this->num_nodes++);  
-    if (bin_ptr != NULL) {        
-        delete[] bin_ptr;
+    if (histogram != NULL) {        
+        delete[] histogram;
     }
-    long long number = (long long)max_num_leaves * datasetPointer->num_of_features * datasetPointer->num_of_classes * max_bin_size;    
-    dbg_printf("Init Root Node [%.4f] MB\n", number * sizeof(Bin_t) / 1024.f / 1024.f);
+    long long number = (long long)max_num_leaves * datasetPointer->num_of_features * datasetPointer->num_of_classes * ((max_bin_size + 1) * 2 + 1);    
+    dbg_printf("Init Root Node [%.4f] MB\n", number * sizeof(double) / 1024.f / 1024.f);
     
-    bin_ptr = new Bin_t[number];
-    memset(bin_ptr, 0, number * sizeof(Bin_t));  
-    histogram = Histogram_ALL(max_num_leaves, Histogram_LEAF(train_data.num_of_features, Histogram_FEATURE(train_data.num_of_classes, Histogram(max_bin_size))));
+    histogram = new double[number];
+    memset(histogram, 0, number * sizeof(double));    
 }
 
 void DecisionTree::train(Dataset &train_data, const int batch_size)
@@ -297,12 +259,12 @@ double DecisionTree::test(Dataset &test_data) {
 void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     int total_sum = node->data_ptr.size();
     dbg_ensures(total_sum > 0);
-    double sum_class_0 = (double)(*node->histogram_ptr)[feature_id][NEG_LABEL].get_total();
-    double sum_class_1 = (double)(*node->histogram_ptr)[feature_id][POS_LABEL].get_total();
-    dbg_assert((sum_class_1-node->num_pos_label) < EPS);
-    double left_sum_class_0 = (*node->histogram_ptr)[feature_id][NEG_LABEL].sum(split.feature_value);
+    double sum_class_0 = get_total_array(node->histogram_id, feature_id, NEG_LABEL);
+    double sum_class_1 = get_total_array(node->histogram_id, feature_id, POS_LABEL);
+    dbg_assert((sum_class_1 - node->num_pos_label) < EPS);
+    double left_sum_class_0 = sum_array(node->histogram_id, feature_id, NEG_LABEL, split.feature_value);
     double right_sum_class_0 = sum_class_0 - left_sum_class_0;
-    double left_sum_class_1 = (*node->histogram_ptr)[feature_id][POS_LABEL].sum(split.feature_value);
+    double left_sum_class_1 = sum_array(node->histogram_id, feature_id, POS_LABEL, split.feature_value);
     double right_sum_class_1 = sum_class_1 - left_sum_class_1;
     double left_sum = left_sum_class_0 + left_sum_class_1;
     double right_sum = right_sum_class_0 + right_sum_class_1;
@@ -339,11 +301,12 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
     for (int i = 0; i < this->datasetPointer->num_of_features; i++)
     {
         // merge different labels
-        Histogram& hist = (*node->histogram_ptr)[i][0];
-        Histogram merged_hist;
-        merged_hist = hist;
-        for (int k = 1; k < this->datasetPointer->num_of_classes; k++)
-            merged_hist.merge((*node->histogram_ptr)[i][k]);
+        // put the result back into (node->histogram_id, i, 0)
+        for (int k = 1; k < this->datasetPointer->num_of_classes; k++) {
+            merge_array(node->histogram_id, i, 0, node->histogram_id, i, k);
+        }
+
+        // TODO
 
         std::vector<double> possible_splits;
         merged_hist.uniform(possible_splits, merged_hist.bin_size);

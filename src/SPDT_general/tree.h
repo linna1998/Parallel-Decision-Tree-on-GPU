@@ -7,11 +7,6 @@
 #include "histogram.h"
 #include <omp.h>
 
-typedef std::vector<Histogram> Histogram_FEATURE;
-typedef std::vector<Histogram_FEATURE> Histogram_LEAF;
-typedef std::vector<Histogram_LEAF> Histogram_ALL;
-typedef BinTriplet Bin_t;
-typedef Bin_t* Bin_ptr;
 // #define DEBUG
 #ifdef DEBUG
 /* When DEBUG is defined, these form aliases to useful functions */
@@ -40,8 +35,7 @@ public:
     int depth;
     double entropy;
     TreeNode* left_node;
-    TreeNode* right_node;
-    Histogram_LEAF* histogram_ptr;
+    TreeNode* right_node;    
     int histogram_id;   
     int num_pos_label;
 
@@ -57,6 +51,13 @@ public:
     void clear();
 };
 
+// a global variable
+// record the information of all histograms
+double* histogram;
+int num_of_features;
+int num_of_classes;
+int max_bin_size = -1;
+
 class DecisionTree
 {
 private:
@@ -65,24 +66,21 @@ private:
     int num_nodes;
     int depth;
     int max_num_leaves;
-    int max_depth;
-    int max_bin_size;
+    int max_depth;    
     int min_node_size;
     int cur_depth;
-    double min_gain;
-    Histogram_ALL histogram;
+    double min_gain;    
     // three dimensions for the global histogram.    
     int num_unlabled_leaves;
 
     Dataset* datasetPointer; 
-    // histogram size (num_leaf, num_feature, num_class)
-    Bin_ptr bin_ptr;
+    // histogram size (num_leaf, num_feature, num_class)    
 
 public:
 
     DecisionTree();
     ~DecisionTree();
-    DecisionTree(int max_num_leaves, int max_depth, int min_node_size, int max_bin_size);
+    DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size);
     
     void self_check();
     void train(Dataset& train_data, const int batch_size = 64);
@@ -98,3 +96,35 @@ public:
     TreeNode* navigate(Data& d);
     bool is_terminated(TreeNode* node);
 };
+
+/*
+ * For A[][M][N][Z]
+ * A[i][j][k][e] = A[N*Z*M*i+Z*N*j+k*Z+e]
+ */
+int RLOC(int i, int j, int k, int e, int M, int N, int Z){
+    return N*Z*M*i+Z*N*j+k*Z+e;
+}
+
+/*
+ * For A[][M][N][Z]
+ * A[i][j][k] = A[N*Z*M*i+Z*N*j+k*Z]
+ */
+int RLOC(int i, int j, int k, int M, int N, int Z){
+    return N*Z*M*i+Z*N*j+Z*k;
+}
+
+/*
+ * For A[][M][N][Z]
+ * A[i][j] = A[N*Z*M*i+Z*N*j]
+ */
+int RLOC(int i, int j, int M, int N, int Z){
+    return N*Z*M*i+Z*N*j;
+}
+
+/*
+ * For A[][M][N][Z]
+ * A[i] = A[N*Z*M*i]
+ */
+int RLOC(int i, int M, int N, int Z){
+    return N*Z*M*i;
+}

@@ -10,39 +10,7 @@
 
 #define NUM_OF_THREADS 8
 double COMPRESS_TIME = 0;
-double SPLIT_TIME = 0;
-
-/*
- * For A[][M][N][Z]
- * A[i][j][k][e] = A[N*Z*M*i+Z*N*j+k*Z+e]
- */
-inline int RLOC(int i, int j, int k, int e, int& M, int &N, int& Z){
-    return N*Z*M*i+Z*N*j+k*Z*k+e;
-}
-
-/*
- * For A[][M][N][Z]
- * A[i][j][k] = A[N*Z*M*i+Z*N*j+k*Z]
- */
-inline int RLOC(int i, int j, int k, int& M, int &N, int& Z){
-    return N*Z*M*i+Z*N*j+k*Z*k;
-}
-
-/*
- * For A[][M][N][Z]
- * A[i][j] = A[N*Z*M*i+Z*N*j]
- */
-inline int RLOC(int i, int j, int& M, int &N, int& Z){
-    return N*Z*M*i+Z*N*j;
-}
-
-/*
- * For A[][M][N][Z]
- * A[i] = A[N*Z*M*i]
- */
-inline int RLOC(int i, int& M, int &N, int& Z){
-    return N*Z*M*i;
-}
+double SPLIT_TIME = 0
 
 SplitPoint::SplitPoint()
 {
