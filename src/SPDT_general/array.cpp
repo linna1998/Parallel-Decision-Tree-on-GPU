@@ -189,10 +189,7 @@ void merge_bin_array(double *histo) {
     merge_same_array(histo);
 }
 
-void merge_array(int histogram_id1, int feature_id1, int label1, int histogram_id2, int feature_id2, int label2) {
-	double *histo1 = get_histogram_array(histogram_id1, feature_id1, label1);
-    double *histo2 = get_histogram_array(histogram_id2, feature_id2, label2);
-
+void merge_array_pointers(double *histo1, double *histo2) {
     double *histo_merge = new double[max_bin_size * 4 + 1];
 
     int index1 = 0, index2 = 0;
@@ -230,6 +227,13 @@ void merge_array(int histogram_id1, int feature_id1, int label1, int histogram_i
         set_bin_value(histo1, i, get_bin_value(histo_merge, i));
     }
 	delete []histo_merge;
+	return;
+}
+
+void merge_array(int histogram_id1, int feature_id1, int label1, int histogram_id2, int feature_id2, int label2) {
+	double *histo1 = get_histogram_array(histogram_id1, feature_id1, label1);
+    double *histo2 = get_histogram_array(histogram_id2, feature_id2, label2);
+	merge_array_pointers(histo1, histo2);
 	return;
 }
 

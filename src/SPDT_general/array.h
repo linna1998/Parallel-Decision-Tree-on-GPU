@@ -20,6 +20,7 @@ static int max_bin_size = 16;
 
 int get_total_array(int histogram_id, int feature_id, int label);
 double sum_array(int histogram_id, int feature_id, int label, double value);
+void merge_array_pointers(double *histo1, double *histo2);
 void merge_array(int histogram_id1, int feature_id1, int label1, int histogram_id2, int feature_id2, int label2);
 void uniform_array(std::vector<double> &u, int histogram_id, int feature_id, int label);
 void update_array(int histogram_id, int feature_id, int label, double value);
