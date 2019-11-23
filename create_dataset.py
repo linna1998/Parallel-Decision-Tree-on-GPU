@@ -1,8 +1,8 @@
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
-x, y = make_classification(n_samples=50000, 
-                           n_features=500, 
-                           n_informative=200)
+x, y = make_classification(n_samples=20000, 
+                           n_features=200, 
+                           n_informative=100)
 
 xt, xv, yt, yv = train_test_split(x, y, test_size=0.6)
 
