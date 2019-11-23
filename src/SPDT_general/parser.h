@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <unordered_map>
 #include <vector>
 
 using namespace std;
@@ -11,7 +12,7 @@ using namespace std;
 class Data {
 public:
 	int label;
-	map<int, double> values;
+	unordered_map<int, double> values;
 	double get_value(int feature_id);
 	void read_a_data(int num_of_features, int num_of_classes, ifstream* myfile);
 };

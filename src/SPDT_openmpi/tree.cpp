@@ -6,9 +6,10 @@
 #include <algorithm>
 #include <math.h>
 #include <time.h>
+#include "mpi.h"
 
+#define MASTER 0
 
-#define NUM_OF_THREADS 8
 double COMPRESS_TIME = 0;
 double SPLIT_TIME = 0;
 
@@ -25,7 +26,6 @@ SplitPoint::SplitPoint(int feature_id, double feature_value)
     this->feature_value = feature_value;
     this->entropy = 0;
 }
-
 /*
  * Reture True if the data is larger or equal than the split value
  */
@@ -43,7 +43,6 @@ TreeNode::TreeNode(int depth, int id)
     this->id = id;
     this->depth = depth;
     is_leaf = false;
-    has_new_data = false;
     label = -1;
     // remove this if you want to keep the previous batch data.
     data_ptr.clear();
@@ -53,17 +52,19 @@ TreeNode::TreeNode(int depth, int id)
     right_node = NULL;
     entropy = -1.f;
     num_pos_label=0;
+    data_size = 0;
+    is_leaf = true;
 }
 
 
 void TreeNode::init()
 {
-    has_new_data = false;
     label = -1;
     histogram_id = -1;
     histogram_ptr = NULL;
     left_node = NULL;
     right_node = NULL;
+    is_leaf = true;
     return;
 }
 
@@ -73,7 +74,7 @@ void TreeNode::init()
 void TreeNode::set_label()
 {
     this->is_leaf = true;
-    this->label = (this->num_pos_label >= (int)this->data_ptr.size() / 2) ? POS_LABEL : NEG_LABEL;
+    this->label = (this->num_pos_label >= (int)this->data_size / 2) ? POS_LABEL : NEG_LABEL;
 }
 
 /*
@@ -184,7 +185,7 @@ DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size,
 */
 bool DecisionTree::is_terminated(TreeNode *node)
 {
-    if (min_node_size != -1 && node->data_ptr.size() <= min_node_size)
+    if (min_node_size != -1 && node->data_size <= min_node_size)
     {
         dbg_printf("Node [%d] terminated: min_node_size=%d >= %d\n", node->id, min_node_size, node->data_ptr.size());
         return true;
@@ -202,12 +203,12 @@ bool DecisionTree::is_terminated(TreeNode *node)
         return true;
     }
 
-    if (!node->num_pos_label || node->num_pos_label == (int) node->data_ptr.size()){
+    if (!node->num_pos_label || node->num_pos_label == (int) node->data_size){
         dbg_assert(node->entropy < EPS);
         dbg_printf("Node [%d] terminated: all samples belong to same class\n",node->id);
         return true; 
     }
-    dbg_printf("[%d] num_data=%d, num_pos=%d\n", node->id, node->data_ptr.size(), node->num_pos_label);
+    dbg_printf("[%d] num_data=%d, num_pos=%d\n", node->id, node->data_size, node->num_pos_label);
     return false;
 }
 
@@ -218,7 +219,7 @@ void DecisionTree::initialize(Dataset &train_data, const int batch_size){
         delete[] bin_ptr;
     }
     long long number = (long long)max_num_leaves * datasetPointer->num_of_features * datasetPointer->num_of_classes * max_bin_size;    
-    dbg_printf("Init Root Node [%.4f] MB\n", number * sizeof(Bin_t) / 1024.f);
+    dbg_printf("Init Root Node [%.4f] MB\n", number * sizeof(Bin_t) / 1024.f /1024.f);
     
     bin_ptr = new Bin_t[number];
     memset(bin_ptr, 0, number * sizeof(Bin_t));  
@@ -230,14 +231,14 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
     int hasNext = TRUE;
     initialize(train_data, batch_size);
 	while (TRUE) {
-		hasNext = train_data.streaming_read_data(batch_size);		
+		hasNext = train_data.streaming_read_data(batch_size);	
         dbg_printf("Train size (%d, %d, %d)\n", train_data.num_of_data, 
                 train_data.num_of_features, train_data.num_of_classes);
         train_on_batch(train_data);        
 		if (!hasNext) break;
 	}		
-
-	train_data.close_read_data();    
+    
+	train_data.close_read_data(); 
     printf("COMPRESS TIME: %f\nSPLIT TIME: %f\n", COMPRESS_TIME, SPLIT_TIME);   
     return;
 }
@@ -249,9 +250,6 @@ double DecisionTree::test(Dataset &test_data) {
     test_data.streaming_read_data(test_data.num_of_data);
 
     for (i = 0; i < test_data.num_of_data; i++) {
-        // printf("lable 1: %d, label 2: %d\n", 
-        //     navigate(test_data.dataset[i])->label,
-        //     test_data.dataset[i].label);
         assert(navigate(test_data.dataset[i])->label != -1);
         if (navigate(test_data.dataset[i])->label == test_data.dataset[i].label) {
             correct_num++;
@@ -266,7 +264,7 @@ double DecisionTree::test(Dataset &test_data) {
  * Assuming binary classification problem
  */
 void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
-    int total_sum = node->data_ptr.size();
+    int total_sum = node->data_size;
     dbg_ensures(total_sum > 0);
     double sum_class_0 = (double)(*node->histogram_ptr)[feature_id][NEG_LABEL].get_total();
     double sum_class_1 = (double)(*node->histogram_ptr)[feature_id][POS_LABEL].get_total();
@@ -302,20 +300,13 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
  * Best split is store in `split`
 */
 void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
-{    
+{
     clock_t start, end;
-    start = clock();    
+    start = clock();       
 
-    SplitPoint results[NUM_OF_THREADS];
-    for (int j = 0; j<NUM_OF_THREADS; j++)
-        results[j] = SplitPoint();
-
-    int tot = 0; // used to count the number of results
-    #pragma omp barrier
-    #pragma omp parallel for schedule(static) num_threads(NUM_OF_THREADS)
+    std::vector<SplitPoint> results;
     for (int i = 0; i < this->datasetPointer->num_of_features; i++)
     {
-        int tid = omp_get_thread_num();
         // merge different labels
         Histogram& hist = (*node->histogram_ptr)[i][0];
         Histogram merged_hist;
@@ -325,23 +316,20 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 
         std::vector<double> possible_splits;
         merged_hist.uniform(possible_splits, merged_hist.bin_size);
-        for (int j=0; j<possible_splits.size(); j++)
+        dbg_assert(possible_splits.size() <= this->max_bin_size);
+        for (auto& split_value: possible_splits)
         {
-            SplitPoint t = SplitPoint(i, possible_splits[j]);
+            SplitPoint t = SplitPoint(i, split_value);
             get_gain(node, t, i);
-            if (t.gain > results[tid].gain)
-                results[tid] = t;
+            results.push_back(t);
         }
     }
-    SplitPoint best_split;
-    best_split = results[0];
-    for(int ii=0; ii<NUM_OF_THREADS; ii++){
-        if (results[ii].gain > best_split.gain)
-            best_split = results[ii];
-    }
-    split.feature_id = best_split.feature_id;
-    split.feature_value = best_split.feature_value;
-    split.gain = best_split.gain;
+    std::vector<SplitPoint>::iterator best_split = std::max_element(results.begin(), results.end(),
+                                                                    [](const SplitPoint &l, const SplitPoint &r) { return l.gain < r.gain; });
+
+    split.feature_id = best_split->feature_id;
+    split.feature_value = best_split->feature_value;
+    split.gain = best_split->gain;
     end = clock();   
     SPLIT_TIME += ((double) (end - start)) / CLOCKS_PER_SEC; 
 }
@@ -389,14 +377,14 @@ void DecisionTree::train_on_batch(Dataset &train_data)
     dbg_assert(pos_rate > 0 && pos_rate < 1);
     root->num_pos_label = train_data.num_pos_label;
     root->entropy = - pos_rate * log2(pos_rate) - (1-pos_rate) * log2((1-pos_rate));
-    // Reinitialize every leaf in T as unlabeled.
-    batch_initialize(root);
+    batch_initialize(root); // Reinitialize every leaf in T as unlabeled.
     vector<TreeNode *> unlabeled_leaf = __get_unlabeled(root);
     dbg_assert(unlabeled_leaf.size() <= max_num_leaves);
     while (!unlabeled_leaf.empty())
     {        
         // each while loop would add a new level node.
         this->cur_depth++;
+        printf("depth [%d] finished\n", this->cur_depth);
         vector<TreeNode *> unlabeled_leaf_new; 
         if (unlabeled_leaf.size() > max_num_leaves) {
             for (int i = 0; i < unlabeled_leaf.size(); i++) {
@@ -405,9 +393,8 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             }
             break;
         }       
-        init_histogram(unlabeled_leaf);     
-        compress(train_data.dataset, unlabeled_leaf);  
-
+        init_histogram(unlabeled_leaf); 
+        compress(train_data.dataset); 
         for (auto &cur_leaf : unlabeled_leaf)
         {            
             if (is_terminated(cur_leaf))
@@ -429,7 +416,6 @@ void DecisionTree::train_on_batch(Dataset &train_data)
                 cur_leaf->left_node = new TreeNode(this->cur_depth, this->num_nodes++);
                 cur_leaf->right_node = new TreeNode(this->cur_depth, this->num_nodes++);
                 cur_leaf->split(best_split, cur_leaf->left_node, cur_leaf->right_node);
-                this->num_leaves = (cur_leaf->is_leaf) ? this->num_leaves - 1 : this->num_leaves;          
                 cur_leaf->is_leaf = false;
                 cur_leaf->label = -1;
                 unlabeled_leaf_new.push_back(cur_leaf->left_node);
@@ -437,7 +423,7 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             }
         }
         unlabeled_leaf = unlabeled_leaf_new;
-        unlabeled_leaf_new.clear();    
+        unlabeled_leaf_new.clear(); 
     }
     self_check();    
 }
@@ -447,26 +433,38 @@ void DecisionTree::train_on_batch(Dataset &train_data)
  * Each unlabeled leaf would have a (num_feature, num_class) histograms
  * This function takes the assumption that each leaf is re-initialized (we use a batch mode)
 */
-void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_leaf)
+void DecisionTree::compress(vector<Data> &data)
 {
     clock_t start, end;
-    start = clock();       
+    start = clock();
+    int taskid, numtasks;
+    BinTriplet* buffer;
+    long long msg_size = max_num_leaves * datasetPointer->num_of_features * datasetPointer->num_of_classes * max_bin_size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
+    MPI_Comm_size(MPI_COMM_WORLD, &numtasks);  
     int feature_id = 0, class_id = 0;
     // Construct the histogram. and navigate each data to its leaf.
-    #pragma omp parallel for schedule(dynamic)
-    for (int i=0; i<unlabled_leaf.size(); i++){
-        TreeNode* node = unlabled_leaf[i];
-        for (auto &d: node->data_ptr)
-        {
-            node->has_new_data = true;
-            for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
-            {            
-                
-                (*(node->histogram_ptr))[attr][d->label].update(d->get_value(attr));
-                     
-            }
+    TreeNode* cur;
+    int c=0;
+    for(int i=taskid; i<data.size(); i+=numtasks){
+        auto& point = data[i];
+        cur = navigate(point);
+        if (cur->label > -1)
+            continue;
+        cur->data_size ++;
+        for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
+        {                            
+            (*(cur->histogram_ptr))[attr][point.label].update(point.get_value(attr));                    
         }
     }
+
+    if (taskid == MASTER){
+        MPI_Send(&bin_ptr, msg_size, MPI_INT, MASTER, 0, MPI_COMM_WORLD);
+    }
+    else{
+        
+    }
+
     end = clock();   
     COMPRESS_TIME += ((double) (end - start)) / CLOCKS_PER_SEC; 
 }

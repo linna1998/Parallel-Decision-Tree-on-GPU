@@ -40,7 +40,6 @@ TreeNode::TreeNode(int depth, int id)
     this->id = id;
     this->depth = depth;
     is_leaf = false;
-    has_new_data = false;
     label = -1;
     // remove this if you want to keep the previous batch data.
     data_ptr.clear();
@@ -50,17 +49,19 @@ TreeNode::TreeNode(int depth, int id)
     right_node = NULL;
     entropy = -1.f;
     num_pos_label=0;
+    data_size = 0;
+    is_leaf = true;
 }
 
 
 void TreeNode::init()
 {
-    has_new_data = false;
     label = -1;
     histogram_id = -1;
     histogram_ptr = NULL;
     left_node = NULL;
     right_node = NULL;
+    is_leaf = true;
     return;
 }
 
@@ -70,7 +71,7 @@ void TreeNode::init()
 void TreeNode::set_label()
 {
     this->is_leaf = true;
-    this->label = (this->num_pos_label >= (int)this->data_ptr.size() / 2) ? POS_LABEL : NEG_LABEL;
+    this->label = (this->num_pos_label >= (int)this->data_size / 2) ? POS_LABEL : NEG_LABEL;
 }
 
 /*
@@ -176,7 +177,7 @@ DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size)
 */
 bool DecisionTree::is_terminated(TreeNode *node)
 {
-    if (min_node_size != -1 && node->data_ptr.size() <= min_node_size)
+    if (min_node_size != -1 && node->data_size <= min_node_size)
     {
         dbg_printf("Node [%d] terminated: min_node_size=%d >= %d\n", node->id, min_node_size, node->data_ptr.size());
         return true;
@@ -194,12 +195,12 @@ bool DecisionTree::is_terminated(TreeNode *node)
         return true;
     }
 
-    if (!node->num_pos_label || node->num_pos_label == (int) node->data_ptr.size()){
+    if (!node->num_pos_label || node->num_pos_label == (int) node->data_size){
         dbg_assert(node->entropy < EPS);
         dbg_printf("Node [%d] terminated: all samples belong to same class\n",node->id);
         return true; 
     }
-    dbg_printf("[%d] num_data=%d, num_pos=%d\n", node->id, node->data_ptr.size(), node->num_pos_label);
+    dbg_printf("[%d] num_data=%d, num_pos=%d\n", node->id, node->data_size, node->num_pos_label);
     return false;
 }
 
@@ -240,9 +241,6 @@ double DecisionTree::test(Dataset &test_data) {
     test_data.streaming_read_data(test_data.num_of_data);
 
     for (i = 0; i < test_data.num_of_data; i++) {
-        // printf("lable 1: %d, label 2: %d\n", 
-        //     navigate(test_data.dataset[i])->label,
-        //     test_data.dataset[i].label);
         assert(navigate(test_data.dataset[i])->label != -1);
         if (navigate(test_data.dataset[i])->label == test_data.dataset[i].label) {
             correct_num++;
@@ -257,7 +255,7 @@ double DecisionTree::test(Dataset &test_data) {
  * Assuming binary classification problem
  */
 void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
-    int total_sum = node->data_ptr.size();
+    int total_sum = node->data_size;
     dbg_ensures(total_sum > 0);
     double sum_class_0 = get_total_array(node->histogram_id, feature_id, NEG_LABEL);
     double sum_class_1 = get_total_array(node->histogram_id, feature_id, POS_LABEL);
@@ -371,14 +369,14 @@ void DecisionTree::train_on_batch(Dataset &train_data)
     dbg_assert(pos_rate > 0 && pos_rate < 1);
     root->num_pos_label = train_data.num_pos_label;
     root->entropy = - pos_rate * log2(pos_rate) - (1-pos_rate) * log2((1-pos_rate));
-    // Reinitialize every leaf in T as unlabeled.
-    batch_initialize(root);
+    batch_initialize(root); // Reinitialize every leaf in T as unlabeled.
     vector<TreeNode *> unlabeled_leaf = __get_unlabeled(root);
     dbg_assert(unlabeled_leaf.size() <= max_num_leaves);
     while (!unlabeled_leaf.empty())
     {        
         // each while loop would add a new level node.
         this->cur_depth++;
+        printf("depth [%d] finished\n", this->cur_depth);
         vector<TreeNode *> unlabeled_leaf_new; 
         if (unlabeled_leaf.size() > max_num_leaves) {
             for (int i = 0; i < unlabeled_leaf.size(); i++) {
@@ -388,7 +386,7 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             break;
         }       
         init_histogram(unlabeled_leaf); 
-        compress(train_data.dataset, unlabeled_leaf); 
+        compress(train_data.dataset); 
         for (auto &cur_leaf : unlabeled_leaf)
         {            
             if (is_terminated(cur_leaf))
@@ -410,7 +408,6 @@ void DecisionTree::train_on_batch(Dataset &train_data)
                 cur_leaf->left_node = new TreeNode(this->cur_depth, this->num_nodes++);
                 cur_leaf->right_node = new TreeNode(this->cur_depth, this->num_nodes++);
                 cur_leaf->split(best_split, cur_leaf->left_node, cur_leaf->right_node);
-                this->num_leaves = (cur_leaf->is_leaf) ? this->num_leaves - 1 : this->num_leaves;          
                 cur_leaf->is_leaf = false;
                 cur_leaf->label = -1;
                 unlabeled_leaf_new.push_back(cur_leaf->left_node);
@@ -428,22 +425,25 @@ void DecisionTree::train_on_batch(Dataset &train_data)
  * Each unlabeled leaf would have a (num_feature, num_class) histograms
  * This function takes the assumption that each leaf is re-initialized (we use a batch mode)
 */
-void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_leaf)
+void DecisionTree::compress(vector<Data> &data)
 {
     clock_t start, end;
     start = clock();  
     int feature_id = 0, class_id = 0;
     // Construct the histogram. and navigate each data to its leaf.
-    for (auto& node: unlabled_leaf){
-        for (auto &d: node->data_ptr)
-        {
-            node->has_new_data = true;
-            for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
-            {                            
-                (*(node->histogram_ptr))[attr][d->label].update(d->get_value(attr));                    
-            }
+    TreeNode* cur;
+    int c=0;
+    for(auto& point : data){
+        cur = navigate(point);
+        if (cur->label > -1)
+            continue;
+        cur->data_size ++;
+        for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
+        {                            
+            (*(cur->histogram_ptr))[attr][point.label].update(point.get_value(attr));                    
         }
     }
+
     end = clock();   
     COMPRESS_TIME += ((double) (end - start)) / CLOCKS_PER_SEC; 
 }

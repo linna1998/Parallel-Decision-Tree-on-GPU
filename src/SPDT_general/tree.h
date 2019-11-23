@@ -30,7 +30,6 @@ class TreeNode
 public:
     int id;
     bool is_leaf = false;    
-    bool has_new_data = false;
     int label; // -1 means no label
     int depth;
     double entropy;
@@ -40,6 +39,7 @@ public:
     int num_pos_label;
 
     vector<Data*> data_ptr;
+    int data_size;
     SplitPoint split_ptr;
 
     TreeNode(int depth, int id);
@@ -88,7 +88,7 @@ public:
     double test(Dataset& test_data);
     // this function adjust the `global_partition_idx`
     void find_best_split(TreeNode* node, SplitPoint& split);
-    void compress(vector<Data>& data, vector<TreeNode* >& unlabled_leaf);
+    void compress(vector<Data>& data);
     vector<TreeNode*> __get_unlabeled(TreeNode* node);
     void batch_initialize(TreeNode* node);
     void initialize(Dataset &train_data, const int batch_size);

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "mpi.h"
 
 vector<string> names = {"a1a", "ijcnn1", "avazu-app", "rcv1", "covtype", "generated"};
 
@@ -18,9 +19,11 @@ int main(int argc, char **argv) {
 
     int index = 5;
     clock_t start, end;
+    MPI_Init(&argc, &argv);
     double cpu_time_used;
     int c;
-    int num_of_thread = -1;    
+    int num_of_thread = -1;
+    int max_bin_size = -1;
     int min_node_size = -1;
     int max_num_leaf = -1;
     int max_depth = -1;
@@ -61,14 +64,13 @@ int main(int argc, char **argv) {
     max_num_leaf = (max_num_leaf == -1) ? 64 : max_num_leaf;
     max_depth = (max_depth == -1) ? 9 : max_depth;
     min_node_size = (min_node_size == -1) ? 32 : min_node_size;
-    // the global max_bin_size
     max_bin_size = (max_bin_size == -1) ? 32 : max_bin_size;
 
     printf("max_num_leaf=%d, max_depth=%d, min_node_size=%d, max_bin_size=%d\n", 
             max_num_leaf, max_depth, min_node_size, max_bin_size);
             
     string trainName = "./data/" + names[index] + ".train.txt";
-    DecisionTree decisionTree(max_num_leaf, max_depth, min_node_size);
+    DecisionTree decisionTree(max_num_leaf, max_depth, min_node_size, max_bin_size);
     Dataset trainDataset(2, trainSize[index], featureNum[index]);
     trainDataset.open_read_data(trainName);
     start = clock();     

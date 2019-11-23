@@ -336,34 +336,31 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 	int index = 0;
 	double a = 0, b = 0, c = 0, d = 0, z = 0;	
 	double uj = 0;
-	std::vector<BinTriplet> vec;
-	ptr2vec(vec);
-
 	u.clear();
 
-	if (vec.size() <= 1) {
+	if (bin_size <= 1) {
 		return;
 	}
 	
-	for (int i = 0; i < vec.size(); i++) {
-		tmpsum += vec[i].freq;
+	for (int i = 0; i < bin_size; i++) {
+		tmpsum += bins[i].freq;
 	}	
 
 	for (int j = 0; j <= B - 2; j++) {
 		s = tmpsum * (j + 1) / B;		
 		
-		for (index = 0; index + 1 < vec.size(); index++) {
+		for (index = 0; index + 1 < bin_size; index++) {
 			
-			if (sum(vec[index].value) < s
-				&& s < sum(vec[index + 1].value)) {
+			if (sum(bins[index].value) < s
+				&& s < sum(bins[index + 1].value)) {
 				break;
 			}
 		}
 
-		d = s - sum(vec[index].value);		
+		d = s - sum(bins[index].value);		
 
-		a = vec[index + 1].freq - vec[index].freq;
-		b = 2 * vec[index].freq;
+		a = bins[index + 1].freq - bins[index].freq;
+		b = 2 * bins[index].freq;
 		c = -2 * d;		
 		
 		if (abs(a) > EPS && b * b - 4 * a * c >= 0) {
@@ -378,10 +375,9 @@ void Histogram::uniform(std::vector<double> &u, int B) {
 		if (z < 0) z = 0;
 		if (z > 1) z = 1;
 		
-		uj = vec[index].value + z * (vec[index + 1].value - vec[index].value);		
+		uj = bins[index].value + z * (bins[index + 1].value - bins[index].value);		
 		u.push_back(uj);				
 	}
-	vec2ptr(vec);	
 	check(__LINE__);
 	return;
 }
