@@ -516,7 +516,8 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabeled_le
             node->data_ptr,
             sizeof(Data) * node->data_ptr.size(),
             cudaMemcpyHostToDevice);
-        
+        // https://stackoverflow.com/questions/31598021/cuda-cudamemcpy-struct-of-arrays
+        // reference for moving objects from host to device in CUDA
 
         histogram_update_kernel<<<block_num, thread_per_block>>>(
             node->data_ptr.size(),
