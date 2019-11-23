@@ -1,2 +1,6 @@
 data/rcv1.test.txt
 data/covtype.train.txt
+data
+decision-tree
+decision-tree-feature
+decision-tree-data

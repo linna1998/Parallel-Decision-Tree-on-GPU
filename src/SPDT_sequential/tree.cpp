@@ -247,7 +247,7 @@ void DecisionTree::initialize(Dataset &train_data, const int batch_size){
         delete[] bin_ptr;
     }
     long long number = (long long)max_num_leaves * datasetPointer->num_of_features * datasetPointer->num_of_classes * max_bin_size;    
-    dbg_printf("Init Root Node [%.4f] MB\n", number * sizeof(Bin_t) / 1024.f);
+    dbg_printf("Init Root Node [%.4f] MB\n", number * sizeof(Bin_t) / 1024.f / 1024.f);
     
     bin_ptr = new Bin_t[number];
     memset(bin_ptr, 0, number * sizeof(Bin_t));  

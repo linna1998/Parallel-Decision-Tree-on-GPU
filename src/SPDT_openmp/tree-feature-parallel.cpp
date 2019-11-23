@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <math.h>
 #include <time.h>
-
+#include "omp.h"
 
 #define NUM_OF_THREADS 8
 double COMPRESS_TIME = 0;
@@ -250,7 +250,7 @@ void DecisionTree::initialize(Dataset &train_data, const int batch_size){
         delete[] bin_ptr;
     }
     long long number = (long long)max_num_leaves * datasetPointer->num_of_features * datasetPointer->num_of_classes * max_bin_size;    
-    dbg_printf("Init Root Node [%.4f] MB\n", number * sizeof(Bin_t) / 1024.f);
+    dbg_printf("Init Root Node [%.4f] MB\n", number * sizeof(Bin_t) / 1024.f / 1024.f);
     
     bin_ptr = new Bin_t[number];
     memset(bin_ptr, 0, number * sizeof(Bin_t));  
@@ -343,8 +343,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
         results[j] = SplitPoint();
 
     int tot = 0; // used to count the number of results
-    #pragma omp barrier
-    #pragma omp parallel for schedule(static) num_threads(NUM_OF_THREADS)
+    #pragma omp parallel for num_threads(NUM_OF_THREADS)
     for (int i = 0; i < this->datasetPointer->num_of_features; i++)
     {
         int tid = omp_get_thread_num();
@@ -485,7 +484,9 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_lea
     start = clock();       
     int feature_id = 0, class_id = 0;
     // Construct the histogram. and navigate each data to its leaf.
-    for (auto& node: unlabled_leaf){
+    #pragma omp parallel for schedule(dynamic) num_threads(NUM_OF_THREADS)
+    for (int i=0; i<unlabled_leaf.size(); i++){
+        auto& node = unlabled_leaf[i];
         for (auto &d: node->data_ptr)
         {
             node->has_new_data = true;
