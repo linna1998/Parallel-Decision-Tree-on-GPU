@@ -477,6 +477,11 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_lea
             node->has_new_data = true;
             for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
             {                            
+                int a = 1;
+                int b;
+                while(a <= 10000)
+                    a ++;
+                b = a;
                 (*(node->histogram_ptr))[attr][d->label].update(d->get_value(attr));                    
             }
         }

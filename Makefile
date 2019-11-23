@@ -2,7 +2,7 @@ OUTPUTDIR := bin/
 
 #-std=c++14
 
-COPT = -O3
+COPT = -O1
 CFLAGS := -std=c++11 -fvisibility=hidden -lpthread $(COPT)
 
 SOURCES := src/SPDT_general/histogram.cpp src/SPDT_general/main.cpp src/SPDT_general/parser.cpp

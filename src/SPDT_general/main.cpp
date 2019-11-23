@@ -6,9 +6,9 @@
 
 vector<string> names = {"a1a", "ijcnn1", "avazu-app", "rcv1", "covtype", "generated"};
 
-vector<int> trainSize = {1605, 49990, 40428967, 20242, 581012, 16000};
-vector<int> testSize = {30956, 91701, 4577464, 677399, -1, 4000};
-vector<int> featureNum = {123, 22, 1000000, 47236, 54, 200};
+vector<int> trainSize = {1605, 49990, 40428967, 20242, 581012, 40000};
+vector<int> testSize = {30956, 91701, 4577464, 677399, -1, 10000};
+vector<int> featureNum = {123, 22, 1000000, 47236, 54, 300};
 
 
 string help_msg = "-l: max_num_leaf.\n-d: max_depth.\n-n: number of"\
