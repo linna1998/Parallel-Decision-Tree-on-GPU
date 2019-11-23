@@ -1,4 +1,4 @@
-#include "tree.h"
+#include "../SPDT_general/tree.h"
 #include "panel.h"
 #include <assert.h>
 #include <queue>

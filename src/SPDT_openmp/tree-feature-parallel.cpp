@@ -1,4 +1,4 @@
-#include "tree.h"
+#include "../SPDT_general/tree.h"
 #include "panel.h"
 #include <assert.h>
 #include <queue>
@@ -42,6 +42,20 @@ inline int RLOC(int i, int j, int& M, int &N, int& Z){
  */
 inline int RLOC(int i, int& M, int &N, int& Z){
     return N*Z*M*i;
+}
+
+SplitPoint::SplitPoint()
+{
+    feature_id = -1;
+    feature_value = 0;
+    entropy = 0;
+}
+
+SplitPoint::SplitPoint(int feature_id, double feature_value)
+{
+    this->feature_id = feature_id;
+    this->feature_value = feature_value;
+    this->entropy = 0;
 }
 
 /*

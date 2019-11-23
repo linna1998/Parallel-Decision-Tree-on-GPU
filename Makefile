@@ -5,17 +5,13 @@ OUTPUTDIR := bin/
 COPT = -O3
 CFLAGS := -std=c++11 -fvisibility=hidden -lpthread $(COPT)
 
-SOURCES := src/SPDT_squential/*.cpp
-SOURCES_OPENMP := src/SPDT_openmp/histogram.cpp \
-				  src/SPDT_openmp/parser.cpp \
-				  src/SPDT_openmp/main.cpp 
+SOURCES := src/SPDT_general/histogram.cpp src/SPDT_general/main.cpp src/SPDT_general/parser.cpp
 
-FEATURE_PARALLEL := src/SPDT_openmp/tree-feature-parallel.cpp
-DATA_PARALLEL := src/SPDT_openmp/tree-data-parallel.cpp
+SEQUENTIAL = src/SPDT_sequential/tree.cpp 
+FEATURE_PARALLEL = src/SPDT_openmp/tree-feature-parallel.cpp
+DATA_PARALLEL = src/SPDT_openmp/tree-data-parallel.cpp
 
-
-HEADERS := src/SPDT_squential/*.h
-HEADERS_OPENMP := src/SPDT_openmp/*.h
+HEADERS := src/SPDT_general/histogram.h src/SPDT_general/parser.h src/SPDT_general/tree.h
 
 TARGETBIN := decision-tree
 TARGETBIN_DBG := decision-tree-dbg
@@ -35,28 +31,24 @@ CXX := g++
 
 all: $(TARGETBIN)
 
-$(TARGETBIN): $(SOURCES) $(HEADERS)
-	$(CXX) -o $@ $(CFLAGS) $(SOURCES)
-
-
-feature: $(TARGETBIN_FEATURE)
-
-$(TARGETBIN_FEATURE): $(SOURCES_OPENMP) $(HEADERS_OPENMP) $(FEATURE_PARALLEL)
-	$(CXX) -o $@ $(CFLAGS) -fopenmp $(SOURCES_OPENMP) $(FEATURE_PARALLEL)
-
+$(TARGETBIN): $(SOURCES) $(HEADERS) $(SEQUENTIAL) 
+	$(CXX) -o $@ $(CFLAGS) $(SOURCES) $(SEQUENTIAL)
 
 debug: $(TARGETBIN_DBG)
 
 # Debug driver
 $(TARGETBIN_DBG): COPT = $(COPT_DBG)
 $(TARGETBIN_DBG): CFLAGS += $(CFLAGS_DBG)
-$(TARGETBIN_DBG): $(HEADERS)
-	$(CXX) -o $@ $^ $(CFLAGS) $(SOURCES)
+$(TARGETBIN_DBG): $(SOURCES) $(HEADERS) $(SEQUENTIAL) 
+	$(CXX) -o $@ $(CFLAGS) $(SOURCES) $(SEQUENTIAL) 
+
+feature: $(TARGETBIN_FEATURE)
+$(TARGETBIN_FEATURE): $(SOURCES) $(HEADERS) $(FEATURE_PARALLEL)
+	$(CXX) -o $@ $(CFLAGS) -fopenmp $(SOURCES) $(FEATURE_PARALLEL) 
 
 data: $(TARGETBIN_DATA)
-
-$(TARGETBIN_DATA): $(SOURCES_OPENMP) $(HEADERS_OPENMP) $(DATA_PARALLEL)
-	$(CXX) -o $@ $(CFLAGS) -fopenmp $(SOURCES_OPENMP) $(DATA_PARALLEL)
+$(TARGETBIN_DATA): $(SOURCES) $(HEADERS) $(DATA_PARALLEL)
+	$(CXX) -o $@ $(CFLAGS) -fopenmp  $(SOURCES) $(DATA_PARALLEL)
 
 
 clean:
@@ -64,7 +56,3 @@ clean:
 	rm -rf ./$(TARGETBIN_DBG)
 	rm -rf ./$(TARGETBIN_DATA)
 	rm -rf ./$(TARGETBIN_FEATURE)
-
-
-FILES = src/*.cpp \
-		src/*.h
