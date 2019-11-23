@@ -78,18 +78,18 @@ void Dataset::close_read_data() {
 	myfile.close();
 }
 
-void Dataset::print_dataset() {
-	cout << "begin printing dataset" << endl;
-	for (int i = 0; i < dataset.size(); i++) {
-		cout << "data id: " << i << endl;
-		cout << "label: " << dataset[i].label << endl;
+// void Dataset::print_dataset() {
+// 	cout << "begin printing dataset" << endl;
+// 	for (int i = 0; i < dataset.size(); i++) {
+// 		cout << "data id: " << i << endl;
+// 		cout << "label: " << dataset[i].label << endl;
 
-		for (map<int, double>::iterator it = dataset[i].values.begin(); it != dataset[i].values.end(); it++) {
-			cout << "index: " << it->first << " value: " << it->second << endl;
-		}
-	}
+// 		for (map<int, double>::iterator it = dataset[i].values.begin(); it != dataset[i].values.end(); it++) {
+// 			cout << "index: " << it->first << " value: " << it->second << endl;
+// 		}
+// 	}
 
-}
+// }
 
 //int main() {
 //	Dataset testDataset(3, 391, 20);

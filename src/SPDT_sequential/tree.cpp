@@ -15,7 +15,7 @@ double SPLIT_TIME = 0;
  * A[i][j][k][e] = A[N*Z*M*i+Z*N*j+k*Z+e]
  */
 inline int RLOC(int i, int j, int k, int e, int& M, int &N, int& Z){
-    return N*Z*M*i+Z*N*j+k*Z*k+e;
+    return N*Z*M*i+Z*N*j+k*Z+e;
 }
 
 /*
@@ -23,7 +23,7 @@ inline int RLOC(int i, int j, int k, int e, int& M, int &N, int& Z){
  * A[i][j][k] = A[N*Z*M*i+Z*N*j+k*Z]
  */
 inline int RLOC(int i, int j, int k, int& M, int &N, int& Z){
-    return N*Z*M*i+Z*N*j+k*Z*k;
+    return N*Z*M*i+Z*N*j+k*Z;
 }
 
 /*
@@ -423,7 +423,7 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             break;
         }       
         init_histogram(unlabeled_leaf); 
-        compress(train_data.dataset, unlabeled_leaf); 
+        compress(train_data.dataset); 
         for (auto &cur_leaf : unlabeled_leaf)
         {            
             if (is_terminated(cur_leaf))
@@ -462,7 +462,7 @@ void DecisionTree::train_on_batch(Dataset &train_data)
  * Each unlabeled leaf would have a (num_feature, num_class) histograms
  * This function takes the assumption that each leaf is re-initialized (we use a batch mode)
 */
-void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_leaf)
+void DecisionTree::compress(vector<Data> &data)
 {
     clock_t start, end;
     start = clock();  
