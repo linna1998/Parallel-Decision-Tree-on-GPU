@@ -1,28 +1,33 @@
 
 #include "array.h"
-double *get_histogram_array(int histogram_id, int feature_id, int label) {
+
+inline double get_size_array(double* histo){
+	return *histo;
+}
+
+inline double *get_histogram_array(int histogram_id, int feature_id, int label) {
     return histogram + 
         RLOC(histogram_id, feature_id, label, 0, 
         num_of_features, num_of_classes, (max_bin_size + 1) * 2 + 1);
 }
 
-double get_bin_freq(double *histo, int index) {
+inline double get_bin_freq(double *histo, int index) {
     return *(histo + index * 2 + 1);
 }
 
-double get_bin_value(double *histo, int index) {
+inline double get_bin_value(double *histo, int index) {
     return *(histo + index * 2 + 2);
 }
 
-void set_bin_freq(double *histo, int index, double freq) {
+inline void set_bin_freq(double *histo, int index, double freq) {
     *(histo + index * 2 + 1) = freq;
 }
 
-void set_bin_value(double *histo, int index, double value) {
+inline void set_bin_value(double *histo, int index, double value) {
     *(histo + index * 2 + 2) = value;
 }
 
-int get_total_array(int histogram_id, int feature_id, int label) {
+inline int get_total_array(int histogram_id, int feature_id, int label) {
     int t = 0;
     double *histo = get_histogram_array(histogram_id, feature_id, label);
     int bin_size = *histo;
@@ -121,7 +126,7 @@ void merge_bin_array(double *histo) {
     double new_freq = 0;
     double new_value = 0;
 
-    int bin_size = *histo;
+    int bin_size = get_size_array(histo);
 
 	// find the min value of difference
 	for (int i = 0; i < bin_size - 1; i++) {
@@ -193,5 +198,47 @@ void merge_array(int histogram_id1, int feature_id1, int label1, int histogram_i
         set_bin_value(histo1, i, get_bin_value(histo_merge, i));
     }
 	delete histo_merge[];
+	return;
+}
+
+void update_array(int histogram_id, int feature_id, int label, double value) {	
+	int index = 0;	
+	double *histo = get_histogram_array(histogram_id, feature_id, label);
+	// If there are values in the bin equals to the value here
+	int bin_size = (int) get_size_array(histo);
+	for (int i = 0; i < bin_size; i++) {
+		if (abs(get_bin_value(histo, i) - value) < EPS) {		
+			set_bin_freq(histo, i, get_bin_freq(histo, i)+1);
+			return;
+		}
+	}
+
+	// put the next element into the correct place in bin_size
+	// find the index to insert value
+	// bins[index - 1].value < value
+	// bins[index].value > value
+	for (int i = 0; i < bin_size; i++) {
+		if (get_bin_value(histo, i) > value) {
+			index = i;
+			break;
+		}
+	}
+
+	// move the [index, bin_size - 1] an element further
+	for (int i = bin_size; i >= index + 1; i--) {
+		set_bin_value(histo, i, get_bin_value(histo, i-1));
+		set_bin_freq(histo, i, get_bin_freq(histo, i-1));
+
+	}
+	bin_size++;
+
+	// put value into the place of bins[index]
+	set_bin_value(histo, index, value);
+	set_bin_freq(histo, index, 1);
+	if (bin_size <= max_bin_size) {
+		return;
+	}
+	
+	merge_bin_array(histo);	
 	return;
 }

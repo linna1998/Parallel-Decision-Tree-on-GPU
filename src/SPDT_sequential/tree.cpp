@@ -440,7 +440,7 @@ void DecisionTree::compress(vector<Data> &data)
         cur->data_size ++;
         for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
         {                            
-            (*(cur->histogram_ptr))[attr][point.label].update(point.get_value(attr));                    
+            update_array(cur->histogram_id, attr, point.label, point.get_value(attr));              
         }
     }
 
