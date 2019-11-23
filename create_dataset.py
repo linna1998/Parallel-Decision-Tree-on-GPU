@@ -4,7 +4,7 @@ x, y = make_classification(n_samples=20000,
                            n_features=200, 
                            n_informative=100)
 
-xt, xv, yt, yv = train_test_split(x, y, test_size=0.6)
+xt, xv, yt, yv = train_test_split(x, y, test_size=0.2)
 
 with open("data/generated.train.txt", "w") as f:
     for i in range(xt.shape[0]):
