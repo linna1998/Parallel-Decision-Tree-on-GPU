@@ -60,7 +60,7 @@ public:
 	void check(int lineno);
 	void clear();
 	int get_total();
-	inline Histogram& operator = (Histogram& h){
+	inline Histogram& operator = (const Histogram& h){
 		this->max_bin = h.max_bin;
 		this->bin_size = h.bin_size;
 		this->bins = new BinTriplet[this->max_bin];
