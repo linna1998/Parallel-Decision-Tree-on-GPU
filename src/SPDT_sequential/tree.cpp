@@ -82,6 +82,7 @@ TreeNode::TreeNode(int depth, int id)
     entropy = -1.f;
     num_pos_label=0;
     data_size = 0;
+    is_leaf = true;
 }
 
 
@@ -405,14 +406,14 @@ void DecisionTree::train_on_batch(Dataset &train_data)
     dbg_assert(pos_rate > 0 && pos_rate < 1);
     root->num_pos_label = train_data.num_pos_label;
     root->entropy = - pos_rate * log2(pos_rate) - (1-pos_rate) * log2((1-pos_rate));
-    // Reinitialize every leaf in T as unlabeled.
-    batch_initialize(root);
+    batch_initialize(root); // Reinitialize every leaf in T as unlabeled.
     vector<TreeNode *> unlabeled_leaf = __get_unlabeled(root);
     dbg_assert(unlabeled_leaf.size() <= max_num_leaves);
     while (!unlabeled_leaf.empty())
     {        
         // each while loop would add a new level node.
         this->cur_depth++;
+        printf("depth [%d] finished\n", this->cur_depth);
         vector<TreeNode *> unlabeled_leaf_new; 
         if (unlabeled_leaf.size() > max_num_leaves) {
             for (int i = 0; i < unlabeled_leaf.size(); i++) {
@@ -444,7 +445,6 @@ void DecisionTree::train_on_batch(Dataset &train_data)
                 cur_leaf->left_node = new TreeNode(this->cur_depth, this->num_nodes++);
                 cur_leaf->right_node = new TreeNode(this->cur_depth, this->num_nodes++);
                 cur_leaf->split(best_split, cur_leaf->left_node, cur_leaf->right_node);
-                this->num_leaves = (cur_leaf->is_leaf) ? this->num_leaves - 1 : this->num_leaves;          
                 cur_leaf->is_leaf = false;
                 cur_leaf->label = -1;
                 unlabeled_leaf_new.push_back(cur_leaf->left_node);
@@ -469,8 +469,9 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_lea
     int feature_id = 0, class_id = 0;
     // Construct the histogram. and navigate each data to its leaf.
     TreeNode* cur;
+    int c=0;
     for(auto& point : data){
-        cur = navigate(point); 
+        cur = navigate(point);
         if (cur->label > -1)
             continue;
         cur->data_size ++;
@@ -480,15 +481,6 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_lea
         }
     }
 
-    // for (auto& node: unlabled_leaf){
-    //     for (auto &d: node->data_ptr)
-    //     {
-    //         for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
-    //         {                            
-    //             (*(node->histogram_ptr))[attr][d->label].update(d->get_value(attr));                    
-    //         }
-    //     }
-    // }
     end = clock();   
     COMPRESS_TIME += ((double) (end - start)) / CLOCKS_PER_SEC; 
 }
