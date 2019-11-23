@@ -66,7 +66,7 @@ bool SplitPoint::decision_rule(Data &data)
     dbg_ensures(entropy >= -EPS);
     dbg_ensures(gain >= -EPS);
     dbg_ensures(feature_id >= 0);
-    return data.values[feature_id] >= feature_value;
+    return data.get_value(feature_id) >= feature_value;
 }
 
 // constructor function
@@ -121,7 +121,7 @@ void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
     int num_pos_lebel_right=0;
     for (auto &p : this->data_ptr)
     {
-        double p_value = p->values[best_split.feature_id];
+        double p_value = p->get_value(best_split.feature_id);
         if (best_split.decision_rule(*p)){
             right->data_ptr.push_back(p);
             num_pos_lebel_right = (p->label == POS_LABEL) ? num_pos_lebel_right+1 : num_pos_lebel_right;
@@ -493,9 +493,9 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_lea
             node->has_new_data = true;
             for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
             {            
-                if (d->values.find(attr) != d->values.end()) {
-                    (*(node->histogram_ptr))[attr][d->label].update(d->values[attr]);
-                }     
+                
+                (*(node->histogram_ptr))[attr][d->label].update(d->get_value(attr));
+                     
             }
         }
     }

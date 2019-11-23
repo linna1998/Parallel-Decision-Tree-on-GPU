@@ -1,5 +1,12 @@
 #include "parser.h"
 
+double Data::get_value(int feature_id) {
+	if (values.find(feature_id) == values.end()) {
+		return 0;
+	}
+	return values[feature_id];
+}
+
 void Data::read_a_data(int num_of_features, int num_of_classes, ifstream* myfile) {	
 	int index;
 	double tmpvalue;	
@@ -11,11 +18,7 @@ void Data::read_a_data(int num_of_features, int num_of_classes, ifstream* myfile
 
 	size_t npos;
 
-	// cout << "str: " << str << endl;
-
-	for (int i = 0; i < num_of_features; i++) {
-		values[i] = 0;
-	}
+	// cout << "str: " << str << endl;	
 
 	while (str.size() > 0) {
 		npos = str.find(' ');
