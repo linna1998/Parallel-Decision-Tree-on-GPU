@@ -203,7 +203,7 @@ void merge_array(int histogram_id1, int feature_id1, int label1, int histogram_i
 
 void uniform_array(std::vector<double> &u, int histogram_id, int feature_id, int label) {	
     double *histo = get_histogram_array(histogram_id, feature_id, label);
-    int bin_size = get_bin_size(*histo);
+    int bin_size = get_size_array(histo);
     int B = bin_size;
 	double tmpsum = 0;
 	double s = 0;
