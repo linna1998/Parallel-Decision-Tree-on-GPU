@@ -7,8 +7,6 @@
 #include <math.h>
 #include <time.h>
 #include "../SPDT_general/array.h"
-extern double COMPRESS_TIME;
-extern double SPLIT_TIME;
 
 SplitPoint::SplitPoint()
 {
@@ -440,4 +438,89 @@ void DecisionTree::self_check(){
     dbg_printf("| Num_leaf: %d, num_nodes: %d, max_depth: %d | \n", num_leaves, num_nodes, cur_depth);
     dbg_printf("------------------------------------------------\n");
 
+}
+
+
+/* 
+ * This function reture all the unlabeled leaf nodes in a breadth-first manner.
+*/
+vector<TreeNode *> DecisionTree::__get_unlabeled(TreeNode *node)
+{
+    queue<TreeNode *> q;
+    q.push(node);
+    vector<TreeNode *> ret;
+    while (!q.empty())
+    {
+        auto tmp_ptr = q.front();
+        q.pop();
+        if (tmp_ptr == NULL)
+        {
+            // should never reach here.
+            fprintf(stderr, "ERROR: The tree contains node that have only one child\n");
+            exit(-1);
+        }
+        else if ((tmp_ptr->left_node == NULL) && (tmp_ptr->right_node == NULL) && tmp_ptr->label < 0)
+        {
+            ret.push_back(tmp_ptr);
+        }
+        else
+        {
+            q.push(tmp_ptr->left_node);
+            q.push(tmp_ptr->right_node);
+        }
+    }
+    return ret;
+}
+
+/*
+ * initialize each leaf as unlabeled.
+ */
+void DecisionTree::batch_initialize(TreeNode *node)
+{
+    int feature_id = 0, class_id = 0;
+
+    if (node == NULL)
+    {
+        // should never reach here.
+        fprintf(stderr, "ERROR: The tree contains node that have only one child\n");
+        exit(-1);
+    }
+    else if ((node->left_node == NULL) && (node->right_node == NULL))
+    {
+       node->init();
+    }
+    else
+    {
+        batch_initialize(node->left_node);
+        batch_initialize(node->right_node);
+    }
+    return;
+}
+
+
+/*
+ *
+ */
+TreeNode *DecisionTree::navigate(Data &d)
+{
+    TreeNode *ptr = this->root;
+    while (!ptr->is_leaf)
+    {
+        dbg_assert(ptr->right_node != NULL && ptr->left_node != NULL);
+        ptr = (ptr->split_ptr.decision_rule(d)) ? ptr->right_node : ptr->left_node;
+    }
+    return ptr;
+}
+
+/*
+ * This function initialize the histogram for each unlabeled leaf node.
+ * Also, potentially, it would free the previous histogram.
+ */
+void DecisionTree::init_histogram(vector<TreeNode *> &unlabeled_leaf)
+{
+    int c = 0;      
+    assert(unlabeled_leaf.size() <= max_num_leaves);
+    
+    for (auto &p : unlabeled_leaf)
+        p->histogram_id = c++;
 }

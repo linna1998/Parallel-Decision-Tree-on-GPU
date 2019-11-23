@@ -16,7 +16,7 @@
 static double* histogram;
 static int num_of_features;
 static int num_of_classes;
-static int max_bin_size = -1;
+static int max_bin_size = 16;
 
 int get_total_array(int histogram_id, int feature_id, int label);
 double sum_array(int histogram_id, int feature_id, int label, double value);

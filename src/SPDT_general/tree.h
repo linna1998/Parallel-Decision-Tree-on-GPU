@@ -29,8 +29,8 @@
 
 #define EPS 1e-9
 
-double COMPRESS_TIME = 0;
-double SPLIT_TIME = 0;
+static double COMPRESS_TIME = 0;
+static double SPLIT_TIME = 0;
 
 class SplitPoint{
 public:
