@@ -35,7 +35,6 @@ class TreeNode
 public:
     int id;
     bool is_leaf = false;    
-    bool has_new_data = false;
     int label; // -1 means no label
     int depth;
     double entropy;
@@ -46,6 +45,7 @@ public:
     int num_pos_label;
 
     vector<Data*> data_ptr;
+    int data_size;
     SplitPoint split_ptr;
 
     TreeNode(int depth, int id);
