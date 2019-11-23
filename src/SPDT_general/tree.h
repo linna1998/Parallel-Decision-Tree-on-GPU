@@ -25,6 +25,25 @@
 #define dbg_printheap(...) ((void)sizeof(__VA_ARGS__))
 #endif
 
+class SplitPoint{
+public:
+    // used to store the spliting information on a given histogram.
+    int feature_id;
+    double feature_value;
+	double gain;
+	double entropy;
+    SplitPoint();
+    SplitPoint(int feature_id, double feature_value);
+    bool decision_rule(Data& data);
+    inline SplitPoint& operator = (const SplitPoint& split){
+        this->feature_id = split.feature_id;
+        this->feature_value = split.feature_value;
+		this->gain = split.gain;
+		this->entropy = split.entropy;
+        return *this;
+    }
+};
+
 class TreeNode
 {
 public:
