@@ -4,7 +4,6 @@
 #include <vector>
 #include "parser.h"
 
-#define EPS 1e-9
 
 // scala version: 
 // https://github.com/soundcloud/spdt/blob/master/compute/src/main/scala/com.soundcloud.spdt/Histogram.scala

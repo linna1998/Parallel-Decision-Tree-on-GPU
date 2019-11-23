@@ -7,8 +7,8 @@
 #include <math.h>
 #include <time.h>
 #include "../SPDT_general/array.h"
-double COMPRESS_TIME = 0;
-double SPLIT_TIME = 0;
+extern double COMPRESS_TIME;
+extern double SPLIT_TIME;
 
 
 /*

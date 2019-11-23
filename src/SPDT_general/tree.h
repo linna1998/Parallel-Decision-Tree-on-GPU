@@ -5,6 +5,8 @@
 #include <string.h>
 #include "parser.h"
 #include "array.h"
+#include <queue>
+#include <algorithm>
 #include <omp.h>
 
 // #define DEBUG
@@ -24,6 +26,19 @@
 #define dbg_ensures(expr) (sizeof(expr), 1)
 #define dbg_printheap(...) ((void)sizeof(__VA_ARGS__))
 #endif
+
+#define EPS 1e-9
+
+double COMPRESS_TIME = 0;
+double SPLIT_TIME = 0;
+long long number = 0;
+
+// a global variable
+// record the information of all histograms
+double* histogram;
+int num_of_features;
+int num_of_classes;
+int max_bin_size = -1;
 
 class SplitPoint{
 public:
@@ -70,13 +85,6 @@ public:
     void clear();
 };
 
-// a global variable
-// record the information of all histograms
-double* histogram;
-int num_of_features;
-int num_of_classes;
-int max_bin_size = -1;
-
 class DecisionTree
 {
 private:
@@ -99,7 +107,17 @@ public:
 
     DecisionTree();
     ~DecisionTree();
-    DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size);
+    DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size){
+    this->max_num_leaves = max_num_leaves;
+    this->max_depth = max_depth;
+    this->min_node_size = min_node_size;
+    this->depth = 0;
+    this->num_leaves = 0;    
+    this->cur_depth = 0;
+    this->root = NULL;    
+    this->min_gain = 1e-3;
+    this->num_nodes = 0;
+};
     
     void self_check();
     void train(Dataset& train_data, const int batch_size = 64);
@@ -183,7 +201,6 @@ TreeNode::TreeNode(int depth, int id)
     // remove this if you want to keep the previous batch data.
     data_ptr.clear();
     histogram_id = -1;
-    histogram_ptr = NULL;
     left_node = NULL;
     right_node = NULL;
     entropy = -1.f;
@@ -197,7 +214,6 @@ void TreeNode::init()
 {
     label = -1;
     histogram_id = -1;
-    histogram_ptr = NULL;
     left_node = NULL;
     right_node = NULL;
     is_leaf = true;
@@ -349,7 +365,7 @@ void DecisionTree::initialize(Dataset &train_data, const int batch_size){
     if (histogram != NULL) {        
         delete[] histogram;
     }
-    long long number = (long long)max_num_leaves * datasetPointer->num_of_features * datasetPointer->num_of_classes * ((max_bin_size + 1) * 2 + 1);    
+    number = (long long)max_num_leaves * datasetPointer->num_of_features * datasetPointer->num_of_classes * ((max_bin_size + 1) * 2 + 1);    
     dbg_printf("Init Root Node [%.4f] MB\n", number * sizeof(double) / 1024.f / 1024.f);
     
     histogram = new double[number];
@@ -358,9 +374,9 @@ void DecisionTree::initialize(Dataset &train_data, const int batch_size){
 
 void DecisionTree::train(Dataset &train_data, const int batch_size)
 {
-    int hasNext = TRUE;
+    bool hasNext = true;
     initialize(train_data, batch_size);
-	while (TRUE) {
+	while (true) {
 		hasNext = train_data.streaming_read_data(batch_size);	
         dbg_printf("Train size (%d, %d, %d)\n", train_data.num_of_data, 
                 train_data.num_of_features, train_data.num_of_classes);
