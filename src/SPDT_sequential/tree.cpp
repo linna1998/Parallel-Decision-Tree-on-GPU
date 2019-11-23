@@ -72,7 +72,6 @@ TreeNode::TreeNode(int depth, int id)
     this->id = id;
     this->depth = depth;
     is_leaf = false;
-    has_new_data = false;
     label = -1;
     // remove this if you want to keep the previous batch data.
     data_ptr.clear();
@@ -82,17 +81,18 @@ TreeNode::TreeNode(int depth, int id)
     right_node = NULL;
     entropy = -1.f;
     num_pos_label=0;
+    data_size = 0;
 }
 
 
 void TreeNode::init()
 {
-    has_new_data = false;
     label = -1;
     histogram_id = -1;
     histogram_ptr = NULL;
     left_node = NULL;
     right_node = NULL;
+    is_leaf = true;
     return;
 }
 
@@ -102,7 +102,7 @@ void TreeNode::init()
 void TreeNode::set_label()
 {
     this->is_leaf = true;
-    this->label = (this->num_pos_label >= (int)this->data_ptr.size() / 2) ? POS_LABEL : NEG_LABEL;
+    this->label = (this->num_pos_label >= (int)this->data_size / 2) ? POS_LABEL : NEG_LABEL;
 }
 
 /*
@@ -213,7 +213,7 @@ DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size,
 */
 bool DecisionTree::is_terminated(TreeNode *node)
 {
-    if (min_node_size != -1 && node->data_ptr.size() <= min_node_size)
+    if (min_node_size != -1 && node->data_size <= min_node_size)
     {
         dbg_printf("Node [%d] terminated: min_node_size=%d >= %d\n", node->id, min_node_size, node->data_ptr.size());
         return true;
@@ -231,12 +231,12 @@ bool DecisionTree::is_terminated(TreeNode *node)
         return true;
     }
 
-    if (!node->num_pos_label || node->num_pos_label == (int) node->data_ptr.size()){
+    if (!node->num_pos_label || node->num_pos_label == (int) node->data_size){
         dbg_assert(node->entropy < EPS);
         dbg_printf("Node [%d] terminated: all samples belong to same class\n",node->id);
         return true; 
     }
-    dbg_printf("[%d] num_data=%d, num_pos=%d\n", node->id, node->data_ptr.size(), node->num_pos_label);
+    dbg_printf("[%d] num_data=%d, num_pos=%d\n", node->id, node->data_size, node->num_pos_label);
     return false;
 }
 
@@ -247,7 +247,7 @@ void DecisionTree::initialize(Dataset &train_data, const int batch_size){
         delete[] bin_ptr;
     }
     long long number = (long long)max_num_leaves * datasetPointer->num_of_features * datasetPointer->num_of_classes * max_bin_size;    
-    dbg_printf("Init Root Node [%.4f] MB\n", number * sizeof(Bin_t) / 1024.f / 1024.f);
+    dbg_printf("Init Root Node [%.4f] MB\n", number * sizeof(Bin_t) / 1024.f /1024.f);
     
     bin_ptr = new Bin_t[number];
     memset(bin_ptr, 0, number * sizeof(Bin_t));  
@@ -278,9 +278,6 @@ double DecisionTree::test(Dataset &test_data) {
     test_data.streaming_read_data(test_data.num_of_data);
 
     for (i = 0; i < test_data.num_of_data; i++) {
-        // printf("lable 1: %d, label 2: %d\n", 
-        //     navigate(test_data.dataset[i])->label,
-        //     test_data.dataset[i].label);
         assert(navigate(test_data.dataset[i])->label != -1);
         if (navigate(test_data.dataset[i])->label == test_data.dataset[i].label) {
             correct_num++;
@@ -295,7 +292,7 @@ double DecisionTree::test(Dataset &test_data) {
  * Assuming binary classification problem
  */
 void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
-    int total_sum = node->data_ptr.size();
+    int total_sum = node->data_size;
     dbg_ensures(total_sum > 0);
     double sum_class_0 = (double)(*node->histogram_ptr)[feature_id][NEG_LABEL].get_total();
     double sum_class_1 = (double)(*node->histogram_ptr)[feature_id][POS_LABEL].get_total();
@@ -471,16 +468,27 @@ void DecisionTree::compress(vector<Data> &data, vector<TreeNode *> &unlabled_lea
     start = clock();  
     int feature_id = 0, class_id = 0;
     // Construct the histogram. and navigate each data to its leaf.
-    for (auto& node: unlabled_leaf){
-        for (auto &d: node->data_ptr)
-        {
-            node->has_new_data = true;
-            for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
-            {                            
-                (*(node->histogram_ptr))[attr][d->label].update(d->get_value(attr));                    
-            }
+    TreeNode* cur;
+    for(auto& point : data){
+        cur = navigate(point); 
+        if (cur->label > -1)
+            continue;
+        cur->data_size ++;
+        for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
+        {                            
+            (*(cur->histogram_ptr))[attr][point.label].update(point.get_value(attr));                    
         }
     }
+
+    // for (auto& node: unlabled_leaf){
+    //     for (auto &d: node->data_ptr)
+    //     {
+    //         for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
+    //         {                            
+    //             (*(node->histogram_ptr))[attr][d->label].update(d->get_value(attr));                    
+    //         }
+    //     }
+    // }
     end = clock();   
     COMPRESS_TIME += ((double) (end - start)) / CLOCKS_PER_SEC; 
 }
