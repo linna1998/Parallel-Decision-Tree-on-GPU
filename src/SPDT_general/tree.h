@@ -70,13 +70,6 @@ public:
     void clear();
 };
 
-// a global variable
-// record the information of all histograms
-double* histogram;
-int num_of_features;
-int num_of_classes;
-int max_bin_size = -1;
-
 class DecisionTree
 {
 private:
@@ -99,7 +92,7 @@ public:
 
     DecisionTree();
     ~DecisionTree();
-    DecisionTree::DecisionTree(int max_num_leaves, int max_depth, int min_node_size);
+    DecisionTree(int max_num_leaves, int max_depth, int min_node_size);
     
     void self_check();
     void train(Dataset& train_data, const int batch_size = 64);
@@ -115,35 +108,3 @@ public:
     TreeNode* navigate(Data& d);
     bool is_terminated(TreeNode* node);
 };
-
-/*
- * For A[][M][N][Z]
- * A[i][j][k][e] = A[N*Z*M*i+Z*N*j+k*Z+e]
- */
-int RLOC(int i, int j, int k, int e, int M, int N, int Z){
-    return N*Z*M*i+Z*N*j+k*Z+e;
-}
-
-/*
- * For A[][M][N][Z]
- * A[i][j][k] = A[N*Z*M*i+Z*N*j+k*Z]
- */
-int RLOC(int i, int j, int k, int M, int N, int Z){
-    return N*Z*M*i+Z*N*j+Z*k;
-}
-
-/*
- * For A[][M][N][Z]
- * A[i][j] = A[N*Z*M*i+Z*N*j]
- */
-int RLOC(int i, int j, int M, int N, int Z){
-    return N*Z*M*i+Z*N*j;
-}
-
-/*
- * For A[][M][N][Z]
- * A[i] = A[N*Z*M*i]
- */
-int RLOC(int i, int M, int N, int Z){
-    return N*Z*M*i;
-}

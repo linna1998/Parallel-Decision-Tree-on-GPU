@@ -1,7 +1,39 @@
 
 #include "array.h"
 
-inline double get_size_array(double* histo){
+/*
+ * For A[][M][N][Z]
+ * A[i][j][k][e] = A[N*Z*M*i+Z*N*j+k*Z+e]
+ */
+int RLOC(int i, int j, int k, int e, int M, int N, int Z){
+    return N*Z*M*i+Z*N*j+k*Z+e;
+}
+
+/*
+ * For A[][M][N][Z]
+ * A[i][j][k] = A[N*Z*M*i+Z*N*j+k*Z]
+ */
+int RLOC(int i, int j, int k, int M, int N, int Z){
+    return N*Z*M*i+Z*N*j+Z*k;
+}
+
+/*
+ * For A[][M][N][Z]
+ * A[i][j] = A[N*Z*M*i+Z*N*j]
+ */
+int RLOC(int i, int j, int M, int N, int Z){
+    return N*Z*M*i+Z*N*j;
+}
+
+/*
+ * For A[][M][N][Z]
+ * A[i] = A[N*Z*M*i]
+ */
+int RLOC(int i, int M, int N, int Z){
+    return N*Z*M*i;
+}
+
+inline double get_bin_size(double* histo){
 	return *histo;
 }
 
@@ -27,7 +59,7 @@ inline void set_bin_value(double *histo, int index, double value) {
     *(histo + index * 2 + 2) = value;
 }
 
-inline int get_total_array(int histogram_id, int feature_id, int label) {
+int get_total_array(int histogram_id, int feature_id, int label) {
     int t = 0;
     double *histo = get_histogram_array(histogram_id, feature_id, label);
     int bin_size = *histo;
@@ -126,7 +158,7 @@ void merge_bin_array(double *histo) {
     double new_freq = 0;
     double new_value = 0;
 
-    int bin_size = get_size_array(histo);
+    int bin_size = get_bin_size(histo);
 
 	// find the min value of difference
 	for (int i = 0; i < bin_size - 1; i++) {
@@ -203,7 +235,7 @@ void merge_array(int histogram_id1, int feature_id1, int label1, int histogram_i
 
 void uniform_array(std::vector<double> &u, int histogram_id, int feature_id, int label) {	
     double *histo = get_histogram_array(histogram_id, feature_id, label);
-    int bin_size = get_size_array(histo);
+    int bin_size = get_bin_size(histo);
     int B = bin_size;
 	double tmpsum = 0;
 	double s = 0;
@@ -260,7 +292,7 @@ void update_array(int histogram_id, int feature_id, int label, double value) {
 	int index = 0;	
 	double *histo = get_histogram_array(histogram_id, feature_id, label);
 	// If there are values in the bin equals to the value here
-	int bin_size = (int) get_size_array(histo);
+	int bin_size = (int) get_bin_size(histo);
 	for (int i = 0; i < bin_size; i++) {
 		if (abs(get_bin_value(histo, i) - value) < EPS) {		
 			set_bin_freq(histo, i, get_bin_freq(histo, i)+1);

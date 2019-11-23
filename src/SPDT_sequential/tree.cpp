@@ -43,8 +43,7 @@ TreeNode::TreeNode(int depth, int id)
     label = -1;
     // remove this if you want to keep the previous batch data.
     data_ptr.clear();
-    histogram_id = -1;
-    histogram_ptr = NULL;
+    histogram_id = -1;    
     left_node = NULL;
     right_node = NULL;
     entropy = -1.f;
@@ -57,8 +56,7 @@ TreeNode::TreeNode(int depth, int id)
 void TreeNode::init()
 {
     label = -1;
-    histogram_id = -1;
-    histogram_ptr = NULL;
+    histogram_id = -1;    
     left_node = NULL;
     right_node = NULL;
     is_leaf = true;
@@ -210,7 +208,7 @@ void DecisionTree::initialize(Dataset &train_data, const int batch_size){
     if (histogram != NULL) {        
         delete[] histogram;
     }
-    long long number = (long long)max_num_leaves * datasetPointer->num_of_features * datasetPointer->num_of_classes * ((max_bin_size + 1) * 2 + 1);    
+    long long number = (long long)max_num_leaves * num_of_features * num_of_classes * ((max_bin_size + 1) * 2 + 1);    
     dbg_printf("Init Root Node [%.4f] MB\n", number * sizeof(double) / 1024.f / 1024.f);
     
     histogram = new double[number];
@@ -224,7 +222,7 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
 	while (TRUE) {
 		hasNext = train_data.streaming_read_data(batch_size);	
         dbg_printf("Train size (%d, %d, %d)\n", train_data.num_of_data, 
-                train_data.num_of_features, train_data.num_of_classes);
+                num_of_features, num_of_classes);
         train_on_batch(train_data);        
 		if (!hasNext) break;
 	}		
@@ -296,18 +294,18 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
     start = clock();       
 
     std::vector<SplitPoint> results;
-    for (int i = 0; i < this->datasetPointer->num_of_features; i++)
+    for (int i = 0; i < num_of_features; i++)
     {
         // merge different labels
         // put the result back into (node->histogram_id, i, 0)
-        for (int k = 1; k < this->datasetPointer->num_of_classes; k++) {
+        for (int k = 1; k < num_of_classes; k++) {
             merge_array(node->histogram_id, i, 0, node->histogram_id, i, k);
         }
 
         std::vector<double> possible_splits;
         uniform_array(possible_splits, node->histogram_id, i, 0);
 
-        dbg_assert(possible_splits.size() <= this->max_bin_size);
+        dbg_assert(possible_splits.size() <= max_bin_size);
         for (auto& split_value: possible_splits)
         {
             SplitPoint t = SplitPoint(i, split_value);
@@ -437,7 +435,7 @@ void DecisionTree::compress(vector<Data> &data)
         if (cur->label > -1)
             continue;
         cur->data_size ++;
-        for (int attr = 0; attr < this->datasetPointer->num_of_features; attr++)
+        for (int attr = 0; attr < num_of_features; attr++)
         {                            
             update_array(cur->histogram_id, attr, point.label, point.get_value(attr));              
         }

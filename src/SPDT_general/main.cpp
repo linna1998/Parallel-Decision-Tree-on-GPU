@@ -63,13 +63,15 @@ int main(int argc, char **argv) {
     min_node_size = (min_node_size == -1) ? 32 : min_node_size;
     // the global max_bin_size
     max_bin_size = (max_bin_size == -1) ? 32 : max_bin_size;
+    num_of_features = featureNum[index];
+    num_of_classes = 2;
 
     printf("max_num_leaf=%d, max_depth=%d, min_node_size=%d, max_bin_size=%d\n", 
             max_num_leaf, max_depth, min_node_size, max_bin_size);
             
     string trainName = "./data/" + names[index] + ".train.txt";
     DecisionTree decisionTree(max_num_leaf, max_depth, min_node_size);
-    Dataset trainDataset(2, trainSize[index], featureNum[index]);
+    Dataset trainDataset(trainSize[index]);
     trainDataset.open_read_data(trainName);
     start = clock();     
     decisionTree.train(trainDataset, trainSize[index]);
@@ -79,7 +81,7 @@ int main(int argc, char **argv) {
     
     // test
     string testName = "./data/" + names[index] + ".test.txt";
-    Dataset testDataset(2, testSize[index], featureNum[index]);
+    Dataset testDataset(testSize[index]);
     testDataset.open_read_data(testName);	
 
     start = clock();   

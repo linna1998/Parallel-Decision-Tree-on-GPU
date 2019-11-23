@@ -7,7 +7,7 @@ double Data::get_value(int feature_id) {
 	return values[feature_id];
 }
 
-void Data::read_a_data(int num_of_features, int num_of_classes, ifstream* myfile) {	
+void Data::read_a_data(ifstream* myfile) {	
 	int index;
 	double tmpvalue;	
 	
@@ -63,7 +63,7 @@ bool Dataset::streaming_read_data(int N) {
 	dataset = vector<Data>(N);
 
 	for (int i = 0; i < N; i++) {
-		dataset[i].read_a_data(num_of_features, num_of_classes, &myfile);		
+		dataset[i].read_a_data(&myfile);		
 		if (dataset[i].label == POS_LABEL) num_pos_label++;
 		already_read_data++;
 		if (already_read_data == num_of_data) {
@@ -77,34 +77,3 @@ bool Dataset::streaming_read_data(int N) {
 void Dataset::close_read_data() {
 	myfile.close();
 }
-
-// void Dataset::print_dataset() {
-// 	cout << "begin printing dataset" << endl;
-// 	for (int i = 0; i < dataset.size(); i++) {
-// 		cout << "data id: " << i << endl;
-// 		cout << "label: " << dataset[i].label << endl;
-
-// 		for (map<int, double>::iterator it = dataset[i].values.begin(); it != dataset[i].values.end(); it++) {
-// 			cout << "index: " << it->first << " value: " << it->second << endl;
-// 		}
-// 	}
-
-// }
-
-//int main() {
-//	Dataset testDataset(3, 391, 20);
-//	bool hasNext = true;
-//
-//	testDataset.open_read_data("./data/svmguide2.txt");
-//
-//	while (true) {
-//		hasNext = testDataset.streaming_read_data(10);
-//		testDataset.print_dataset();
-//
-//		if (!hasNext) break;
-//	}		
-//
-//	testDataset.close_read_data();
-//
-//	return 0;
-//}
