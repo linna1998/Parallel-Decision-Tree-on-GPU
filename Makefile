@@ -5,14 +5,14 @@ OUTPUTDIR := bin/
 COPT = -O1
 CFLAGS := -std=c++11 -fvisibility=hidden -lpthread $(COPT)
 
-SOURCES := src/SPDT_general/histogram.cpp src/SPDT_general/main.cpp src/SPDT_general/parser.cpp
+SOURCES := src/SPDT_general/array.cpp src/SPDT_general/main.cpp src/SPDT_general/parser.cpp
 
 SEQUENTIAL = src/SPDT_sequential/tree.cpp 
 FEATURE_PARALLEL = src/SPDT_openmp/tree-feature-parallel.cpp
 DATA_PARALLEL = src/SPDT_openmp/tree-data-parallel.cpp
 CUDA = src/SPDT_CUDA/tree.cu
 
-HEADERS := src/SPDT_general/histogram.h src/SPDT_general/parser.h src/SPDT_general/tree.h
+HEADERS := src/SPDT_general/array.h src/SPDT_general/parser.h src/SPDT_general/tree.h
 
 TARGETBIN := decision-tree
 TARGETBIN_DBG := decision-tree-dbg
