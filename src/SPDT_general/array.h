@@ -15,7 +15,7 @@
 // record the information of all histograms
 static double* histogram;
 static int num_of_features;
-static int num_of_classes;
+static int num_of_classes = 2;
 static int max_bin_size = 16;
 
 int get_total_array(int histogram_id, int feature_id, int label);

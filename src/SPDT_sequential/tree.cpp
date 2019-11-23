@@ -193,11 +193,14 @@ void DecisionTree::initialize(Dataset &train_data, const int batch_size){
     if (histogram != NULL) {        
         delete[] histogram;
     }
-    long long number = (long long)max_num_leaves * num_of_features * num_of_classes * ((max_bin_size + 1) * 2 + 1);    
-    dbg_printf("Init Root Node [%.4f] MB\n", number * sizeof(double) / 1024.f / 1024.f);
+    long long NUMBER  = (long long)max_num_leaves * num_of_features * num_of_classes * ((max_bin_size + 1) * 2 + 1);    
+    dbg_printf("Init Root Node [%d] Byte\n", NUMBER);
+    dbg_printf("Init Root Node [%.4f] MB\n", NUMBER * sizeof(double) / 1024.f / 1024.f);
     
-    histogram = new double[number];
-    memset(histogram, 0, number * sizeof(double));    
+    histogram = new double[NUMBER];
+    memset(histogram, 0, NUMBER * sizeof(double));  
+    dbg_printf("Init success\n");
+
 }
 
 void DecisionTree::train(Dataset &train_data, const int batch_size)
@@ -277,7 +280,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 {
     clock_t start, end;
     start = clock();       
-
+    dbg_printf("enter: find best split\n");
     std::vector<SplitPoint> results;
     for (int i = 0; i < num_of_features; i++)
     {
@@ -306,6 +309,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
     split.gain = best_split->gain;
     end = clock();   
     SPLIT_TIME += ((double) (end - start)) / CLOCKS_PER_SEC; 
+    dbg_printf("exit: find best split\n");
 }
 
 /*
