@@ -65,7 +65,7 @@ histogram_update_kernel(int data_size, int num_of_threads,
     
     // re-write part of the DecisionTree::compress function                                                                  
     histogram_ptr[threadIdx.x * 2 + data_ptr[blockIdx.x]->label]
-        .update(data_ptr[blockIdx.x]->values[threadIdx.x]);   
+        .update(data_ptr[blockIdx.x]->get_value(threadIdx.x));   
 }
 
 SplitPoint::SplitPoint()
@@ -89,7 +89,7 @@ bool SplitPoint::decision_rule(Data &data)
     dbg_ensures(entropy >= -EPS);
     dbg_ensures(gain >= -EPS);
     dbg_ensures(feature_id >= 0);
-    return data.values[feature_id] >= feature_value;
+    return data.get_value(feature_id) >= feature_value;
 }
 
 // constructor function
@@ -146,7 +146,7 @@ void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
     for (int i = 0; i < this->data_ptr.size(); i++)
     {
         Data* p = this->data_ptr[i];
-        double p_value = p->values[best_split.feature_id];
+        double p_value = p->get_value(best_split.feature_id);
         if (best_split.decision_rule(*p)) {
             right->data_ptr.push_back(p);
             num_pos_label_right = (p->label == POS_LABEL) ? num_pos_label_right+1 : num_pos_label_right;
