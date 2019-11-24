@@ -367,10 +367,7 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
  * Best split is store in `split`
 */
 void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
-{
-    clock_t start, end;
-    start = clock();       
-
+{              
     std::vector<SplitPoint> results;
     for (int i = 0; i < num_of_features; i++)
     {
@@ -397,8 +394,6 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
     split.feature_id = best_split->feature_id;
     split.feature_value = best_split->feature_value;
     split.gain = best_split->gain;
-    end = clock();   
-    SPLIT_TIME += ((float) (end - start)) / CLOCKS_PER_SEC; 
 }
 
 /*
@@ -470,8 +465,11 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             }
             break;
         }       
-        init_histogram(unlabeled_leaf); 
+        init_histogram(unlabeled_leaf);
+        Timer t1 = Timer();
+        t1.reset();
         compress(unlabeled_leaf); 
+        COMPRESS_TIME += t1.elapsed();         
         for (auto &cur_leaf : unlabeled_leaf)
         {            
             if (is_terminated(cur_leaf))
@@ -482,7 +480,10 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             else
             {                
                 SplitPoint best_split;
+                Timer t2 = Timer();
+                t2.reset();
                 find_best_split(cur_leaf, best_split);
+                SPLIT_TIME += t2.elapsed();                
                 dbg_ensures(best_split.gain >= -EPS);
                 if (best_split.gain <= min_gain){
                     dbg_printf("Node terminated: gain=%.4f <= %.4f\n", min_node_size, best_split.gain, min_gain);
