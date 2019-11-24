@@ -10,8 +10,7 @@ SOURCES_MPI := src/SPDT_general/array.cpp src/SPDT_openmpi/main.cpp src/SPDT_gen
 
 SEQUENTIAL = src/SPDT_sequential/tree.cpp 
 FEATURE_PARALLEL = src/SPDT_openmp/tree-feature-parallel.cpp
-DATA_PARALLEL = src/SPDT_openmpi/tree-data-parallel.cpp
-CUDA = src/SPDT_CUDA/tree.cu 
+DATA_PARALLEL = src/SPDT_openmp/tree-data-parallel.cpp
 
 HEADERS := src/SPDT_general/array.h src/SPDT_general/parser.h src/SPDT_general/tree.h src/SPDT_general/timing.h
 
@@ -38,7 +37,7 @@ CXX_CUDA = g++ -m64
 CXXFLAGS_CUDA = -O3 -std=c++11 -fvisibility=hidden -lpthread -pg
 OBJDIR = objs
 OBJDIR_CUDA = $(OBJDIR)/SPDT_CUDA
-OBJS_CUDA = $(OBJDIR_CUDA)/tree.o $(OBJDIR_CUDA)/parser.o $(OBJDIR_CUDA)/histogram.o $(OBJDIR_CUDA)/main.o 
+OBJS_CUDA = $(OBJDIR_CUDA)/tree_CUDA.o $(OBJDIR_CUDA)/parser_CUDA.o $(OBJDIR_CUDA)/array_CUDA.o $(OBJDIR_CUDA)/main.o 
 
 .SUFFIXES:
 .PHONY: all clean
