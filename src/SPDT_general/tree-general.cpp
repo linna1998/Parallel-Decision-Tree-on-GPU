@@ -195,7 +195,6 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
 	}		
     
 	train_data.close_read_data(); 
-    printf("COMPRESS TIME: %f\nSPLIT TIME: %f\n", COMPRESS_TIME, SPLIT_TIME);   
     return;
 }
 
@@ -411,10 +410,10 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             break;
         }       
         init_histogram(unlabeled_leaf); 
-        Timer t;
-        t.reset();
+        Timer t1 = Timer();
+        t1.reset();
         compress(train_data.dataset); 
-        COMPRESS_TIME += t.elapsed();
+        COMPRESS_TIME += t1.elapsed();
         for (auto &cur_leaf : unlabeled_leaf)
         {            
             if (is_terminated(cur_leaf))
@@ -425,10 +424,10 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             else
             {                
                 SplitPoint best_split = SplitPoint();
-                Timer t;
-                t.reset();
+                Timer t2 = Timer();
+                t2.reset();
                 find_best_split(cur_leaf, best_split);
-                SPLIT_TIME += t.elapsed();
+                SPLIT_TIME += t2.elapsed();
                 dbg_ensures(best_split.gain >= -EPS);
                 if (best_split.gain <= min_gain){
                     dbg_printf("Node terminated: gain=%.4f <= %.4f\n", best_split.gain, min_gain);

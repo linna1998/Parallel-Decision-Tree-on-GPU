@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <omp.h>
 
-#define DEBUG
+// #define DEBUG
 #ifdef DEBUG
 /* When DEBUG is defined, these form aliases to useful functions */
 #define dbg_printf(...) printf(__VA_ARGS__)

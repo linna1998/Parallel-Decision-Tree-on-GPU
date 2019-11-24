@@ -1,9 +1,8 @@
-#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include "tree.h"
-
+#include "timing.h"
 vector<string> names = {"a1a", "ijcnn1", "avazu-app", "rcv1", "covtype", "generated"};
 
 vector<int> trainSize = {1605, 49990, 40428967, 20242, 581012, 40000};
@@ -17,7 +16,8 @@ int main(int argc, char **argv) {
 
     int index = 5;
     clock_t start, end;
-    double cpu_time_used;
+    double cpu_time_used_train;
+    double cpu_time_used_test;
     int c;
     int num_of_thread = -1;    
     int min_node_size = -1;
@@ -71,22 +71,21 @@ int main(int argc, char **argv) {
     DecisionTree decisionTree(max_depth, min_node_size);
     Dataset trainDataset(trainSize[index]);
     trainDataset.open_read_data(trainName);
-    start = clock();     
+    Timer t = Timer();
+    t.reset();
     decisionTree.train(trainDataset, trainSize[index]);
-    end = clock();
-    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    printf("train time: %f\n", cpu_time_used);
+    cpu_time_used_train = t.elapsed();
+    printf("train time: %f\n", cpu_time_used_train);
+    printf("COMPRESS TIME: %f\nSPLIT TIME: %f\n", COMPRESS_TIME, SPLIT_TIME);   
     
     // test
     string testName = "./data/" + names[index] + ".test.txt";
     Dataset testDataset(testSize[index]);
     testDataset.open_read_data(testName);	
-
-    start = clock();   
-    printf("correct rate: %f\n", decisionTree.test(testDataset));     
-    end = clock();
-    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    printf("test time: %f\n", cpu_time_used);
+    t.reset();
+    printf("correct rate: %f\n", decisionTree.test(testDataset));  
+    cpu_time_used_test = t.elapsed();
+    printf("test time: %f\n", cpu_time_used_test);
 
     return 0;
 
