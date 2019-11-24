@@ -5,14 +5,6 @@
 #include <unordered_map>
 #include <vector>
 
-#ifdef __CUDACC__
-#define CUDA_HOST __host__ 
-#define CUDA_DEVICE __device__
-#else
-#define CUDA_HOST
-#define CUDA_DEVICE
-#endif
-
 using namespace std;
 
 #define POS_LABEL 1

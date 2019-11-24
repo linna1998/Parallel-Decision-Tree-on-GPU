@@ -9,14 +9,6 @@
 #include <algorithm>
 #include <omp.h>
 
-#ifdef __CUDACC__
-#define CUDA_HOST __host__ 
-#define CUDA_DEVICE __device__
-#else
-#define CUDA_HOST
-#define CUDA_DEVICE
-#endif
-
 // #define DEBUG
 #ifdef DEBUG
 /* When DEBUG is defined, these form aliases to useful functions */

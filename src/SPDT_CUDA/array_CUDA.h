@@ -26,7 +26,7 @@ extern float* histogram;
 
 int get_total_array(int histogram_id, int feature_id, int label);
 float sum_array(int histogram_id, int feature_id, int label, float value);
-void merge_array_pointers(float *histo1, float *histo2);
+void merge_array_pointers(float *histo1, float *histo2, int max_bin_size);
 void merge_array(int histogram_id1, int feature_id1, int label1, int histogram_id2, int feature_id2, int label2);
 void uniform_array(std::vector<float> &u, int histogram_id, int feature_id, int label);
 extern CUDA_DEVICE void update_array(int histogram_id, int feature_id, int label, float value,
