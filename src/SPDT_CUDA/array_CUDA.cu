@@ -37,7 +37,7 @@ inline int RLOC(int i, int M, int N, int Z){
 }
 
 __host__ __device__
-inline float get_bin_size(float* histo){
+float get_bin_size(float* histo){
 	return *histo;
 }
 
@@ -52,7 +52,7 @@ inline int decrease_bin_size(float* histo){
 }
 
 __host__ __device__
-inline float *get_histogram_array(int histogram_id, int feature_id, int label,
+float *get_histogram_array(int histogram_id, int feature_id, int label,
 	float *histogram, int num_of_features, int num_of_classes, int max_bin_size) {
     return histogram + 
         RLOC(histogram_id, feature_id, label, 0, 
@@ -285,18 +285,20 @@ void merge_array_pointers(float *histo1, float *histo2, int max_bin_size) {
 
 void merge_array(int histogram_id1, int feature_id1, int label1, 
 	int histogram_id2, int feature_id2, int label2) {
+	// printf("merge_array(histogram_id1=%d, feature_id1=%d, label1=%d, histogram_id2=%d, feature_id2=%d, label2=%d)\n", 
+	// 	histogram_id1, feature_id1, label1,
+	// 	histogram_id2, feature_id2, label2);
 	float *histo1 = get_histogram_array(histogram_id1, feature_id1, label1,
 		histogram, num_of_features, num_of_classes, max_bin_size);
 	float *histo2 = get_histogram_array(histogram_id2, feature_id2, label2,
 		histogram, num_of_features, num_of_classes, max_bin_size);
-	merge_array_pointers(histo1, histo2, max_bin_size);
+	merge_array_pointers(histo1, histo2, max_bin_size);	
 	return;
 }
 
-
-void uniform_array(std::vector<float> &u, int histogram_id, int feature_id, int label) {	
+void uniform_array(std::vector<float> &u, int histogram_id, int feature_id, int label) {
 	float *histo = get_histogram_array(histogram_id, feature_id, label,
-		histogram, num_of_features, num_of_classes, max_bin_size);
+		histogram, num_of_features, num_of_classes, max_bin_size);	
     int bin_size = get_bin_size(histo);
     int B = bin_size;
 	float tmpsum = 0;
@@ -306,7 +308,7 @@ void uniform_array(std::vector<float> &u, int histogram_id, int feature_id, int 
 	float uj = 0;
 	u.clear();
 
-	if (bin_size <= 1) {
+	if (bin_size <= 1) {		
 		return;
 	}
 	
@@ -345,8 +347,7 @@ void uniform_array(std::vector<float> &u, int histogram_id, int feature_id, int 
 		
 		uj = get_bin_value(histo, index) + z * (get_bin_value(histo, index + 1) - get_bin_value(histo, index));		
 		u.push_back(uj);				
-	}
-	
+	}	
 	return;
 }
 
