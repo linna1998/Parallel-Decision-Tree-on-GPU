@@ -51,25 +51,26 @@ SplitPoint::SplitPoint()
     entropy = 0;
 }
 
-SplitPoint::SplitPoint(int feature_id, double feature_value)
+SplitPoint::SplitPoint(int feature_id, double feature_value, Dataset* datasetPointer)
 {
     this->feature_id = feature_id;
     this->feature_value = feature_value;
     this->entropy = 0;
+    this->datasetPointer = datasetPointer;
 }
 /*
  * Reture True if the data is larger or equal than the split value
  */
-bool SplitPoint::decision_rule(Data &data)
+bool SplitPoint::decision_rule(int data_index)
 {
     dbg_ensures(entropy >= -EPS);
     dbg_ensures(gain >= -EPS);
     dbg_ensures(feature_id >= 0);
-    return data.get_value(feature_id) >= feature_value;
+    return datasetPointer->value_ptr[data_index * num_of_features + feature_id] >= feature_value;    
 }
 
 // constructor function
-TreeNode::TreeNode(int depth, int id)
+TreeNode::TreeNode(int depth, int id, Dataset* datasetPointer)
 {
     this->id = id;
     this->depth = depth;
@@ -84,6 +85,7 @@ TreeNode::TreeNode(int depth, int id)
     num_pos_label=0;
     data_size = 0;
     is_leaf = true;
+    this->datasetPointer = datasetPointer;
 }
 
 
@@ -190,7 +192,7 @@ DecisionTree::~DecisionTree(){
     root->clear();
 }
 
-void DecisionTree::initCUDA(int data_size) {
+void DecisionTree::initCUDA() {
     int data_size = this->datasetPointer->num_of_data;
     // Construct the histogram. and navigate each data to its leaf.  
     long long number = (long long) max_num_leaves * num_of_features * num_of_classes * ((max_bin_size + 1) * 2 + 1);        
@@ -260,7 +262,7 @@ bool DecisionTree::is_terminated(TreeNode *node)
 
 void DecisionTree::initialize(Dataset &train_data, const int batch_size){
     this->datasetPointer = &train_data;
-    root = new TreeNode(0, this->num_nodes++);  
+    root = new TreeNode(0, this->num_nodes++, datasetPointer);  
     if (histogram != NULL) {        
         delete[] histogram;
     }
@@ -295,8 +297,8 @@ double DecisionTree::test(Dataset &test_data) {
     test_data.streaming_read_data(test_data.num_of_data);
 
     for (i = 0; i < test_data.num_of_data; i++) {
-        assert(navigate(test_data.dataset[i])->label != -1);
-        if (navigate(test_data.dataset[i])->label == test_data.dataset[i].label) {
+        assert(navigate(i)->label != -1);        
+        if (navigate(i)->label == test_data.label_ptr[i]) {
             correct_num++;
         }
     }    
@@ -364,7 +366,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
         dbg_assert(possible_splits.size() <= max_bin_size);
         for (auto& split_value: possible_splits)
         {
-            SplitPoint t = SplitPoint(i, split_value);
+            SplitPoint t = SplitPoint(i, split_value, datasetPointer);
             get_gain(node, t, i);
             results.push_back(t);
         }
@@ -389,10 +391,7 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
     int thread_per_block = num_of_features;        
 
     for (int i = 0; i < unlabeled_leaf.size(); i++) {
-        TreeNode* node = unlabeled_leaf[i];
-        if (node->data_size > 0) {
-            node->has_new_data = true;
-        }                
+        TreeNode* node = unlabeled_leaf[i];                      
         block_num = node->data_size;                
         
         // https://stackoverflow.com/questions/31598021/cuda-cudamemcpy-struct-of-arrays
@@ -412,11 +411,7 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
  * Serial version of training.
 */
 void DecisionTree::train_on_batch(Dataset &train_data)
-{
-    
-    for(auto& data: train_data.dataset)
-        root->data_ptr.push_back(&data);
-
+{       
     double pos_rate = ((double) train_data.num_pos_label) / train_data.num_of_data;
     dbg_assert(pos_rate > 0 && pos_rate < 1);
     root->num_pos_label = train_data.num_pos_label;
@@ -457,8 +452,8 @@ void DecisionTree::train_on_batch(Dataset &train_data)
                     this->num_leaves++;               
                     continue;
                 }
-                cur_leaf->left_node = new TreeNode(this->cur_depth, this->num_nodes++);
-                cur_leaf->right_node = new TreeNode(this->cur_depth, this->num_nodes++);
+                cur_leaf->left_node = new TreeNode(this->cur_depth, this->num_nodes++, datasetPointer);
+                cur_leaf->right_node = new TreeNode(this->cur_depth, this->num_nodes++, datasetPointer);
                 cur_leaf->split(best_split, cur_leaf->left_node, cur_leaf->right_node);
                 cur_leaf->is_leaf = false;
                 cur_leaf->label = -1;
@@ -572,13 +567,13 @@ void DecisionTree::batch_initialize(TreeNode *node)
 /*
  *
  */
-TreeNode *DecisionTree::navigate(Data &d)
+TreeNode *DecisionTree::navigate(int data_index)
 {
     TreeNode *ptr = this->root;
     while (!ptr->is_leaf)
     {
         dbg_assert(ptr->right_node != NULL && ptr->left_node != NULL);
-        ptr = (ptr->split_ptr.decision_rule(d)) ? ptr->right_node : ptr->left_node;
+        ptr = (ptr->split_ptr.decision_rule(data_index)) ? ptr->right_node : ptr->left_node;
     }
     return ptr;
 }

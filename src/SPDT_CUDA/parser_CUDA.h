@@ -43,9 +43,5 @@ public:
 	void open_read_data(string name);
 	void read_a_data(int index);
 	bool streaming_read_data(int N);
-
 	void close_read_data();
-
-	void print_dataset();
-
 };

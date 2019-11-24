@@ -39,9 +39,10 @@ public:
     double feature_value;
 	double gain;
 	double entropy;
+    Dataset* datasetPointer; 
     SplitPoint();
-    SplitPoint(int feature_id, double feature_value);
-    bool decision_rule(Data& data);
+    SplitPoint(int feature_id, double feature_value, Dataset* datasetPointer);
+    bool decision_rule(int data_index);
     inline SplitPoint& operator = (const SplitPoint& split){
         this->feature_id = split.feature_id;
         this->feature_value = split.feature_value;
@@ -63,11 +64,12 @@ public:
     TreeNode* right_node;    
     int histogram_id;   
     int num_pos_label;
+    Dataset* datasetPointer; 
     
     int data_size;
     SplitPoint split_ptr;
 
-    TreeNode(int depth, int id);
+    TreeNode(int depth, int id, Dataset* datasetPointer);
     void set_label();    
     void init();    
     void split(SplitPoint& best_split, TreeNode* left, TreeNode* right);
@@ -123,12 +125,12 @@ public:
     double test(Dataset& test_data);
     // this function adjust the `global_partition_idx`
     void find_best_split(TreeNode* node, SplitPoint& split);
-    void compress(vector<Data>& data);
+    void compress(vector<TreeNode *> &unlabeled_leaf);
     vector<TreeNode*> __get_unlabeled(TreeNode* node);
     void batch_initialize(TreeNode* node);
     void initialize(Dataset &train_data, const int batch_size);
     void init_histogram(vector<TreeNode* >& unlabled_leaf);
-    TreeNode* navigate(Data& d);
+    TreeNode* navigate(int data_index);
     bool is_terminated(TreeNode* node);
 
     void initCUDA();
