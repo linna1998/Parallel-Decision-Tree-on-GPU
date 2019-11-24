@@ -29,19 +29,27 @@
 
 #define EPS 1e-9
 
-static double COMPRESS_TIME = 0;
-static double SPLIT_TIME = 0;
+extern float COMPRESS_TIME;
+extern float SPLIT_TIME;
+extern float COMMUNICATION_TIME;
+
+extern int num_of_features;
+extern int num_of_classes;
+extern int max_bin_size;
+extern int max_num_leaves;
+
+extern long long SIZE;
 
 class SplitPoint{
 public:
     // used to store the spliting information on a given histogram.
     int feature_id;
-    double feature_value;
-	double gain;
-	double entropy;
+    float feature_value;
+	float gain;
+	float entropy;
     Dataset* datasetPointer; 
     SplitPoint();
-    SplitPoint(int feature_id, double feature_value, Dataset* datasetPointer);
+    SplitPoint(int feature_id, float feature_value, Dataset* datasetPointer);
     bool decision_rule(int data_index);
     inline SplitPoint& operator = (const SplitPoint& split){
         this->feature_id = split.feature_id;
@@ -59,7 +67,7 @@ public:
     bool is_leaf = false;    
     int label; // -1 means no label
     int depth;
-    double entropy;
+    float entropy;
     TreeNode* left_node;
     TreeNode* right_node;    
     int histogram_id;   
@@ -89,14 +97,14 @@ private:
     int max_depth;    
     int min_node_size;
     int cur_depth;
-    double min_gain;    
+    float min_gain;    
     // three dimensions for the global histogram.    
     int num_unlabled_leaves;
 
     Dataset* datasetPointer; 
     // histogram size (num_leaf, num_feature, num_class)    
 
-    double *cuda_histogram_ptr;
+    float *cuda_histogram_ptr;
     // 0/1 label, might apply something as bitmap in the future
     int *cuda_label_ptr;
     float *cuda_value_ptr;
@@ -122,7 +130,7 @@ public:
     void self_check();
     void train(Dataset& train_data, const int batch_size = 64);
     void train_on_batch(Dataset& train_data);
-    double test(Dataset& test_data);
+    float test(Dataset& test_data);
     // this function adjust the `global_partition_idx`
     void find_best_split(TreeNode* node, SplitPoint& split);
     void compress(vector<TreeNode *> &unlabeled_leaf);

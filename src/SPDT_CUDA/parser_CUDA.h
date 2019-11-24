@@ -4,7 +4,6 @@
 #include <map>
 #include <unordered_map>
 #include <vector>
-#include "array_CUDA.h"
 
 using namespace std;
 
@@ -25,21 +24,9 @@ public:
 
 	int already_read_data;
 
-	Dataset() {num_pos_label=0;}
-	Dataset(int _num_of_data):		
-		num_of_data(_num_of_data) {
-		already_read_data = 0;
-		num_pos_label = 0;
-		label_ptr = (int*)calloc(_num_of_data, sizeof(int));
-    	value_ptr = (float*)calloc(_num_of_data * num_of_features, sizeof(float));
-    	histogram_id_ptr = (int*)calloc(_num_of_data, sizeof(int));
-	}
-
-	~Dataset() {
-		free(label_ptr);
-		free(value_ptr);
-		free(histogram_id_ptr);
-	}
+	Dataset();
+	Dataset(int _num_of_data);
+	~Dataset();
 
 	void open_read_data(string name);
 	void read_a_data(int index);

@@ -20,18 +20,17 @@
 
 #define EPS 1e-9
 
-static double *histogram;
-static int num_of_features;
-static int num_of_classes;
-static int max_bin_size;
+// global variables
+// record the information of all histograms
+extern float* histogram;
 
 int get_total_array(int histogram_id, int feature_id, int label);
-double sum_array(int histogram_id, int feature_id, int label, double value);
-void merge_array_pointers(double *histo1, double *histo2);
+float sum_array(int histogram_id, int feature_id, int label, float value);
+void merge_array_pointers(float *histo1, float *histo2, int max_bin_size);
 void merge_array(int histogram_id1, int feature_id1, int label1, int histogram_id2, int feature_id2, int label2);
-void uniform_array(std::vector<double> &u, int histogram_id, int feature_id, int label);
-extern CUDA_DEVICE void update_array(int histogram_id, int feature_id, int label, double value,
-    double *histogram, int num_of_features, int num_of_classes, int max_bin_size);
+void uniform_array(std::vector<float> &u, int histogram_id, int feature_id, int label);
+extern CUDA_DEVICE void update_array(int histogram_id, int feature_id, int label, float value,
+    float *histogram, int num_of_features, int num_of_classes, int max_bin_size);
 
 /*
  * For A[][M][N][Z]

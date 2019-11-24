@@ -1,5 +1,7 @@
 #include "tree_CUDA.h"
 #include "parser_CUDA.h"
+#include "array_CUDA.h"
+#include "../SPDT_general/timing.h"
 #include "panel.h"
 #include <assert.h>
 #include <queue>
@@ -9,6 +11,16 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <driver_functions.h>
+
+float COMPRESS_TIME = 0.f;
+float SPLIT_TIME = 0.f;
+float COMMUNICATION_TIME = 0.f;
+long long SIZE = 0 ;
+
+int num_of_features = -1;
+int num_of_classes = -1;
+int max_bin_size = -1;
+int max_num_leaves = -1;
 
 __global__ void
 navigate_samples_kernel() {
@@ -22,7 +34,7 @@ __global__ void
 histogram_update_kernel(
     int data_size, 
     int num_of_threads,    
-    double *cuda_histogram_ptr, 
+    float *cuda_histogram_ptr, 
     int *cuda_label_ptr,
     float *cuda_value_ptr,
     int *cuda_histogram_id_ptr,
@@ -58,7 +70,7 @@ SplitPoint::SplitPoint()
     entropy = 0;
 }
 
-SplitPoint::SplitPoint(int feature_id, double feature_value, Dataset* datasetPointer)
+SplitPoint::SplitPoint(int feature_id, float feature_value, Dataset* datasetPointer)
 {
     this->feature_id = feature_id;
     this->feature_value = feature_value;
@@ -121,14 +133,14 @@ void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
 {
     this->split_ptr = best_split;
     this->entropy = best_split.entropy;
-    double split_value = best_split.feature_value;
+    float split_value = best_split.feature_value;
     int num_pos_label_left=0;
     int num_pos_label_right=0;
     for (int i = 0; i < this->datasetPointer->num_of_data; i++) {
         if (this->datasetPointer->histogram_id_ptr[i] != this->histogram_id) {
             continue;
         }
-        double p_value = this->datasetPointer->value_ptr[i * num_of_features + best_split.feature_id];
+        float p_value = this->datasetPointer->value_ptr[i * num_of_features + best_split.feature_id];
         if (best_split.decision_rule(i)) {
             this->datasetPointer->histogram_id_ptr[i] = right->histogram_id;
             num_pos_label_right = (this->datasetPointer->label_ptr[i] == POS_LABEL) ? num_pos_label_right + 1 : num_pos_label_right;
@@ -203,14 +215,14 @@ void DecisionTree::initCUDA() {
     // Construct the histogram. and navigate each data to its leaf.  
     long long number = (long long) max_num_leaves * num_of_features * num_of_classes * ((max_bin_size + 1) * 2 + 1);        
 
-    cudaMalloc((void **)&cuda_histogram_ptr, sizeof(double) * number);
+    cudaMalloc((void **)&cuda_histogram_ptr, sizeof(float) * number);
     cudaMalloc((void **)&cuda_label_ptr, sizeof(int) * data_size);
     cudaMalloc((void **)&cuda_value_ptr, sizeof(float) * data_size * num_of_features);
     cudaMalloc((void **)&cuda_histogram_id_ptr, sizeof(int) * data_size);
 
     cudaMemcpy(cuda_histogram_ptr,
         histogram,
-        sizeof(double) * number,
+        sizeof(float) * number,
         cudaMemcpyHostToDevice);
     cudaMemcpy(cuda_label_ptr,
         this->datasetPointer->label_ptr,
@@ -272,11 +284,13 @@ void DecisionTree::initialize(Dataset &train_data, const int batch_size){
     if (histogram != NULL) {        
         delete[] histogram;
     }
-    long long number = (long long)max_num_leaves * num_of_features * num_of_classes * ((max_bin_size + 1) * 2 + 1);    
-    dbg_printf("Init Root Node [%.4f] MB\n", number * sizeof(double) / 1024.f / 1024.f);
     
-    histogram = new double[number];
-    memset(histogram, 0, number * sizeof(double));    
+    SIZE  = (long long) max_num_leaves * num_of_features * num_of_classes * ((max_bin_size + 1) * 2 + 1);    
+    printf("Init Root Node [%.4f] MB\n", SIZE * sizeof(float) / 1024.f / 1024.f);
+    
+    histogram = new float[SIZE];
+    memset(histogram, 0, SIZE * sizeof(float));          
+    printf("Init success\n");
 }
 
 void DecisionTree::train(Dataset &train_data, const int batch_size)
@@ -287,16 +301,24 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
 		hasNext = train_data.streaming_read_data(batch_size);	
         dbg_printf("Train size (%d, %d, %d)\n", train_data.num_of_data, 
                 num_of_features, num_of_classes);
+                
+        Timer t = Timer();
+        t.reset();
+        initCUDA();
+        COMMUNICATION_TIME += t.elapsed();
+
         train_on_batch(train_data);        
 		if (!hasNext) break;
 	}		
     
-	train_data.close_read_data(); 
-    printf("COMPRESS TIME: %f\nSPLIT TIME: %f\n", COMPRESS_TIME, SPLIT_TIME);   
+    train_data.close_read_data();
+    terminateCUDA(); 
+    printf("COMPRESS TIME: %f\nSPLIT TIME: %f\nCOMMUNICATION TIME: %f\n", 
+        COMPRESS_TIME, SPLIT_TIME, COMMUNICATION_TIME);   
     return;
 }
 
-double DecisionTree::test(Dataset &test_data) {    
+float DecisionTree::test(Dataset &test_data) {    
 
     int i = 0;
     int correct_num = 0;
@@ -308,7 +330,7 @@ double DecisionTree::test(Dataset &test_data) {
             correct_num++;
         }
     }    
-    return (double)correct_num / (double)test_data.num_of_data;
+    return (float)correct_num / (float)test_data.num_of_data;
 }
 
 /*
@@ -319,30 +341,30 @@ double DecisionTree::test(Dataset &test_data) {
 void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     int total_sum = node->data_size;
     dbg_ensures(total_sum > 0);
-    double sum_class_0 = get_total_array(node->histogram_id, feature_id, NEG_LABEL);
-    double sum_class_1 = get_total_array(node->histogram_id, feature_id, POS_LABEL);
+    float sum_class_0 = get_total_array(node->histogram_id, feature_id, NEG_LABEL);
+    float sum_class_1 = get_total_array(node->histogram_id, feature_id, POS_LABEL);
     dbg_assert((sum_class_1 - node->num_pos_label) < EPS);
-    double left_sum_class_0 = sum_array(node->histogram_id, feature_id, NEG_LABEL, split.feature_value);
-    double right_sum_class_0 = sum_class_0 - left_sum_class_0;
-    double left_sum_class_1 = sum_array(node->histogram_id, feature_id, POS_LABEL, split.feature_value);
-    double right_sum_class_1 = sum_class_1 - left_sum_class_1;
-    double left_sum = left_sum_class_0 + left_sum_class_1;
-    double right_sum = right_sum_class_0 + right_sum_class_1;
+    float left_sum_class_0 = sum_array(node->histogram_id, feature_id, NEG_LABEL, split.feature_value);
+    float right_sum_class_0 = sum_class_0 - left_sum_class_0;
+    float left_sum_class_1 = sum_array(node->histogram_id, feature_id, POS_LABEL, split.feature_value);
+    float right_sum_class_1 = sum_class_1 - left_sum_class_1;
+    float left_sum = left_sum_class_0 + left_sum_class_1;
+    float right_sum = right_sum_class_0 + right_sum_class_1;
 
-    double px = (left_sum_class_0 + left_sum_class_1) / (1.0 * total_sum); // p(x<a)
-    double py_x0 = (left_sum <= EPS) ? 0.f : left_sum_class_0 / left_sum;                            // p(y=0|x < a)
-    double py_x1 = (right_sum <= EPS) ? 0.f : right_sum_class_0 / right_sum;                          // p(y=0|x >= a)
+    float px = (left_sum_class_0 + left_sum_class_1) / (1.0 * total_sum); // p(x<a)
+    float py_x0 = (left_sum <= EPS) ? 0.f : left_sum_class_0 / left_sum;                            // p(y=0|x < a)
+    float py_x1 = (right_sum <= EPS) ? 0.f : right_sum_class_0 / right_sum;                          // p(y=0|x >= a)
     // printf("sum_class_1=%f, sum_class_0=%f, right_sum = %f, right_sum_class_0 = %f right_sum_class_1= %f\n", sum_class_1, sum_class_0, right_sum, right_sum_class_0, right_sum_class_1);
     // printf("py_x0 = %f, py_x1 = %f\n", py_x0, py_x1);
     dbg_ensures(py_x0 >= -EPS && py_x0 <= 1+EPS);
     dbg_ensures(py_x1 >= -EPS && py_x1 <= 1+EPS);
     dbg_ensures(px >= -EPS && px <= 1+EPS);
-    double entropy_left = ((1-py_x0) < EPS || py_x0 < EPS) ? 0 : -py_x0 * log2(py_x0) - (1-py_x0)*log2(1-py_x0);
-    double entropy_right = ((1-py_x1) < EPS || py_x1 < EPS) ? 0 : -py_x1 * log2(py_x1) - (1-py_x1)*log2(1-py_x1);
-    double H_YX = px * entropy_left + (1-px) * entropy_right;
-    double px_prior = sum_class_0 / (sum_class_0 + sum_class_1);
+    float entropy_left = ((1-py_x0) < EPS || py_x0 < EPS) ? 0 : -py_x0 * log2((double)py_x0) - (1-py_x0)*log2((double)1-py_x0);
+    float entropy_right = ((1-py_x1) < EPS || py_x1 < EPS) ? 0 : -py_x1 * log2((double)py_x1) - (1-py_x1)*log2((double)1-py_x1);
+    float H_YX = px * entropy_left + (1-px) * entropy_right;
+    float px_prior = sum_class_0 / (sum_class_0 + sum_class_1);
     dbg_ensures(px_prior > 0 && px_prior < 1);
-    split.entropy = ((1-px_prior) < EPS || px_prior < EPS) ? 0 : -px_prior * log2(px_prior) - (1-px_prior) * log2(1-px_prior);
+    split.entropy = ((1-px_prior) < EPS || px_prior < EPS) ? 0 : -px_prior * log2((double)px_prior) - (1-px_prior) * log2((double)1-px_prior);
     split.gain = split.entropy - H_YX;
     // printf("%f = %f - %f\n", split.gain, split.entropy, H_YX);
     dbg_ensures(split.gain >= -EPS);
@@ -353,10 +375,7 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
  * Best split is store in `split`
 */
 void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
-{
-    clock_t start, end;
-    start = clock();       
-
+{              
     std::vector<SplitPoint> results;
     for (int i = 0; i < num_of_features; i++)
     {
@@ -366,7 +385,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
             merge_array(node->histogram_id, i, 0, node->histogram_id, i, k);
         }
 
-        std::vector<double> possible_splits;
+        std::vector<float> possible_splits;
         uniform_array(possible_splits, node->histogram_id, i, 0);
 
         dbg_assert(possible_splits.size() <= max_bin_size);
@@ -383,8 +402,6 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
     split.feature_id = best_split->feature_id;
     split.feature_value = best_split->feature_value;
     split.gain = best_split->gain;
-    end = clock();   
-    SPLIT_TIME += ((double) (end - start)) / CLOCKS_PER_SEC; 
 }
 
 /*
@@ -399,7 +416,7 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
     
     cudaMemcpy(cuda_histogram_ptr,
         histogram,
-        sizeof(double) * number,
+        sizeof(float) * number,
         cudaMemcpyHostToDevice);    
     cudaMemcpy(cuda_histogram_id_ptr,
         this->datasetPointer->histogram_id_ptr,
@@ -422,12 +439,13 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
             cuda_histogram_id_ptr,
             num_of_features,
             num_of_classes,
-            max_bin_size);        
+            max_bin_size);  
+        cudaDeviceSynchronize();       
     }
 
     cudaMemcpy(histogram,
         cuda_histogram_ptr,
-        sizeof(double) * number,
+        sizeof(float) * number,
         cudaMemcpyDeviceToHost);  
 }
 
@@ -436,10 +454,10 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
 */
 void DecisionTree::train_on_batch(Dataset &train_data)
 {       
-    double pos_rate = ((double) train_data.num_pos_label) / train_data.num_of_data;
+    float pos_rate = ((float) train_data.num_pos_label) / train_data.num_of_data;
     dbg_assert(pos_rate > 0 && pos_rate < 1);
     root->num_pos_label = train_data.num_pos_label;
-    root->entropy = - pos_rate * log2(pos_rate) - (1-pos_rate) * log2((1-pos_rate));
+    root->entropy = - pos_rate * log2((double)pos_rate) - (1-pos_rate) * log2((double)(1-pos_rate));
     batch_initialize(root); // Reinitialize every leaf in T as unlabeled.
     vector<TreeNode *> unlabeled_leaf = __get_unlabeled(root);
     dbg_assert(unlabeled_leaf.size() <= max_num_leaves);
@@ -456,8 +474,11 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             }
             break;
         }       
-        init_histogram(unlabeled_leaf); 
+        init_histogram(unlabeled_leaf);
+        Timer t1 = Timer();
+        t1.reset();
         compress(unlabeled_leaf); 
+        COMPRESS_TIME += t1.elapsed();         
         for (auto &cur_leaf : unlabeled_leaf)
         {            
             if (is_terminated(cur_leaf))
@@ -468,7 +489,10 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             else
             {                
                 SplitPoint best_split;
+                Timer t2 = Timer();
+                t2.reset();
                 find_best_split(cur_leaf, best_split);
+                SPLIT_TIME += t2.elapsed();                
                 dbg_ensures(best_split.gain >= -EPS);
                 if (best_split.gain <= min_gain){
                     dbg_printf("Node terminated: gain=%.4f <= %.4f\n", min_node_size, best_split.gain, min_gain);
