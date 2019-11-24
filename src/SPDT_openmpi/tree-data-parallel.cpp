@@ -459,6 +459,12 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     double py_x0 = (left_sum <= EPS) ? 0.f : left_sum_class_0 / left_sum;                            // p(y=0|x < a)
     double py_x1 = (right_sum <= EPS) ? 0.f : right_sum_class_0 / right_sum;                          // p(y=0|x >= a)
     if (taskid == MASTER){
+        float* histo1 = get_histogram_array(node->histogram_id, feature_id, POS_LABEL);
+        float* histo0 = get_histogram_array(node->histogram_id, feature_id, NEG_LABEL);
+        print_array(histo1);
+        printf("%%%%%%%%%%%%%%%%%%");
+        print_array(histo0);
+        printf("%%%%%%%%%%%%%%%%%%");
         printf("id=%d, value=%.7f\n", split.feature_id, split.feature_value);
         printf("total_sum = %d, left_sum_class_0=%.7f, left_sum_class_1=%.7f\n", total_sum, left_sum_class_0, left_sum_class_1);
         printf("sum_class_1=%.7f, sum_class_0=%.7f, right_sum = %.7f, right_sum_class_0 = %.7f right_sum_class_1= %f\n", sum_class_1, sum_class_0, right_sum, right_sum_class_0, right_sum_class_1);
