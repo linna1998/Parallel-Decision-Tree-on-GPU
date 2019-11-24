@@ -47,8 +47,14 @@ inline int decrease_bin_size(float* histo){
 	return (*histo) -= 1.f;
 }
 
-inline float *get_histogram_array(int histogram_id, int feature_id, int label) {
+float *get_histogram_array(int histogram_id, int feature_id, int label) {
     return histogram + 
+        RLOC(histogram_id, feature_id, label, 0, 
+        num_of_features, num_of_classes, (max_bin_size + 1) * 2 + 1);
+}
+
+float *get_histogram_array(float *histo, int histogram_id, int feature_id, int label) {
+    return histo + 
         RLOC(histogram_id, feature_id, label, 0, 
         num_of_features, num_of_classes, (max_bin_size + 1) * 2 + 1);
 }
@@ -178,9 +184,7 @@ void merge_bin_array(float *histo) {
 	int index = 0;
     float new_freq = 0;
     float new_value = 0;
-
     int bin_size = get_bin_size(histo);
-
 	// find the min value of difference
 	for (int i = 0; i < bin_size - 1; i++) {
 		if (get_bin_value(histo, i + 1) - get_bin_value(histo, i)
@@ -209,42 +213,68 @@ void merge_bin_array(float *histo) {
     merge_same_array(histo);
 }
 
-void merge_array(int histogram_id1, int feature_id1, int label1, int histogram_id2, int feature_id2, int label2) {
-	float *histo1 = get_histogram_array(histogram_id1, feature_id1, label1);
-    float *histo2 = get_histogram_array(histogram_id2, feature_id2, label2);
-
-    float *histo_merge = new float[max_bin_size * 4 + 1];
-
-    int index1 = 0, index2 = 0;
+/*
+ * merge histo1 with histo2.
+ * Write the results in histo1.
+*/
+void merge_array_pointers(float *histo1, float *histo2) {
     int bin_size1 = *histo1;
     int bin_size2 = *histo2;
+	if (bin_size2 == 0)
+		return;
+	if (bin_size1 == 0){
+		for(int k=0; k< bin_size2; k++){
+			set_bin_freq(histo1, k, get_bin_freq(histo2, k));
+			set_bin_value(histo1, k, get_bin_value(histo2, k));
+		}
+		*histo1 = (float) bin_size2;
+		return;
+	}
     int bin_size_merge = 0;
-    
-    while (index1 < bin_size1 && index2 < bin_size2) {
-        if (get_bin_value(histo1, index1) < get_bin_value(histo2, index2)) {
-            // put the index1 in histo1 to the next place of histo_merge
-            set_bin_freq(histo_merge, bin_size_merge, get_bin_freq(histo1, index1));
-            set_bin_value(histo_merge, bin_size_merge, get_bin_value(histo1, index1));
-            index1++;
-        } else {
-            // put the index2 in histo2 to the next place of histo_merge
-            set_bin_freq(histo_merge, bin_size_merge, get_bin_freq(histo2, index2));
-            set_bin_value(histo_merge, bin_size_merge, get_bin_value(histo2, index2));            
-            index2++;
-        }
+    int index1 = 0, index2 = 0;
+    float *histo_merge = new float[max_bin_size * 4 + 1]; //TODO: optimize
+    while (index1 < bin_size1 || index2 < bin_size2) {
+		float freq;
+		float value;
+		if (index1 >= bin_size1){
+			freq = get_bin_freq(histo2, index2);
+			value = get_bin_value(histo2, index2);
+			index2 ++;
+		}
+		else if (index2 >= bin_size2){
+			freq = get_bin_freq(histo1, index1);
+			value = get_bin_value(histo1, index1);
+			index1 ++;
+		}
+		else{
+			if (get_bin_value(histo1, index1) < get_bin_value(histo2, index2)) {
+				// put the index1 in histo1 to the next place of histo_merge
+				freq = get_bin_freq(histo1, index1);
+				value = get_bin_value(histo1, index1);
+				index1++;
+			} else {
+				// put the index2 in histo2 to the next place of histo_merge
+				freq = get_bin_freq(histo2, index2);
+				value = get_bin_value(histo2, index2);            
+				index2++;
+			}
+		}
+		set_bin_freq(histo_merge, bin_size_merge, freq);
+		set_bin_value(histo_merge, bin_size_merge, value);
         bin_size_merge++;
     }
-	*histo_merge = bin_size_merge;
+	*histo_merge = (float) bin_size_merge;
 
 	// merge the same values in vec
 	merge_same_array(histo_merge);
 
-	while (*histo_merge > max_bin_size) {
-		merge_bin_array(histo_merge);		
+	while (bin_size_merge > max_bin_size) {
+		merge_bin_array(histo_merge);
+		bin_size_merge --;		
 	}
 
     // copy from histo_merge into histo1    
-    *histo1 = bin_size_merge;
+    *histo1 = (float) bin_size_merge;
     for (int i = 0; i < bin_size_merge; i++) {
         set_bin_freq(histo1, i, get_bin_freq(histo_merge, i));
         set_bin_value(histo1, i, get_bin_value(histo_merge, i));
@@ -253,11 +283,15 @@ void merge_array(int histogram_id1, int feature_id1, int label1, int histogram_i
 	return;
 }
 
-void uniform_array(std::vector<float> &u, int histogram_id, int feature_id, int label) {	
-    float *histo = get_histogram_array(histogram_id, feature_id, label);
+void merge_array(int histogram_id1, int feature_id1, int label1, int histogram_id2, int feature_id2, int label2) {
+	float *histo1 = get_histogram_array(histogram_id1, feature_id1, label1);
+    float *histo2 = get_histogram_array(histogram_id2, feature_id2, label2);
+	merge_array_pointers(histo1, histo2);
+	return;
+}
+
+void uniform_array(std::vector<float> &u, int histogram_id, int feature_id, int label, float* histo) {	
     int bin_size = get_bin_size(histo);
-	printf("histogram_id=%d, feature_id=%d\n", histogram_id, feature_id);
-	print_array(histo);
     int B = bin_size;
 	float tmpsum = 0;
 	float s = 0;
@@ -317,10 +351,6 @@ void update_array(int histogram_id, int feature_id, int label, float value) {
 	for (int i = 0; i < bin_size; i++) {
 		if (abs(get_bin_value(histo, i) - value) < EPS) {		
 			set_bin_freq(histo, i, get_bin_freq(histo, i)+1.f);
-			if (feature_id == 0){
-			printf("[%d]after\n", histogram_id);
-			print_array(histo);
-		}
 			return;
 		}
 	}
@@ -347,19 +377,11 @@ void update_array(int histogram_id, int feature_id, int label, float value) {
 
 	// put value into the place of bins[index]
 	set_bin_value(histo, index, value);
-	set_bin_freq(histo, index, 1);
+	set_bin_freq(histo, index, 1.f);
 	if (bin_size <= max_bin_size) {
-		if (feature_id == 0){
-			printf("[%d]after\n", histogram_id);
-			print_array(histo);
-		}
 		return;
 	}
 
 	merge_bin_array(histo);	
-		if (feature_id == 0){
-			printf("[%d]after\n", histogram_id);
-			print_array(histo);
-		}
 	return;
 }

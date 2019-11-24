@@ -31,11 +31,14 @@
 
 extern double COMPRESS_TIME;
 extern double SPLIT_TIME;
+extern double COMMUNICATION_TIME;
+
 
 extern int num_of_features;
 extern int num_of_classes;
 extern int max_bin_size;
 extern int max_num_leaves;
+
 
 extern long long SIZE;
 class SplitPoint{
@@ -96,7 +99,6 @@ private:
     double min_gain;    
     // three dimensions for the global histogram.    
     int num_unlabled_leaves;
-
     Dataset* datasetPointer; 
     // histogram size (num_leaf, num_feature, num_class)    
 
@@ -113,6 +115,7 @@ public:
         this->root = NULL;    
         this->min_gain = 1e-3;
         this->num_nodes = 0;
+        this->num_unlabled_leaves = 0;
     };
     
     void self_check();
@@ -129,3 +132,7 @@ public:
     TreeNode* navigate(Data& d);
     bool is_terminated(TreeNode* node);
 };
+
+
+
+void get_gain(TreeNode* node, SplitPoint& split, int feature_id);

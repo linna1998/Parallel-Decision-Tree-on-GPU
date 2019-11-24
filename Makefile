@@ -2,17 +2,18 @@ OUTPUTDIR := bin/
 
 #-std=c++14
 
-COPT = -O1
+COPT = -O3
 CFLAGS := -std=c++11 -fvisibility=hidden -lpthread $(COPT)
 
-SOURCES := src/SPDT_general/array.cpp src/SPDT_general/main.cpp src/SPDT_general/parser.cpp
+SOURCES := src/SPDT_general/array.cpp src/SPDT_general/main.cpp src/SPDT_general/parser.cpp src/SPDT_general/tree-general.cpp
+SOURCES_MPI := src/SPDT_general/array.cpp src/SPDT_openmpi/main.cpp src/SPDT_general/parser.cpp
 
 SEQUENTIAL = src/SPDT_sequential/tree.cpp 
 FEATURE_PARALLEL = src/SPDT_openmp/tree-feature-parallel.cpp
-DATA_PARALLEL = src/SPDT_openmp/tree-data-parallel.cpp
-CUDA = src/SPDT_CUDA/tree.cu
+DATA_PARALLEL = src/SPDT_openmpi/tree-data-parallel.cpp
+CUDA = src/SPDT_CUDA/tree.cu 
 
-HEADERS := src/SPDT_general/array.h src/SPDT_general/parser.h src/SPDT_general/tree.h
+HEADERS := src/SPDT_general/array.h src/SPDT_general/parser.h src/SPDT_general/tree.h src/SPDT_general/timing.h
 
 TARGETBIN := decision-tree
 TARGETBIN_DBG := decision-tree-dbg
@@ -27,6 +28,7 @@ COPT_DBG = -Og
 CFLAGS_DBG = -DDEBUG=1
 
 CXX := g++
+CXX_MPI := mpic++
 
 # parameters for CUDA
 LDFLAGS = -L/usr/local/depot/cuda-8.0/lib64/ -lcudart
@@ -59,8 +61,8 @@ $(TARGETBIN_FEATURE): $(SOURCES) $(HEADERS) $(FEATURE_PARALLEL)
 	$(CXX) -o $@ $(CFLAGS) -fopenmp $(SOURCES) $(FEATURE_PARALLEL) 
 
 data: $(TARGETBIN_DATA)
-$(TARGETBIN_DATA): $(SOURCES) $(HEADERS) $(DATA_PARALLEL)
-	$(CXX) -o $@ $(CFLAGS) -fopenmp  $(SOURCES) $(DATA_PARALLEL)
+$(TARGETBIN_DATA): $(SOURCES_MPI) $(HEADERS) $(DATA_PARALLEL)
+	$(CXX_MPI) -o $@ $(CFLAGS) $(SOURCES_MPI) $(DATA_PARALLEL)
 
 dirs:
 	mkdir -p $(OBJDIR)/

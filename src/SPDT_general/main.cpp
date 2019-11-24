@@ -1,8 +1,8 @@
-#include "tree.h"
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "tree.h"
 
 vector<string> names = {"a1a", "ijcnn1", "avazu-app", "rcv1", "covtype", "generated"};
 
@@ -13,14 +13,9 @@ vector<int> featureNum = {123, 22, 1000000, 47236, 54, 300};
 string help_msg = "-l: max_num_leaf.\n-d: max_depth.\n-n: number of"\
                   "threads.\n-b: max_bin_size\n-l: max_num_leaf\n-e: min_node_size\n";
 
-// int num_of_features;
-// int num_of_classes;
-// int max_bin_size;
-// int max_num_leaves;
-
 int main(int argc, char **argv) {
 
-    int index = 1;
+    int index = 5;
     clock_t start, end;
     double cpu_time_used;
     int c;
@@ -65,7 +60,7 @@ int main(int argc, char **argv) {
     max_depth = (max_depth == -1) ? 9 : max_depth;
     min_node_size = (min_node_size == -1) ? 32 : min_node_size;
     // the global max_bin_size
-    max_bin_size = (max_bin_size == -1) ? 32 : max_bin_size;
+    max_bin_size = (max_bin_size == -1) ? 64 : max_bin_size;
     num_of_features = featureNum[index];
     num_of_classes = 2;
 
