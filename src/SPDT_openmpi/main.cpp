@@ -1,10 +1,11 @@
 
-#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include "mpi.h"
 #include "../SPDT_general/tree.h"
+#include "../SPDT_general/timing.h"
+
 
 vector<string> names = {"a1a", "ijcnn1", "avazu-app", "rcv1", "covtype", "generated"};
 
@@ -21,8 +22,8 @@ int main(int argc, char *argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
     MPI_Comm_size(MPI_COMM_WORLD, &numtasks);  
     int index = 5;
-    clock_t start, end;
-    double cpu_time_used_train, cpu_time_used_test;
+    double cpu_time_used_train;
+    double cpu_time_used_test;
     int c;
     int num_of_thread = -1;    
     int min_node_size = -1;
@@ -65,35 +66,36 @@ int main(int argc, char *argv[]) {
     max_depth = (max_depth == -1) ? 9 : max_depth;
     min_node_size = (min_node_size == -1) ? 32 : min_node_size;
     // the global max_bin_size
-    max_bin_size = (max_bin_size == -1) ? 64 : max_bin_size;
+    max_bin_size = (max_bin_size == -1) ? 256 : max_bin_size;
     num_of_features = featureNum[index];
     num_of_classes = 2;
     if (taskid == 0)
-        printf("max_num_leaf=%d, max_depth=%d, min_node_size=%d, max_bin_size=%d\n", 
+        printf("[%d] max_num_leaf=%d, max_depth=%d, min_node_size=%d, max_bin_size=%d\n", taskid,
                 max_num_leaves, max_depth, min_node_size, max_bin_size);
             
     string trainName = "./data/" + names[index] + ".train.txt";
     DecisionTree decisionTree(max_depth, min_node_size);
     Dataset trainDataset(trainSize[index]);
     trainDataset.open_read_data(trainName);
-    start = clock();     
+    Timer t = Timer();
+    t.reset();
     decisionTree.train(trainDataset, trainSize[index]);
-    end = clock();
-    cpu_time_used_train = ((double) (end - start)) / CLOCKS_PER_SEC;
-
+    cpu_time_used_train = t.elapsed();
+  
     // test
     string testName = "./data/" + names[index] + ".test.txt";
     Dataset testDataset(testSize[index]);
     testDataset.open_read_data(testName);	
-
-    start = clock();   
-    end = clock();
-    cpu_time_used_test = ((double) (end - start)) / CLOCKS_PER_SEC;
     if (taskid == 0){
-        printf("COMMUNICATION time: %f\n", COMMUNICATION_TIME);
-        printf("train time: %f\n", cpu_time_used_train);
-        printf("correct rate: %f\n", decisionTree.test(testDataset)); 
-        printf("test time: %f\n", cpu_time_used_test);
+        printf("[%d] Train Time: %f\n", taskid, cpu_time_used_train);
+        printf("[%d] COMPRESS TIME: %f\n[%d] SPLIT TIME: %f\n", taskid, COMPRESS_TIME, SPLIT_TIME); 
+        t.reset();
+        printf("[%d] COMMUNICATION time: %f\n", taskid, COMMUNICATION_TIME);
+        printf("[%d] Train Time: %f\n", taskid, cpu_time_used_train);
+        printf("[%d] Training Correct Rate: %f\n", taskid, decisionTree.test(trainDataset)); 
+        printf("[%d] Testing Correct Rate: %f\n", taskid, decisionTree.test(testDataset)); 
+        cpu_time_used_test = t.elapsed();
+        printf("[%d] Test Time: %f\n", taskid, cpu_time_used_test);
     }
     MPI_Finalize();
     return 0;  

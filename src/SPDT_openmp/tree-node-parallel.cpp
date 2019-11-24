@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <algorithm>
 #include <math.h>
-#include <time.h>
 #include "../SPDT_general/array.h"
 #include "../SPDT_general/timing.h"
 
@@ -48,14 +47,13 @@ void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
 void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 {    
     float* buf_merge = new float[2 * max_bin_size + 1];
-
     SplitPoint results[NUM_OF_THREADS];
     for (int j = 0; j<NUM_OF_THREADS; j++)
         results[j] = SplitPoint();
 
     int tot = 0; // used to count the number of results
-    #pragma barrier
-    #pragma omp parallel for num_threads(NUM_OF_THREADS)
+    // #pragma barrier
+    // #pragma omp parallel for num_threads(NUM_OF_THREADS)
     for (int i = 0; i < num_of_features; i++)
     {
         int tid = omp_get_thread_num();
@@ -94,19 +92,17 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
  * Each unlabeled leaf would have a (num_feature, num_class) histograms
  * This function takes the assumption that each leaf is re-initialized (we use a batch mode)
 */
-void DecisionTree::compress(vector<Data> &data)
+void DecisionTree::compress(vector<Data> &data, vector<TreeNode*>& unlabeld)
 {
     int feature_id = 0, class_id = 0;
     // Construct the histogram. and navigate each data to its leaf.
-    TreeNode* cur;
-    int c=0;
-    for(auto& point : data){
-        cur = navigate(point);
-        if (cur->label > -1)
-            continue;
-        cur->data_size ++;
-        for (int attr = 0; attr < num_of_features; attr++)
-            update_array(cur->histogram_id, attr, point.label, point.get_value(attr));              
+    for(int i=0; i<unlabeld.size(); i++){
+        auto cur = unlabeld[i];
+        for(auto& point: cur->data_ptr){
+            for (int attr = 0; attr < num_of_features; attr++)
+                update_array(cur->histogram_id, attr, point->label, point->get_value(attr));   
+        }
+        cur->data_size = cur->data_ptr.size();
     }
 }
 
@@ -143,7 +139,7 @@ void DecisionTree::train_on_batch(Dataset &train_data)
         init_histogram(unlabeled_leaf); 
         Timer t1 = Timer();
         t1.reset();
-        compress(train_data.dataset); 
+        compress(train_data.dataset, unlabeled_leaf); 
         COMPRESS_TIME += t1.elapsed();
         for (auto &cur_leaf : unlabeled_leaf)
         {            

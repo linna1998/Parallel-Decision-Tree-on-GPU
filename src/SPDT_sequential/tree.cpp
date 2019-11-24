@@ -96,3 +96,75 @@ void DecisionTree::compress(vector<Data> &data)
             update_array(cur->histogram_id, attr, point.label, point.get_value(attr));              
     }
 }
+
+
+/*
+ * Serial version of training.
+*/
+void DecisionTree::train_on_batch(Dataset &train_data)
+{
+    
+    for(auto& data: train_data.dataset)
+        root->data_ptr.push_back(&data);
+
+    float pos_rate = ((float) train_data.num_pos_label) / train_data.num_of_data;
+    dbg_assert(pos_rate > 0 && pos_rate < 1);
+    root->num_pos_label = train_data.num_pos_label;
+    root->entropy = - pos_rate * log2(pos_rate) - (1-pos_rate) * log2((1-pos_rate));
+    batch_initialize(root); // Reinitialize every leaf in T as unlabeled.
+    vector<TreeNode *> unlabeled_leaf = __get_unlabeled(root);
+    dbg_assert(unlabeled_leaf.size() <= max_num_leaves);
+    while (!unlabeled_leaf.empty())
+    {        
+        // each while loop would add a new level node.
+        this->cur_depth++;
+        printf("depth [%d] finished\n", this->cur_depth);
+        vector<TreeNode *> unlabeled_leaf_new; 
+        if (unlabeled_leaf.size() > max_num_leaves) {
+            for (int i = 0; i < unlabeled_leaf.size(); i++) {
+                unlabeled_leaf[i]->set_label();
+                this->num_leaves++;
+            }
+            break;
+        }       
+        init_histogram(unlabeled_leaf); 
+        Timer t1 = Timer();
+        t1.reset();
+        compress(train_data.dataset); 
+        COMPRESS_TIME += t1.elapsed();
+        for (auto &cur_leaf : unlabeled_leaf)
+        {            
+            if (is_terminated(cur_leaf))
+            {         
+                cur_leaf->set_label();
+                this->num_leaves++;             
+            }
+            else
+            {                
+                SplitPoint best_split = SplitPoint();
+                Timer t2 = Timer();
+                t2.reset();
+                find_best_split(cur_leaf, best_split);
+                SPLIT_TIME += t2.elapsed();
+                dbg_ensures(best_split.gain >= -EPS);
+                if (best_split.gain <= min_gain){
+                    dbg_printf("Node terminated: gain=%.4f <= %.4f\n", best_split.gain, min_gain);
+                    cur_leaf->set_label();
+                    this->num_leaves++;               
+                    continue;
+                }
+                cur_leaf->left_node = new TreeNode(this->cur_depth, this->num_nodes++);
+                cur_leaf->right_node = new TreeNode(this->cur_depth, this->num_nodes++);
+                cur_leaf->split(best_split, cur_leaf->left_node, cur_leaf->right_node);
+                cur_leaf->is_leaf = false;
+                cur_leaf->label = -1;
+                unlabeled_leaf_new.push_back(cur_leaf->left_node);
+                unlabeled_leaf_new.push_back(cur_leaf->right_node);
+            }
+        }
+        unlabeled_leaf = unlabeled_leaf_new;
+        unlabeled_leaf_new.clear(); 
+    }
+    self_check();    
+}
+

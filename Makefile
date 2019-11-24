@@ -11,6 +11,7 @@ SOURCES_MPI := src/SPDT_general/array.cpp src/SPDT_openmpi/main.cpp src/SPDT_gen
 SEQUENTIAL = src/SPDT_sequential/tree.cpp 
 FEATURE_PARALLEL = src/SPDT_openmp/tree-feature-parallel.cpp
 DATA_PARALLEL = src/SPDT_openmpi/tree-data-parallel.cpp
+DATA_PARALLEL2 = src/SPDT_openmp/tree-data-parallel.cpp
 
 HEADERS := src/SPDT_general/array.h src/SPDT_general/parser.h src/SPDT_general/tree.h src/SPDT_general/timing.h
 
@@ -18,6 +19,7 @@ TARGETBIN := decision-tree
 TARGETBIN_DBG := decision-tree-dbg
 TARGETBIN_FEATURE := decision-tree-feature
 TARGETBIN_DATA := decision-tree-data
+TARGETBIN_DATA2 := decision-tree-data-openmp
 TARGETBIN_CUDA := decision-tree-cuda
 
 
@@ -62,6 +64,10 @@ $(TARGETBIN_FEATURE): $(SOURCES) $(HEADERS) $(FEATURE_PARALLEL)
 data: $(TARGETBIN_DATA)
 $(TARGETBIN_DATA): $(SOURCES_MPI) $(HEADERS) $(DATA_PARALLEL)
 	$(CXX_MPI) -o $@ $(CFLAGS) $(SOURCES_MPI) $(DATA_PARALLEL)
+
+data-openmp: $(TARGETBIN_DATA2)
+$(TARGETBIN_DATA2): $(SOURCES) $(HEADERS) $(DATA_PARALLEL2)
+	$(CXX_MPI) -o $@ $(CFLAGS) -fopenmp $(SOURCES) $(DATA_PARALLEL2)
 
 dirs:
 	mkdir -p $(OBJDIR)/

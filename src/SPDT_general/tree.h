@@ -125,6 +125,8 @@ public:
     // this function adjust the `global_partition_idx`
     void find_best_split(TreeNode* node, SplitPoint& split);
     void compress(vector<Data>& data);
+    void compress(vector<Data>& data, vector<TreeNode* >& unlabeld_leaves);
+
     vector<TreeNode*> __get_unlabeled(TreeNode* node);
     void batch_initialize(TreeNode* node);
     void initialize(Dataset &train_data, const int batch_size);
