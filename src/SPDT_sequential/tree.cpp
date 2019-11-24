@@ -83,8 +83,6 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 */
 void DecisionTree::compress(vector<Data> &data)
 {
-    clock_t start, end;
-    start = clock();  
     int feature_id = 0, class_id = 0;
     // Construct the histogram. and navigate each data to its leaf.
     TreeNode* cur;
@@ -97,7 +95,4 @@ void DecisionTree::compress(vector<Data> &data)
         for (int attr = 0; attr < num_of_features; attr++)
             update_array(cur->histogram_id, attr, point.label, point.get_value(attr));              
     }
-
-    end = clock();   
-    COMPRESS_TIME += ((float) (end - start)) / CLOCKS_PER_SEC; 
 }
