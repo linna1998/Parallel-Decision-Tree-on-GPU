@@ -7,7 +7,7 @@ void Dataset::read_a_data(int index) {
 	int feature;
 
 	string str, prev, indexstr, valuestr;
-	getline(*myfile, str);	
+	getline(myfile, str);	
 
 	size_t npos;
 

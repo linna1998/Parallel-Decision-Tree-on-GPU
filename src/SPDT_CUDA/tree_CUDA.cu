@@ -21,11 +21,14 @@ navigate_samples_kernel() {
 __global__ void
 histogram_update_kernel(
     int data_size, 
-    int num_of_threads,
+    int num_of_threads,    
     double *cuda_histogram_ptr, 
     int *cuda_label_ptr,
     float *cuda_value_ptr,
-    int *cuda_histogram_id_ptr) {
+    int *cuda_histogram_id_ptr,
+    int num_of_features,
+    int num_of_classes,
+    int max_bin_size) {
 
     // compute overall index from position of thread in current block,
     // and given the block we are in
@@ -41,7 +44,11 @@ histogram_update_kernel(
         cuda_histogram_id_ptr[blockIdx.x], 
         threadIdx.x, 
         cuda_label_ptr[blockIdx.x], 
-        cuda_value_ptr[blockIdx.x * num_of_features + threadIdx.x]);
+        cuda_value_ptr[blockIdx.x * num_of_features + threadIdx.x],
+        cuda_histogram_ptr,
+        num_of_features,
+        num_of_classes,
+        max_bin_size);
 }
 
 SplitPoint::SplitPoint()
@@ -75,9 +82,7 @@ TreeNode::TreeNode(int depth, int id, Dataset* datasetPointer)
     this->id = id;
     this->depth = depth;
     is_leaf = false;
-    label = -1;
-    // remove this if you want to keep the previous batch data.
-    data_ptr.clear();
+    label = -1;    
     histogram_id = -1;    
     left_node = NULL;
     right_node = NULL;
@@ -117,22 +122,24 @@ void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
     this->split_ptr = best_split;
     this->entropy = best_split.entropy;
     double split_value = best_split.feature_value;
-    int num_pos_lebel_left=0;
-    int num_pos_lebel_right=0;
-    for (auto &p : this->data_ptr)
-    {
-        double p_value = p->get_value(best_split.feature_id);
-        if (best_split.decision_rule(*p)){
-            right->data_ptr.push_back(p);
-            num_pos_lebel_right = (p->label == POS_LABEL) ? num_pos_lebel_right+1 : num_pos_lebel_right;
+    int num_pos_label_left=0;
+    int num_pos_label_right=0;
+    for (int i = 0; i < this->datasetPointer->num_of_data; i++) {
+        if (this->datasetPointer->histogram_id_ptr[i] != this->histogram_id) {
+            continue;
         }
-        else{
-            left->data_ptr.push_back(p);
-            num_pos_lebel_left = (p->label == POS_LABEL) ? num_pos_lebel_left+1 : num_pos_lebel_left;
+        double p_value = this->datasetPointer->value_ptr[i * num_of_features + best_split.feature_id];
+        if (best_split.decision_rule(i)) {
+            this->datasetPointer->histogram_id_ptr[i] = right->histogram_id;
+            num_pos_label_right = (this->datasetPointer->label_ptr[i] == POS_LABEL) ? num_pos_label_right + 1 : num_pos_label_right;
+        } else {
+            this->datasetPointer->histogram_id_ptr[i] = left->histogram_id;
+            num_pos_label_left = (this->datasetPointer->label_ptr[i] == POS_LABEL) ? num_pos_label_left + 1 : num_pos_label_left;
         }
     }
-    left->num_pos_label = num_pos_lebel_left;
-    right->num_pos_label = num_pos_lebel_right;
+   
+    left->num_pos_label = num_pos_label_left;
+    right->num_pos_label = num_pos_label_right;
 
     dbg_assert(left->num_pos_label >= 0);
     dbg_assert(right->num_pos_label >= 0);
@@ -170,8 +177,7 @@ void TreeNode::print() {
 
 void TreeNode::clear(){
     if (left_node != NULL) left_node->clear();
-    if (right_node != NULL) right_node->clear();
-    data_ptr.clear();
+    if (right_node != NULL) right_node->clear();    
 }
 
 DecisionTree::DecisionTree()
@@ -235,7 +241,7 @@ bool DecisionTree::is_terminated(TreeNode *node)
 {
     if (min_node_size != -1 && node->data_size <= min_node_size)
     {
-        dbg_printf("Node [%d] terminated: min_node_size=%d >= %d\n", node->id, min_node_size, node->data_ptr.size());
+        dbg_printf("Node [%d] terminated: min_node_size=%d >= %d\n", node->id, min_node_size, node->data_size);
         return true;
     }
 
@@ -399,11 +405,14 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
 
         histogram_update_kernel<<<block_num, thread_per_block>>>(
             node->data_size,
-            num_of_features,                        
+            num_of_features,                              
             cuda_histogram_ptr, 
             cuda_label_ptr,
             cuda_value_ptr,
-            cuda_histogram_id_ptr);        
+            cuda_histogram_id_ptr,
+            num_of_features,
+            num_of_classes,
+            max_bin_size);        
     }
 }
 
