@@ -427,26 +427,22 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
         this->datasetPointer->histogram_id_ptr,
         sizeof(int) * this->datasetPointer->num_of_data,
         cudaMemcpyHostToDevice); 
+                                
+    // https://stackoverflow.com/questions/31598021/cuda-cudamemcpy-struct-of-arrays
+    // reference for moving objects from host to device in CUDA
 
-    for (int i = 0; i < unlabeled_leaf.size(); i++) {
-        TreeNode* node = unlabeled_leaf[i];                      
-        
-        // https://stackoverflow.com/questions/31598021/cuda-cudamemcpy-struct-of-arrays
-        // reference for moving objects from host to device in CUDA
-
-        histogram_update_kernel<<<block_num, thread_per_block>>>(
-            block_num,
-            num_of_features,                              
-            cuda_histogram_ptr, 
-            cuda_label_ptr,
-            cuda_value_ptr,
-            cuda_histogram_id_ptr,
-            num_of_features,
-            num_of_classes,
-            max_bin_size);  
-        cudaDeviceSynchronize();       
-    }
-
+    histogram_update_kernel<<<block_num, thread_per_block>>>(
+        block_num,
+        num_of_features,                              
+        cuda_histogram_ptr, 
+        cuda_label_ptr,
+        cuda_value_ptr,
+        cuda_histogram_id_ptr,
+        num_of_features,
+        num_of_classes,
+        max_bin_size);  
+    cudaDeviceSynchronize();       
+    
     cudaMemcpy(histogram,
         cuda_histogram_ptr,
         sizeof(float) * number,
