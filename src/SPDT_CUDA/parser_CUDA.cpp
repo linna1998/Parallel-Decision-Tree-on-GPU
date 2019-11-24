@@ -1,7 +1,28 @@
 #include "parser_CUDA.h"
+#include "array_CUDA.h"
+#include "tree_CUDA.h"
+
+Dataset::Dataset() {
+	num_pos_label=0;
+}
+
+Dataset::Dataset(int _num_of_data):		
+	num_of_data(_num_of_data) {
+	already_read_data = 0;
+	num_pos_label = 0;
+	label_ptr = (int*)calloc(_num_of_data, sizeof(int));
+	value_ptr = (float*)calloc(_num_of_data * num_of_features, sizeof(float));
+	histogram_id_ptr = (int*)calloc(_num_of_data, sizeof(int));
+}
+
+Dataset::~Dataset() {	
+	free(label_ptr);
+	free(value_ptr);
+	free(histogram_id_ptr);	
+}
 
 void Dataset::read_a_data(int index) {		
-	double tmpvalue;	
+	float tmpvalue;	
 	
 	bool isFirst = true;
 	int feature;

@@ -1,4 +1,5 @@
 #include "tree_CUDA.h"
+#include "array_CUDA.h"
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +19,7 @@ int main(int argc, char **argv) {
 
     int index = 5;
     clock_t start, end;
-    double cpu_time_used;
+    float cpu_time_used;
     int c;
     int num_of_thread = -1;    
     int min_node_size = -1;
@@ -76,7 +77,7 @@ int main(int argc, char **argv) {
     start = clock();     
     decisionTree.train(trainDataset, trainSize[index]);
     end = clock();
-    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    cpu_time_used = ((float) (end - start)) / CLOCKS_PER_SEC;
     printf("train time: %f\n", cpu_time_used);
     
     // test
@@ -87,7 +88,7 @@ int main(int argc, char **argv) {
     start = clock();   
     printf("correct rate: %f\n", decisionTree.test(testDataset));     
     end = clock();
-    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    cpu_time_used = ((float) (end - start)) / CLOCKS_PER_SEC;
     printf("test time: %f\n", cpu_time_used);
 
     return 0;

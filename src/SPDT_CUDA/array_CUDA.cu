@@ -1,4 +1,7 @@
 #include "array_CUDA.h"
+#include "tree_CUDA.h"
+
+float* histogram = NULL;
 
 /*
  * For A[][M][N][Z]
@@ -39,68 +42,68 @@ inline int RLOC(int i, int M, int N, int Z){
 }
 
 __device__
-inline double get_bin_size_CUDA(double* histo){
+inline float get_bin_size_CUDA(float* histo){
 	return *histo;
 }
 
-inline double get_bin_size(double* histo){
+inline float get_bin_size(float* histo){
 	return *histo;
 }
 
 __device__
-inline double *get_histogram_array_CUDA(int histogram_id, int feature_id, int label,
-	double *histogram, int num_of_features, int num_of_classes, int max_bin_size) {
+inline float *get_histogram_array_CUDA(int histogram_id, int feature_id, int label,
+	float *histogram, int num_of_features, int num_of_classes, int max_bin_size) {
     return histogram + 
         RLOC_CUDA(histogram_id, feature_id, label, 0, 
         num_of_features, num_of_classes, (max_bin_size + 1) * 2 + 1);
 }
 
-inline double *get_histogram_array(int histogram_id, int feature_id, int label) {
+inline float *get_histogram_array(int histogram_id, int feature_id, int label) {
     return histogram + 
         RLOC(histogram_id, feature_id, label, 0, 
         num_of_features, num_of_classes, (max_bin_size + 1) * 2 + 1);
 }
 
 __device__
-inline double get_bin_freq_CUDA(double *histo, int index) {
+inline float get_bin_freq_CUDA(float *histo, int index) {
     return *(histo + index * 2 + 1);
 }
 
-inline double get_bin_freq(double *histo, int index) {
+inline float get_bin_freq(float *histo, int index) {
     return *(histo + index * 2 + 1);
 }
 
 __device__
-inline double get_bin_value_CUDA(double *histo, int index) {
+inline float get_bin_value_CUDA(float *histo, int index) {
     return *(histo + index * 2 + 2);
 }
 
-inline double get_bin_value(double *histo, int index) {
+inline float get_bin_value(float *histo, int index) {
     return *(histo + index * 2 + 2);
 }
 
 __device__
-inline void set_bin_freq_CUDA(double *histo, int index, double freq) {
+inline void set_bin_freq_CUDA(float *histo, int index, float freq) {
     *(histo + index * 2 + 1) = freq;
 }
 
-inline void set_bin_freq(double *histo, int index, double freq) {
+inline void set_bin_freq(float *histo, int index, float freq) {
     *(histo + index * 2 + 1) = freq;
 }
 
 __device__
-inline void set_bin_value_CUDA(double *histo, int index, double value) {
+inline void set_bin_value_CUDA(float *histo, int index, float value) {
     *(histo + index * 2 + 2) = value;
 }
 
-inline void set_bin_value(double *histo, int index, double value) {
+inline void set_bin_value(float *histo, int index, float value) {
     *(histo + index * 2 + 2) = value;
 }
 
 
 int get_total_array(int histogram_id, int feature_id, int label) {
     int t = 0;
-	double *histo = get_histogram_array(histogram_id, feature_id, label);
+	float *histo = get_histogram_array(histogram_id, feature_id, label);
     int bin_size = *histo;
     for (int i = 0; i < bin_size; i++){
         t += get_bin_freq(histo, i);
@@ -109,12 +112,12 @@ int get_total_array(int histogram_id, int feature_id, int label) {
 }
 
 
-double sum_array(int histogram_id, int feature_id, int label, double value) {	
+float sum_array(int histogram_id, int feature_id, int label, float value) {	
 	int index = 0;
-	double mb = 0;
-	double s = 0;
+	float mb = 0;
+	float s = 0;
 
-    double *histo = get_histogram_array(histogram_id, feature_id, label);
+    float *histo = get_histogram_array(histogram_id, feature_id, label);
     int bin_size = *histo;
 
 	if (bin_size == 1) {
@@ -171,12 +174,12 @@ double sum_array(int histogram_id, int feature_id, int label, double value) {
 		s = s + get_bin_freq(histo, j);
 	}
 
-	s = s + ((double)get_bin_freq(histo, index)) / 2;	
+	s = s + ((float)get_bin_freq(histo, index)) / 2;	
 	return s;
 }
 
 __device__
-void merge_same_array_CUDA(double *histo) {
+void merge_same_array_CUDA(float *histo) {
     int bin_size = *histo;
     for (int i = 0; i + 1 < bin_size; i++) {        
 		if (abs(get_bin_value_CUDA(histo, i) - get_bin_value_CUDA(histo, i + 1)) < EPS) {
@@ -194,7 +197,7 @@ void merge_same_array_CUDA(double *histo) {
     *histo = bin_size;
 }
 
-void merge_same_array(double *histo) {
+void merge_same_array(float *histo) {
     int bin_size = *histo;
     for (int i = 0; i + 1 < bin_size; i++) {        
 		if (abs(get_bin_value(histo, i) - get_bin_value(histo, i + 1)) < EPS) {
@@ -213,10 +216,10 @@ void merge_same_array(double *histo) {
 }
 
 __device__
-void merge_bin_array_CUDA(double *histo) {    
+void merge_bin_array_CUDA(float *histo) {    
 	int index = 0;
-    double new_freq = 0;
-    double new_value = 0;
+    float new_freq = 0;
+    float new_value = 0;
 
     int bin_size = get_bin_size_CUDA(histo);
 
@@ -250,10 +253,10 @@ void merge_bin_array_CUDA(double *histo) {
 }
 
 
-void merge_bin_array(double *histo) {    
+void merge_bin_array(float *histo) {    
 	int index = 0;
-    double new_freq = 0;
-    double new_value = 0;
+    float new_freq = 0;
+    float new_value = 0;
 
     int bin_size = get_bin_size(histo);
 
@@ -286,8 +289,8 @@ void merge_bin_array(double *histo) {
     merge_same_array(histo);
 }
 
-void merge_array_pointers(double *histo1, double *histo2, int max_bin_size) {
-    double *histo_merge = new double[max_bin_size * 4 + 1];
+void merge_array_pointers(float *histo1, float *histo2, int max_bin_size) {
+    float *histo_merge = new float[max_bin_size * 4 + 1];
 
     int index1 = 0, index2 = 0;
     int bin_size1 = *histo1;
@@ -330,22 +333,22 @@ void merge_array_pointers(double *histo1, double *histo2, int max_bin_size) {
 
 void merge_array(int histogram_id1, int feature_id1, int label1, 
 	int histogram_id2, int feature_id2, int label2) {
-	double *histo1 = get_histogram_array(histogram_id1, feature_id1, label1);
-	double *histo2 = get_histogram_array(histogram_id2, feature_id2, label2);
+	float *histo1 = get_histogram_array(histogram_id1, feature_id1, label1);
+	float *histo2 = get_histogram_array(histogram_id2, feature_id2, label2);
 	merge_array_pointers(histo1, histo2, max_bin_size);
 	return;
 }
 
 
-void uniform_array(std::vector<double> &u, int histogram_id, int feature_id, int label) {	
-	double *histo = get_histogram_array(histogram_id, feature_id, label);
+void uniform_array(std::vector<float> &u, int histogram_id, int feature_id, int label) {	
+	float *histo = get_histogram_array(histogram_id, feature_id, label);
     int bin_size = get_bin_size(histo);
     int B = bin_size;
-	double tmpsum = 0;
-	double s = 0;
+	float tmpsum = 0;
+	float s = 0;
 	int index = 0;
-	double a = 0, b = 0, c = 0, d = 0, z = 0;	
-	double uj = 0;
+	float a = 0, b = 0, c = 0, d = 0, z = 0;	
+	float uj = 0;
 	u.clear();
 
 	if (bin_size <= 1) {
@@ -393,10 +396,10 @@ void uniform_array(std::vector<double> &u, int histogram_id, int feature_id, int
 }
 
 __device__
-void update_array(int histogram_id, int feature_id, int label, double value,
-	double *histogram, int num_of_features, int num_of_classes, int max_bin_size) {	
+void update_array(int histogram_id, int feature_id, int label, float value,
+	float *histogram, int num_of_features, int num_of_classes, int max_bin_size) {	
 	int index = 0;	
-	double *histo = get_histogram_array_CUDA(histogram_id, feature_id, label,
+	float *histo = get_histogram_array_CUDA(histogram_id, feature_id, label,
 		histogram, num_of_features, num_of_classes, max_bin_size);
 	// If there are values in the bin equals to the value here
 	int bin_size = (int) get_bin_size_CUDA(histo);
