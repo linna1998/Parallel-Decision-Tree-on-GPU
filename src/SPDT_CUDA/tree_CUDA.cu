@@ -289,7 +289,7 @@ void DecisionTree::initialize(Dataset &train_data, const int batch_size){
     printf("Init Root Node [%.4f] MB\n", SIZE * sizeof(float) / 1024.f / 1024.f);
     
     histogram = new float[SIZE];
-    memset(histogram, 0, SIZE * sizeof(float));  
+    memset(histogram, 0, SIZE * sizeof(float));          
     printf("Init success\n");
 }
 
@@ -301,12 +301,20 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
 		hasNext = train_data.streaming_read_data(batch_size);	
         dbg_printf("Train size (%d, %d, %d)\n", train_data.num_of_data, 
                 num_of_features, num_of_classes);
+                
+        Timer t = Timer();
+        t.reset();
+        initCUDA();
+        COMMUNICATION_TIME += t.elapsed();
+
         train_on_batch(train_data);        
 		if (!hasNext) break;
 	}		
     
-	train_data.close_read_data(); 
-    printf("COMPRESS TIME: %f\nSPLIT TIME: %f\n", COMPRESS_TIME, SPLIT_TIME);   
+    train_data.close_read_data();
+    terminateCUDA(); 
+    printf("COMPRESS TIME: %f\nSPLIT TIME: %f\nCOMMUNICATION TIME: %f\n", 
+        COMPRESS_TIME, SPLIT_TIME, COMMUNICATION_TIME);   
     return;
 }
 
@@ -431,7 +439,8 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
             cuda_histogram_id_ptr,
             num_of_features,
             num_of_classes,
-            max_bin_size);        
+            max_bin_size);  
+        cudaDeviceSynchronize();       
     }
 
     cudaMemcpy(histogram,
