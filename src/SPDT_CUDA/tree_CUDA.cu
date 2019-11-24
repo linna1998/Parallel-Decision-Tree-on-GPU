@@ -394,7 +394,17 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 */
 void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
     int block_num = 0;
-    int thread_per_block = num_of_features;        
+    int thread_per_block = num_of_features; 
+    long long number = (long long) max_num_leaves * num_of_features * num_of_classes * ((max_bin_size + 1) * 2 + 1);        
+    
+    cudaMemcpy(cuda_histogram_ptr,
+        histogram,
+        sizeof(double) * number,
+        cudaMemcpyHostToDevice);    
+    cudaMemcpy(cuda_histogram_id_ptr,
+        this->datasetPointer->histogram_id_ptr,
+        sizeof(int) * this->datasetPointer->num_of_data,
+        cudaMemcpyHostToDevice); 
 
     for (int i = 0; i < unlabeled_leaf.size(); i++) {
         TreeNode* node = unlabeled_leaf[i];                      
@@ -414,6 +424,11 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
             num_of_classes,
             max_bin_size);        
     }
+
+    cudaMemcpy(histogram,
+        cuda_histogram_ptr,
+        sizeof(double) * number,
+        cudaMemcpyDeviceToHost);  
 }
 
 /*
