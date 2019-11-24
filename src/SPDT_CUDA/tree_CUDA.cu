@@ -144,9 +144,11 @@ void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
         if (best_split.decision_rule(i)) {
             this->datasetPointer->histogram_id_ptr[i] = right->histogram_id;
             num_pos_label_right = (this->datasetPointer->label_ptr[i] == POS_LABEL) ? num_pos_label_right + 1 : num_pos_label_right;
+            right->data_size++;
         } else {
             this->datasetPointer->histogram_id_ptr[i] = left->histogram_id;
             num_pos_label_left = (this->datasetPointer->label_ptr[i] == POS_LABEL) ? num_pos_label_left + 1 : num_pos_label_left;
+            left->data_size++;
         }
     }
    
@@ -253,34 +255,35 @@ bool DecisionTree::is_terminated(TreeNode *node)
 {
     if (min_node_size != -1 && node->data_size <= min_node_size)
     {
-        dbg_printf("Node [%d] terminated: min_node_size=%d >= %d\n", node->id, min_node_size, node->data_size);
+        printf("Node [%d] terminated: min_node_size=%d >= %d\n", node->id, min_node_size, node->data_size);
         return true;
     }
 
     if (max_depth != -1 && node->depth >= this->max_depth)
     {
-        dbg_printf("Node [%d] terminated: max_depth\n", node->id);
+        printf("Node [%d] terminated: max_depth\n", node->id);
         return true;
     }
 
     if (max_num_leaves != -1 && this->num_leaves >= this->max_num_leaves)
     {
-        dbg_printf("Node [%d] terminated: max_num_leaves\n", node->id);
+        printf("Node [%d] terminated: max_num_leaves\n", node->id);
         return true;
     }
 
     if (!node->num_pos_label || node->num_pos_label == (int) node->data_size){
         dbg_assert(node->entropy < EPS);
-        dbg_printf("Node [%d] terminated: all samples belong to same class\n",node->id);
+        printf("Node [%d] terminated: all samples belong to same class\n",node->id);
         return true; 
     }
-    dbg_printf("[%d] num_data=%d, num_pos=%d\n", node->id, node->data_size, node->num_pos_label);
+    printf("[%d] num_data=%d, num_pos=%d\n", node->id, node->data_size, node->num_pos_label);
     return false;
 }
 
 void DecisionTree::initialize(Dataset &train_data, const int batch_size){
-    this->datasetPointer = &train_data;
+    this->datasetPointer = &train_data;    
     root = new TreeNode(0, this->num_nodes++, datasetPointer);  
+    root->data_size = train_data.num_of_data;
     if (histogram != NULL) {        
         delete[] histogram;
     }
@@ -299,7 +302,7 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
     initialize(train_data, batch_size);
 	while (TRUE) {
 		hasNext = train_data.streaming_read_data(batch_size);	
-        dbg_printf("Train size (%d, %d, %d)\n", train_data.num_of_data, 
+        printf("Train size (%d, %d, %d)\n", train_data.num_of_data, 
                 num_of_features, num_of_classes);
                 
         Timer t = Timer();
@@ -376,7 +379,10 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
 */
 void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 {              
+    assert(node != NULL);
+
     std::vector<SplitPoint> results;
+
     for (int i = 0; i < num_of_features; i++)
     {
         // merge different labels
@@ -386,8 +392,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
         }
 
         std::vector<float> possible_splits;
-        uniform_array(possible_splits, node->histogram_id, i, 0);
-
+        uniform_array(possible_splits, node->histogram_id, i, 0);        
         dbg_assert(possible_splits.size() <= max_bin_size);
         for (auto& split_value: possible_splits)
         {
@@ -410,7 +415,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
  * This function takes the assumption that each leaf is re-initialized (we use a batch mode)
 */
 void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
-    int block_num = 0;
+    int block_num = this->datasetPointer->num_of_data;
     int thread_per_block = num_of_features; 
     long long number = (long long) max_num_leaves * num_of_features * num_of_classes * ((max_bin_size + 1) * 2 + 1);        
     
@@ -425,13 +430,12 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
 
     for (int i = 0; i < unlabeled_leaf.size(); i++) {
         TreeNode* node = unlabeled_leaf[i];                      
-        block_num = node->data_size;                
         
         // https://stackoverflow.com/questions/31598021/cuda-cudamemcpy-struct-of-arrays
         // reference for moving objects from host to device in CUDA
 
         histogram_update_kernel<<<block_num, thread_per_block>>>(
-            node->data_size,
+            block_num,
             num_of_features,                              
             cuda_histogram_ptr, 
             cuda_label_ptr,
@@ -447,6 +451,18 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
         cuda_histogram_ptr,
         sizeof(float) * number,
         cudaMemcpyDeviceToHost);  
+    
+    float *histo = NULL;
+    int bin_size = 0;
+
+    for (int i = 0; i < num_of_features; i++) {
+        for (int j = 0; j < num_of_classes; j++) {
+            histo = get_histogram_array(0, i, j, histogram, num_of_features, num_of_classes, max_bin_size);
+            bin_size = get_bin_size(histo);
+            printf("[%d][%d]: bin_size %d\n", i, j, bin_size);
+        }
+    }    
+    
 }
 
 /*
@@ -495,7 +511,7 @@ void DecisionTree::train_on_batch(Dataset &train_data)
                 SPLIT_TIME += t2.elapsed();                
                 dbg_ensures(best_split.gain >= -EPS);
                 if (best_split.gain <= min_gain){
-                    dbg_printf("Node terminated: gain=%.4f <= %.4f\n", min_node_size, best_split.gain, min_gain);
+                    printf("Node terminated: gain=%.4f <= %.4f\n", min_node_size, best_split.gain, min_gain);
                     cur_leaf->set_label();
                     this->num_leaves++;               
                     continue;
@@ -548,9 +564,9 @@ void DecisionTree::self_check(){
     }
     dbg_assert(count_leaf == num_leaves);
     dbg_assert(count_nodes == num_nodes);
-    dbg_printf("------------------------------------------------\n");
-    dbg_printf("| Num_leaf: %d, num_nodes: %d, max_depth: %d | \n", num_leaves, num_nodes, cur_depth);
-    dbg_printf("------------------------------------------------\n");
+    printf("------------------------------------------------\n");
+    printf("| Num_leaf: %d, num_nodes: %d, max_depth: %d | \n", num_leaves, num_nodes, cur_depth);
+    printf("------------------------------------------------\n");
 
 }
 

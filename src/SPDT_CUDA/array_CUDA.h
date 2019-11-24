@@ -55,3 +55,7 @@ inline int RLOC(int i, int j, int M, int N, int Z);
  * A[i] = A[N*Z*M*i]
  */
 inline int RLOC(int i, int M, int N, int Z);
+
+extern CUDA_HOST CUDA_DEVICE float get_bin_size(float* histo);
+extern CUDA_HOST CUDA_DEVICE float *get_histogram_array(int histogram_id, int feature_id, int label,
+	float *histogram, int num_of_features, int num_of_classes, int max_bin_size);
