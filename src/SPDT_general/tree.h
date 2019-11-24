@@ -27,20 +27,26 @@
 #define dbg_printheap(...) ((void)sizeof(__VA_ARGS__))
 #endif
 
-#define EPS 1e-9
+#define EPS 1e-7
 
-static double COMPRESS_TIME = 0;
-static double SPLIT_TIME = 0;
+extern double COMPRESS_TIME;
+extern double SPLIT_TIME;
 
+extern int num_of_features;
+extern int num_of_classes;
+extern int max_bin_size;
+extern int max_num_leaves;
+
+extern long long SIZE;
 class SplitPoint{
 public:
     // used to store the spliting information on a given histogram.
     int feature_id;
-    double feature_value;
+    float feature_value;
 	double gain;
 	double entropy;
     SplitPoint();
-    SplitPoint(int feature_id, double feature_value);
+    SplitPoint(int feature_id, float feature_value);
     bool decision_rule(Data& data);
     inline SplitPoint& operator = (const SplitPoint& split){
         this->feature_id = split.feature_id;
@@ -84,7 +90,6 @@ private:
     int num_leaves;
     int num_nodes;
     int depth;
-    int max_num_leaves;
     int max_depth;    
     int min_node_size;
     int cur_depth;
@@ -99,8 +104,7 @@ public:
 
     DecisionTree();
     ~DecisionTree();
-    DecisionTree(int max_num_leaves, int max_depth, int min_node_size){
-        this->max_num_leaves = max_num_leaves;
+    DecisionTree(int max_depth, int min_node_size){
         this->max_depth = max_depth;
         this->min_node_size = min_node_size;
         this->depth = 0;

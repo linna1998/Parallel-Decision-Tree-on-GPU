@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "tree.h"
 
 double Data::get_value(int feature_id) {
 	if (values.find(feature_id) == values.end()) {

@@ -1,0 +1,11 @@
+max_num_leaf=64, max_depth=9, min_node_size=32, max_bin_size=32
+Init Root Node [0.7197] MB
+Init success
+Train size (49990, 22, 2)
+depth [1] finished
+start: compress
+end: compress
+[0] num_data=49990, num_pos=4853
+enter: find best split
+size=3, [(0.00000000, 44991),(1.00000000, 507),(1.00000000, 507),]
+size = 2
