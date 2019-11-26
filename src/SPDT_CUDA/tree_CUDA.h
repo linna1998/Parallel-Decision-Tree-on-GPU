@@ -28,7 +28,7 @@
 #endif
 
 #define EPS 1e-9
-#define magic 234
+#define magic 2
 
 extern float COMPRESS_TIME;
 extern float SPLIT_TIME;
