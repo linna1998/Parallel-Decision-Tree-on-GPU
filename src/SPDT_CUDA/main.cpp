@@ -14,8 +14,7 @@ string help_msg = "-l: max_num_leaf.\n-d: max_depth.\n-n: number of"\
 
 int main(int argc, char **argv) {
 
-    int index = 5;
-    clock_t start, end;
+    int index = 0;
     double cpu_time_used_train;
     double cpu_time_used_test;
     int c;

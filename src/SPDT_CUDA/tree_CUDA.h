@@ -28,6 +28,7 @@
 #endif
 
 #define EPS 1e-9
+#define magic 234
 
 extern float COMPRESS_TIME;
 extern float SPLIT_TIME;
@@ -52,8 +53,6 @@ struct GlobalConstants {
     float* cuda_value_ptr;
 
 };
-
-extern __constant__ GlobalConstants cuConstTreeParams;
 
 class SplitPoint{
 public:

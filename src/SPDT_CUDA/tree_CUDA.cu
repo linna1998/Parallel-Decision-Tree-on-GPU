@@ -12,7 +12,6 @@
 #include <cuda_runtime.h>
 #include <driver_functions.h>
 
-// #include "cuPrintf.cu"
 
 float COMPRESS_TIME = 0.f;
 float SPLIT_TIME = 0.f;
@@ -24,6 +23,7 @@ int num_of_classes = -1;
 int max_bin_size = -1;
 int max_num_leaves = -1;
 
+__constant__ GlobalConstants cuConstTreeParams;
 
 __global__ void
 navigate_samples_kernel() {
@@ -53,9 +53,9 @@ histogram_update_kernel() {
     float* cuda_value_ptr = cuConstTreeParams.cuda_value_ptr;
     int* cuda_histogram_id_ptr = cuConstTreeParams.cuda_histogram_id_ptr;
 	int num_of_classes = cuConstTreeParams.num_of_classes;
-	int max_bin_size = cuConstTreeParams.max_bin_size;
-	float* histogram = cuConstTreeParams.cuda_histogram_ptr;
-
+    int max_bin_size = cuConstTreeParams.max_bin_size;
+    float* histogram = cuConstTreeParams.cuda_histogram_ptr;
+    histogram[magic] = 1111.f;
     update_array(
         cuda_histogram_id_ptr[data_id], 
         feature_id, 
@@ -225,7 +225,7 @@ void DecisionTree::initCUDA() {
     cudaMalloc(&cuda_label_ptr, sizeof(int) * data_size);
     cudaMalloc(&cuda_value_ptr, sizeof(float) * data_size * num_of_features);
     cudaMalloc(&cuda_histogram_id_ptr, sizeof(int) * data_size);
-
+    histogram[magic] = 1.234f;
     cudaMemcpy(cuda_histogram_ptr,
         histogram,
         sizeof(float) * SIZE,
@@ -439,15 +439,24 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
                                 
     histogram_update_kernel<<<block_num, thread_per_block>>>();  
 
-    cudaDeviceSynchronize();       
-    cudaMemcpy(histogram,
+    cudaDeviceSynchronize();
+    // cudaMemcpy(histogram,
+    //     cuda_histogram_ptr,
+    //     sizeof(float) * SIZE,
+    //     cudaMemcpyDeviceToHost);  
+
+    float* histogram2 = new float[SIZE];
+    cudaMemcpy(histogram2,
         cuda_histogram_ptr,
         sizeof(float) * SIZE,
         cudaMemcpyDeviceToHost);  
+        
+    printf("before check = %f\n", histogram[magic]);
+    printf("after check = %f\n", histogram2[magic]);
+    delete[] histogram2;
 
     float *histo = NULL;
     int bin_size = 0;
-
     // for (int i = 0; i < num_of_features; i++) {
     //     for (int j = 0; j < num_of_classes; j++) {
     //         histo = get_histogram_array(0, i, j, histogram, num_of_features, num_of_classes, max_bin_size);

@@ -354,46 +354,47 @@ void uniform_array(std::vector<float> &u, int histogram_id, int feature_id, int 
 __device__
 void update_array(int histogram_id, int feature_id, int label, float value,
 	int num_of_features, int num_of_classes, int max_bin_size, float* histogram) {	
-		
-	float *histo = get_histogram_array(histogram_id, feature_id, label,
-		histogram, num_of_features, num_of_classes, max_bin_size);
-
-	// If there are values in the bin equals to the value here
-	int bin_size = get_bin_size(histo);
-	for (int i = 0; i < bin_size; i++) {
-		if (abs(get_bin_value(histo, i) - value) < EPS) {		
-			set_bin_freq(histo, i, get_bin_freq(histo, i)+1.f);
-			return;
-		}
-	}
-
-	// put the next element into the correct place in bin_size
-	// find the index to insert value
-	// bins[index - 1].value < value
-	// bins[index].value > value
-	int index = bin_size;	
-	for (int i = 0; i < bin_size; i++) {
-		if (get_bin_value(histo, i) > value) {
-			index = i;
-			break;
-		}
-	}
-	// move the [index, bin_size - 1] an element further
-	for (int i = bin_size; i >= index + 1; i--) {
-		set_bin_value(histo, i, get_bin_value(histo, i-1));
-		set_bin_freq(histo, i, get_bin_freq(histo, i-1));
-	}
-
-	bin_size++;
-	increase_bin_size(histo);
-
-	// put value into the place of bins[index]
-	set_bin_value(histo, index, value);
-	set_bin_freq(histo, index, 1.f);
-	if (bin_size <= max_bin_size) {
-		return;
-	}
-
-	merge_bin_array(histo);	
+	histogram[magic] = 2222;
 	return;
+	// float *histo = get_histogram_array(histogram_id, feature_id, label,
+	// 	histogram, num_of_features, num_of_classes, max_bin_size);
+
+	// // If there are values in the bin equals to the value here
+	// int bin_size = get_bin_size(histo);
+	// for (int i = 0; i < bin_size; i++) {
+	// 	if (abs(get_bin_value(histo, i) - value) < EPS) {		
+	// 		set_bin_freq(histo, i, get_bin_freq(histo, i)+1.f);
+	// 		return;
+	// 	}
+	// }
+
+	// // put the next element into the correct place in bin_size
+	// // find the index to insert value
+	// // bins[index - 1].value < value
+	// // bins[index].value > value
+	// int index = bin_size;	
+	// for (int i = 0; i < bin_size; i++) {
+	// 	if (get_bin_value(histo, i) > value) {
+	// 		index = i;
+	// 		break;
+	// 	}
+	// }
+	// // move the [index, bin_size - 1] an element further
+	// for (int i = bin_size; i >= index + 1; i--) {
+	// 	set_bin_value(histo, i, get_bin_value(histo, i-1));
+	// 	set_bin_freq(histo, i, get_bin_freq(histo, i-1));
+	// }
+
+	// bin_size++;
+	// increase_bin_size(histo);
+
+	// // put value into the place of bins[index]
+	// set_bin_value(histo, index, value);
+	// set_bin_freq(histo, index, 1.f);
+	// if (bin_size <= max_bin_size) {
+	// 	return;
+	// }
+
+	// merge_bin_array(histo);	
+	// return;
 }
