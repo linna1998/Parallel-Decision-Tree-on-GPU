@@ -24,6 +24,7 @@ int num_of_classes = -1;
 int max_bin_size = -1;
 int max_num_leaves = -1;
 
+__constant__ GlobalConstants cuConstTreeParams;
 
 __global__ void
 navigate_samples_kernel() {
@@ -448,13 +449,16 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
     float *histo = NULL;
     int bin_size = 0;
 
-    // for (int i = 0; i < num_of_features; i++) {
-    //     for (int j = 0; j < num_of_classes; j++) {
-    //         histo = get_histogram_array(0, i, j, histogram, num_of_features, num_of_classes, max_bin_size);
-    //         bin_size = get_bin_size(histo);
-    //         printf("[%d][%d]: bin_size %d\n", i, j, bin_size);
-    //     }
-    // }    
+    // for DEBUG only
+    int all_zero = TRUE;
+    for (int i = 0; i < num_of_features; i++) {
+        for (int j = 0; j < num_of_classes; j++) {
+            histo = get_histogram_array(0, i, j, histogram, num_of_features, num_of_classes, max_bin_size);
+            bin_size = get_bin_size(histo);
+            if (bin_size > 0) all_zero = FALSE;
+        }
+    }   
+    assert(!all_zero);
 }
 
 /*

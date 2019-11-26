@@ -32,7 +32,13 @@ CXX := g++
 CXX_MPI := mpic++
 
 # parameters for CUDA
-LDFLAGS = -L/usr/local/depot/cuda-8.0/lib64/ -lcudart
+ifneq ($(wildcard /opt/cuda-8.0/.*),)
+# Latedays
+LDFLAGS=-L/opt/cuda-8.0/lib64/ -lcudart
+else
+# GHC
+LDFLAGS=-L/usr/local/depot/cuda-8.0/lib64/ -lcudart
+endif
 NVCC = nvcc
 NVCCFLAGS = -O3 -std=c++11 -w -m64 --gpu-architecture compute_35
 CXX_CUDA = g++ -m64

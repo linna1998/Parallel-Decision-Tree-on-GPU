@@ -53,8 +53,6 @@ struct GlobalConstants {
 
 };
 
-extern __constant__ GlobalConstants cuConstTreeParams;
-
 class SplitPoint{
 public:
     // used to store the spliting information on a given histogram.
