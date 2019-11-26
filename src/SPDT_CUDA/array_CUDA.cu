@@ -354,7 +354,7 @@ void uniform_array(std::vector<float> &u, int histogram_id, int feature_id, int 
 __device__
 void update_array(int histogram_id, int feature_id, int label, float value,
 	int num_of_features, int num_of_classes, int max_bin_size, float* histogram) {	
-	histogram[magic] = 2222;
+	// histogram[magic] = 2222.f;
 	return;
 	// float *histo = get_histogram_array(histogram_id, feature_id, label,
 	// 	histogram, num_of_features, num_of_classes, max_bin_size);

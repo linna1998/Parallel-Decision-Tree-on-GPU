@@ -11,6 +11,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <driver_functions.h>
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
 
 float COMPRESS_TIME = 0.f;
@@ -24,6 +25,16 @@ int max_bin_size = -1;
 int max_num_leaves = -1;
 
 __constant__ GlobalConstants cuConstTreeParams;
+
+
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess) 
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
 
 __global__ void
 navigate_samples_kernel() {
@@ -54,8 +65,8 @@ histogram_update_kernel() {
     int* cuda_histogram_id_ptr = cuConstTreeParams.cuda_histogram_id_ptr;
 	int num_of_classes = cuConstTreeParams.num_of_classes;
     int max_bin_size = cuConstTreeParams.max_bin_size;
-    float* histogram = cuConstTreeParams.cuda_histogram_ptr;
-    histogram[magic] = 1111.f;
+    float* _histogram_ = cuConstTreeParams.cuda_histogram_ptr;
+    _histogram_[magic] = 1111.f;
     update_array(
         cuda_histogram_id_ptr[data_id], 
         feature_id, 
@@ -64,7 +75,9 @@ histogram_update_kernel() {
         num_of_features,
         num_of_classes,
         max_bin_size,
-        histogram);
+        _histogram_);
+    _histogram_[magic] = 2222.f;
+
 }
 
 SplitPoint::SplitPoint()
@@ -220,31 +233,34 @@ DecisionTree::~DecisionTree(){
 void DecisionTree::initCUDA() {
     int data_size = this->datasetPointer->num_of_data;
     // Construct the histogram. and navigate each data to its leaf.  
-
-    cudaMalloc(&cuda_histogram_ptr, sizeof(float) * SIZE);
-    cudaMalloc(&cuda_label_ptr, sizeof(int) * data_size);
-    cudaMalloc(&cuda_value_ptr, sizeof(float) * data_size * num_of_features);
-    cudaMalloc(&cuda_histogram_id_ptr, sizeof(int) * data_size);
+    printf("malloc %d Kbyte\n", sizeof(float) * SIZE / 1024);
+    gpuErrchk(cudaMalloc(&cuda_histogram_ptr, sizeof(float) * SIZE));
+    printf("malloc %d Kbyte\n", sizeof(int) * data_size / 1024);
+    gpuErrchk(cudaMalloc(&cuda_label_ptr, sizeof(int) * data_size));
+    printf("malloc %d Kbyte\n", sizeof(float) * data_size * num_of_features / 1024);
+    gpuErrchk(cudaMalloc(&cuda_value_ptr, sizeof(float) * data_size * num_of_features));
+    printf("malloc %d Kbyte\n", sizeof(int) * data_size / 1024);
+    gpuErrchk(cudaMalloc(&cuda_histogram_id_ptr, sizeof(int) * data_size));
     histogram[magic] = 1.234f;
-    cudaMemcpy(cuda_histogram_ptr,
+    gpuErrchk(cudaMemcpy(cuda_histogram_ptr,
         histogram,
         sizeof(float) * SIZE,
-        cudaMemcpyHostToDevice);
+        cudaMemcpyHostToDevice));
 
-    cudaMemcpy(cuda_label_ptr,
+    gpuErrchk(cudaMemcpy(cuda_label_ptr,
         this->datasetPointer->label_ptr,
         sizeof(int) * data_size,
-        cudaMemcpyHostToDevice); 
+        cudaMemcpyHostToDevice)); 
 
-    cudaMemcpy(cuda_value_ptr,
+    gpuErrchk(cudaMemcpy(cuda_value_ptr,
         this->datasetPointer->value_ptr,
         sizeof(float) * data_size * num_of_features,
-        cudaMemcpyHostToDevice);  
+        cudaMemcpyHostToDevice));  
 
-    cudaMemcpy(cuda_histogram_id_ptr,
+    gpuErrchk(cudaMemcpy(cuda_histogram_id_ptr,
         this->datasetPointer->histogram_id_ptr,
         sizeof(int) * data_size,
-        cudaMemcpyHostToDevice); 
+        cudaMemcpyHostToDevice)); 
 
     GlobalConstants params;
     params.cuda_histogram_id_ptr = cuda_histogram_id_ptr;
@@ -255,7 +271,17 @@ void DecisionTree::initCUDA() {
     params.num_of_classes = num_of_classes;
     params.max_bin_size = max_bin_size;
     params.num_of_features = num_of_features;
-    cudaMemcpyToSymbol(cuConstTreeParams, &params, sizeof(GlobalConstants));
+    gpuErrchk(cudaMemcpyToSymbol(cuConstTreeParams, &params, sizeof(GlobalConstants)));
+
+    float* histogram2 = new float[SIZE];
+    memset(histogram2, 0, SIZE * sizeof(float));    
+    gpuErrchk(cudaMemcpy(histogram2, cuda_histogram_ptr, sizeof(float) * SIZE, cudaMemcpyDeviceToHost))
+
+    gpuErrchk(cudaMemcpy(histogram2, cuda_histogram_ptr, sizeof(float) * SIZE, cudaMemcpyDeviceToHost))
+    
+    printf("before check = %f\n", histogram[magic]);
+    printf("after check = %f\n", histogram2[magic]);
+    delete[] histogram2;
 
 }
 
