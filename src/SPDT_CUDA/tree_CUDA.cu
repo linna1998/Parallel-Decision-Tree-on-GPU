@@ -12,6 +12,8 @@
 #include <cuda_runtime.h>
 #include <driver_functions.h>
 
+// #include "cuPrintf.cu"
+
 float COMPRESS_TIME = 0.f;
 float SPLIT_TIME = 0.f;
 float COMMUNICATION_TIME = 0.f;
@@ -22,6 +24,7 @@ int num_of_classes = -1;
 int max_bin_size = -1;
 int max_num_leaves = -1;
 
+
 __global__ void
 navigate_samples_kernel() {
 
@@ -30,37 +33,38 @@ navigate_samples_kernel() {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
 }
 
+/*
+ * Similar to update
+ */
 __global__ void
-histogram_update_kernel(
-    int data_size, 
-    int num_of_threads,    
-    float *cuda_histogram_ptr, 
-    int *cuda_label_ptr,
-    float *cuda_value_ptr,
-    int *cuda_histogram_id_ptr,
-    int num_of_features,
-    int num_of_classes,
-    int max_bin_size) {
+histogram_update_kernel() {
 
     // compute overall index from position of thread in current block,
     // and given the block we are in
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-    // blockIdx.x: the update data id
-    // threadIdx.x: the update feature id
+    int data_id = blockIdx.x;
+    int feature_id = threadIdx.x;
+    int data_size = cuConstTreeParams.num_of_data;
+    int num_of_features = cuConstTreeParams.num_of_features;
 
-    if (blockIdx.x >= data_size || threadIdx.x >= num_of_threads)
+    if (data_id >= data_size || feature_id >= num_of_features)
        return;
-    
-    // re-write part of the DecisionTree::compress function      
+
+    int* cuda_label_ptr = cuConstTreeParams.cuda_label_ptr;
+    float* cuda_value_ptr = cuConstTreeParams.cuda_value_ptr;
+    int* cuda_histogram_id_ptr = cuConstTreeParams.cuda_histogram_id_ptr;
+	int num_of_classes = cuConstTreeParams.num_of_classes;
+	int max_bin_size = cuConstTreeParams.max_bin_size;
+	float* histogram = cuConstTreeParams.cuda_histogram_ptr;
+
     update_array(
-        cuda_histogram_id_ptr[blockIdx.x], 
-        threadIdx.x, 
-        cuda_label_ptr[blockIdx.x], 
-        cuda_value_ptr[blockIdx.x * num_of_features + threadIdx.x],
-        cuda_histogram_ptr,
+        cuda_histogram_id_ptr[data_id], 
+        feature_id, 
+        cuda_label_ptr[data_id], 
+        cuda_value_ptr[data_id * num_of_features + feature_id],
         num_of_features,
         num_of_classes,
-        max_bin_size);
+        max_bin_size,
+        histogram);
 }
 
 SplitPoint::SplitPoint()
@@ -212,32 +216,47 @@ DecisionTree::~DecisionTree(){
     root->clear();
 }
 
+
 void DecisionTree::initCUDA() {
     int data_size = this->datasetPointer->num_of_data;
     // Construct the histogram. and navigate each data to its leaf.  
-    long long number = (long long) max_num_leaves * num_of_features * num_of_classes * ((max_bin_size + 1) * 2 + 1);        
 
-    cudaMalloc((void **)&cuda_histogram_ptr, sizeof(float) * number);
-    cudaMalloc((void **)&cuda_label_ptr, sizeof(int) * data_size);
-    cudaMalloc((void **)&cuda_value_ptr, sizeof(float) * data_size * num_of_features);
-    cudaMalloc((void **)&cuda_histogram_id_ptr, sizeof(int) * data_size);
+    cudaMalloc(&cuda_histogram_ptr, sizeof(float) * SIZE);
+    cudaMalloc(&cuda_label_ptr, sizeof(int) * data_size);
+    cudaMalloc(&cuda_value_ptr, sizeof(float) * data_size * num_of_features);
+    cudaMalloc(&cuda_histogram_id_ptr, sizeof(int) * data_size);
 
     cudaMemcpy(cuda_histogram_ptr,
         histogram,
-        sizeof(float) * number,
+        sizeof(float) * SIZE,
         cudaMemcpyHostToDevice);
+
     cudaMemcpy(cuda_label_ptr,
         this->datasetPointer->label_ptr,
         sizeof(int) * data_size,
-        cudaMemcpyHostToDevice);  
+        cudaMemcpyHostToDevice); 
+
     cudaMemcpy(cuda_value_ptr,
         this->datasetPointer->value_ptr,
         sizeof(float) * data_size * num_of_features,
         cudaMemcpyHostToDevice);  
+
     cudaMemcpy(cuda_histogram_id_ptr,
         this->datasetPointer->histogram_id_ptr,
         sizeof(int) * data_size,
         cudaMemcpyHostToDevice); 
+
+    GlobalConstants params;
+    params.cuda_histogram_id_ptr = cuda_histogram_id_ptr;
+    params.cuda_histogram_ptr = cuda_histogram_ptr;
+    params.cuda_label_ptr = cuda_label_ptr;
+    params.cuda_value_ptr = cuda_value_ptr;
+    params.num_of_data = data_size;
+    params.num_of_classes = num_of_classes;
+    params.max_bin_size = max_bin_size;
+    params.num_of_features = num_of_features;
+    cudaMemcpyToSymbol(cuConstTreeParams, &params, sizeof(GlobalConstants));
+
 }
 
 void DecisionTree::terminateCUDA() {
@@ -417,48 +436,25 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
     int block_num = this->datasetPointer->num_of_data;
     int thread_per_block = num_of_features; 
-    long long number = (long long) max_num_leaves * num_of_features * num_of_classes * ((max_bin_size + 1) * 2 + 1);        
-    
-    cudaMemcpy(cuda_histogram_ptr,
-        histogram,
-        sizeof(float) * number,
-        cudaMemcpyHostToDevice);    
-    cudaMemcpy(cuda_histogram_id_ptr,
-        this->datasetPointer->histogram_id_ptr,
-        sizeof(int) * this->datasetPointer->num_of_data,
-        cudaMemcpyHostToDevice); 
                                 
-    // https://stackoverflow.com/questions/31598021/cuda-cudamemcpy-struct-of-arrays
-    // reference for moving objects from host to device in CUDA
+    histogram_update_kernel<<<block_num, thread_per_block>>>();  
 
-    histogram_update_kernel<<<block_num, thread_per_block>>>(
-        block_num,
-        num_of_features,                              
-        cuda_histogram_ptr, 
-        cuda_label_ptr,
-        cuda_value_ptr,
-        cuda_histogram_id_ptr,
-        num_of_features,
-        num_of_classes,
-        max_bin_size);  
     cudaDeviceSynchronize();       
-    
     cudaMemcpy(histogram,
         cuda_histogram_ptr,
-        sizeof(float) * number,
+        sizeof(float) * SIZE,
         cudaMemcpyDeviceToHost);  
-    
+
     float *histo = NULL;
     int bin_size = 0;
 
-    for (int i = 0; i < num_of_features; i++) {
-        for (int j = 0; j < num_of_classes; j++) {
-            histo = get_histogram_array(0, i, j, histogram, num_of_features, num_of_classes, max_bin_size);
-            bin_size = get_bin_size(histo);
-            printf("[%d][%d]: bin_size %d\n", i, j, bin_size);
-        }
-    }    
-    
+    // for (int i = 0; i < num_of_features; i++) {
+    //     for (int j = 0; j < num_of_classes; j++) {
+    //         histo = get_histogram_array(0, i, j, histogram, num_of_features, num_of_classes, max_bin_size);
+    //         bin_size = get_bin_size(histo);
+    //         printf("[%d][%d]: bin_size %d\n", i, j, bin_size);
+    //     }
+    // }    
 }
 
 /*

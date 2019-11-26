@@ -51,7 +51,7 @@ inline int decrease_bin_size(float* histo){
 	return (*histo) -= 1.f;
 }
 
-__host__ __device__
+__host__ __device__ 
 float *get_histogram_array(int histogram_id, int feature_id, int label,
 	float *histogram, int num_of_features, int num_of_classes, int max_bin_size) {
     return histogram + 
@@ -353,9 +353,11 @@ void uniform_array(std::vector<float> &u, int histogram_id, int feature_id, int 
 
 __device__
 void update_array(int histogram_id, int feature_id, int label, float value,
-	float *histogram, int num_of_features, int num_of_classes, int max_bin_size) {		
+	int num_of_features, int num_of_classes, int max_bin_size, float* histogram) {	
+		
 	float *histo = get_histogram_array(histogram_id, feature_id, label,
 		histogram, num_of_features, num_of_classes, max_bin_size);
+
 	// If there are values in the bin equals to the value here
 	int bin_size = get_bin_size(histo);
 	for (int i = 0; i < bin_size; i++) {

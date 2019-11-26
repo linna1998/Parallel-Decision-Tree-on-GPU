@@ -40,6 +40,21 @@ extern int max_num_leaves;
 
 extern long long SIZE;
 
+struct GlobalConstants {
+
+    int num_of_features;
+    int num_of_data;
+    int max_bin_size;
+    int num_of_classes;
+    float* cuda_histogram_ptr;
+    int* cuda_histogram_id_ptr;
+    int* cuda_label_ptr;
+    float* cuda_value_ptr;
+
+};
+
+extern __constant__ GlobalConstants cuConstTreeParams;
+
 class SplitPoint{
 public:
     // used to store the spliting information on a given histogram.
