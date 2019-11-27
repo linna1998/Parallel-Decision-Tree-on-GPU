@@ -28,10 +28,6 @@ int max_num_leaves = -1;
 
 __constant__ GlobalConstants cuConstTreeParams;
 
-<<<<<<< HEAD
-
-=======
->>>>>>> c433f6fe8bec69e4158a4d53b63381b94d7c311d
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
    if (code != cudaSuccess) 
@@ -478,8 +474,8 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
         sizeof(float) * SIZE,
         cudaMemcpyDeviceToHost);  
         
-    printf("before check = %f\n", histogram[magic]);
-    printf("after check = %f\n", histogram2[magic]);
+    printf("Before check = %f\n", histogram[magic]);
+    printf("After check = %f\n", histogram2[magic]);
     delete[] histogram2;
 
     float *histo = NULL;
@@ -558,7 +554,6 @@ void DecisionTree::train_on_batch(Dataset &train_data)
     }
     self_check();    
 }
-
 
 void DecisionTree::self_check(){
     queue<TreeNode *> q;
