@@ -14,6 +14,7 @@
 extern float* histogram;
 
 void print_array(float* histo);
+inline int get_bin_size(float* histo);
 float *get_histogram_array(int histogram_id, int feature_id, int label);
 float *get_histogram_array(float *histo, int histogram_id, int feature_id, int label);
 int get_total_array(int histogram_id, int feature_id, int label);

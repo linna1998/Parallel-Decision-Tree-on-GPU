@@ -1,8 +1,6 @@
-#include "tree_CUDA.h"
-#include "parser_CUDA.h"
+
 #include "array_CUDA.cu_inl"
 #include "../SPDT_general/timing.h"
-#include "array.h"
 #include "panel.h"
 #include <assert.h>
 #include <queue>
@@ -12,6 +10,9 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <driver_functions.h>
+#include "array_CUDA.h"
+#include "tree_CUDA.h"
+#include "parser_CUDA.h"
 
 // https://stackoverflow.com/questions/14038589/what-is-the-canonical-way-to-check-for-errors-using-the-cuda-runtime-api
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
@@ -59,7 +60,6 @@ histogram_update_kernel() {
 	int num_of_classes = cuConstTreeParams.num_of_classes;
     int max_bin_size = cuConstTreeParams.max_bin_size;
     float* _histogram_ = cuConstTreeParams.cuda_histogram_ptr;
-    _histogram_[magic] = 1111.f;
     CUDA_update_array(
         cuda_histogram_id_ptr[data_id], 
         feature_id, 
@@ -69,8 +69,6 @@ histogram_update_kernel() {
         num_of_classes,
         max_bin_size,
         _histogram_);
-    _histogram_[magic] = 2222.f;
-
 }
 
 SplitPoint::SplitPoint()
@@ -224,7 +222,6 @@ DecisionTree::~DecisionTree(){
 void DecisionTree::initCUDA() {
     int data_size = this->datasetPointer->num_of_data;
     // Construct the histogram. and navigate each data to its leaf.  
-    histogram[magic] = 1.234f;
     gpuErrchk(cudaMalloc(&cuda_histogram_ptr, sizeof(float) * SIZE));
     gpuErrchk(cudaMalloc(&cuda_label_ptr, sizeof(int) * data_size));
     gpuErrchk(cudaMalloc(&cuda_value_ptr, sizeof(float) * data_size * num_of_features));
@@ -260,15 +257,15 @@ void DecisionTree::initCUDA() {
     params.num_of_features = num_of_features;
     gpuErrchk(cudaMemcpyToSymbol(cuConstTreeParams, &params, sizeof(GlobalConstants)));
 
-    float* histogram2 = new float[SIZE];
-    memset(histogram2, 0, SIZE * sizeof(float));    
-    gpuErrchk(cudaMemcpy(histogram2, cuda_histogram_ptr, sizeof(float) * SIZE, cudaMemcpyDeviceToHost))
+    // float* histogram2 = new float[SIZE];
+    // memset(histogram2, 0, SIZE * sizeof(float));    
+    // gpuErrchk(cudaMemcpy(histogram2, cuda_histogram_ptr, sizeof(float) * SIZE, cudaMemcpyDeviceToHost))
 
-    gpuErrchk(cudaMemcpy(histogram2, cuda_histogram_ptr, sizeof(float) * SIZE, cudaMemcpyDeviceToHost))
+    // gpuErrchk(cudaMemcpy(histogram2, cuda_histogram_ptr, sizeof(float) * SIZE, cudaMemcpyDeviceToHost))
     
-    printf("before check = %f\n", histogram[magic]);
-    printf("after check = %f\n", histogram2[magic]);
-    delete[] histogram2;
+    // printf("before check = %f\n", histogram[magic]);
+    // printf("after check = %f\n", histogram2[magic]);
+    // delete[] histogram2;
 
 }
 
@@ -453,30 +450,20 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
     histogram_update_kernel<<<block_num, thread_per_block>>>();  
 
     cudaDeviceSynchronize();
-    // cudaMemcpy(histogram,
-    //     cuda_histogram_ptr,
-    //     sizeof(float) * SIZE,
-    //     cudaMemcpyDeviceToHost);  
-
-    float* histogram2 = new float[SIZE];
-    cudaMemcpy(histogram2,
+    cudaMemcpy(histogram,
         cuda_histogram_ptr,
         sizeof(float) * SIZE,
         cudaMemcpyDeviceToHost);  
-        
-    printf("Before check = %f\n", histogram[magic]);
-    printf("After check = %f\n", histogram2[magic]);
-    delete[] histogram2;
 
-    // float *histo = NULL;
-    // int bin_size = 0;
-    // for (int i = 0; i < num_of_features; i++) {
-    //     for (int j = 0; j < num_of_classes; j++) {
-    //         histo = get_histogram_array(0, i, j, histogram, num_of_features, num_of_classes, max_bin_size);
-    //         bin_size = get_bin_size(histo);
-    //         printf("[%d][%d]: bin_size %d\n", i, j, bin_size);
-    //     }
-    // }    
+    float *histo = NULL;
+    int bin_size = 0;
+    for (int i = 0; i < num_of_features; i++) {
+        for (int j = 0; j < num_of_classes; j++) {
+            histo = get_histogram_array(0, i, j);
+            bin_size = get_bin_size(histo);
+            printf("[%d][%d]: bin_size %d\n", i, j, bin_size);
+        }
+    }    
 }
 
 /*
