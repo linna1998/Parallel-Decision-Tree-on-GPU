@@ -34,10 +34,16 @@ CXX_MPI := mpic++
 # parameters for CUDA
 LDFLAGS = -L/usr/local/depot/cuda-8.0/lib64/ -lcudart
 NVCC = nvcc
+<<<<<<< HEAD
 NVCCFLAGS = -O3 -std=c++11 -w -m64 --gpu-architecture compute_35
 
 CXX_CUDA = g++ -m64
 CXXFLAGS_CUDA = -O3 -std=c++11
+=======
+NVCCFLAGS = -O3 -m64 -std=c++11 --gpu-architecture compute_35
+CXX_CUDA = g++ -m64
+CXXFLAGS_CUDA = -O3 -Wall -std=c++11
+>>>>>>> c433f6fe8bec69e4158a4d53b63381b94d7c311d
 OBJDIR = objs
 OBJDIR_CUDA = $(OBJDIR)/SPDT_CUDA
 OBJS_CUDA = $(OBJDIR_CUDA)/tree_CUDA.o $(OBJDIR_CUDA)/parser_CUDA.o $(OBJDIR_CUDA)/array_CUDA.o $(OBJDIR_CUDA)/main.o 

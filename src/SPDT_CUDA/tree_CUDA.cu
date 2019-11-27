@@ -13,6 +13,8 @@
 #include <driver_functions.h>
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
+// https://stackoverflow.com/questions/14038589/what-is-the-canonical-way-to-check-for-errors-using-the-cuda-runtime-api
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
 float COMPRESS_TIME = 0.f;
 float SPLIT_TIME = 0.f;
@@ -26,7 +28,10 @@ int max_num_leaves = -1;
 
 __constant__ GlobalConstants cuConstTreeParams;
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> c433f6fe8bec69e4158a4d53b63381b94d7c311d
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
    if (code != cudaSuccess) 
@@ -233,15 +238,11 @@ DecisionTree::~DecisionTree(){
 void DecisionTree::initCUDA() {
     int data_size = this->datasetPointer->num_of_data;
     // Construct the histogram. and navigate each data to its leaf.  
-    printf("malloc %d Kbyte\n", sizeof(float) * SIZE / 1024);
+
     gpuErrchk(cudaMalloc(&cuda_histogram_ptr, sizeof(float) * SIZE));
-    printf("malloc %d Kbyte\n", sizeof(int) * data_size / 1024);
-    gpuErrchk(cudaMalloc(&cuda_label_ptr, sizeof(int) * data_size));
-    printf("malloc %d Kbyte\n", sizeof(float) * data_size * num_of_features / 1024);
-    gpuErrchk(cudaMalloc(&cuda_value_ptr, sizeof(float) * data_size * num_of_features));
-    printf("malloc %d Kbyte\n", sizeof(int) * data_size / 1024);
-    gpuErrchk(cudaMalloc(&cuda_histogram_id_ptr, sizeof(int) * data_size));
-    histogram[magic] = 1.234f;
+    cudaMalloc(&cuda_label_ptr, sizeof(int) * data_size);
+    cudaMalloc(&cuda_value_ptr, sizeof(float) * data_size * num_of_features);
+    cudaMalloc(&cuda_histogram_id_ptr, sizeof(int) * data_size);
     gpuErrchk(cudaMemcpy(cuda_histogram_ptr,
         histogram,
         sizeof(float) * SIZE,
@@ -508,7 +509,7 @@ void DecisionTree::train_on_batch(Dataset &train_data)
     {        
         // each while loop would add a new level node.
         this->cur_depth++;
-        printf("depth [%d] finished\n", this->cur_depth);
+        printf("Depth [%d] finished\n", this->cur_depth);
         vector<TreeNode *> unlabeled_leaf_new; 
         if (unlabeled_leaf.size() > max_num_leaves) {
             for (int i = 0; i < unlabeled_leaf.size(); i++) {
