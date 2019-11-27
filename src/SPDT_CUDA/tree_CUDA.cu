@@ -12,6 +12,8 @@
 #include <cuda_runtime.h>
 #include <driver_functions.h>
 
+// https://stackoverflow.com/questions/14038589/what-is-the-canonical-way-to-check-for-errors-using-the-cuda-runtime-api
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
 float COMPRESS_TIME = 0.f;
 float SPLIT_TIME = 0.f;
@@ -24,6 +26,15 @@ int max_bin_size = -1;
 int max_num_leaves = -1;
 
 __constant__ GlobalConstants cuConstTreeParams;
+
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess) 
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
 
 __global__ void
 navigate_samples_kernel() {
@@ -221,7 +232,7 @@ void DecisionTree::initCUDA() {
     int data_size = this->datasetPointer->num_of_data;
     // Construct the histogram. and navigate each data to its leaf.  
 
-    cudaMalloc(&cuda_histogram_ptr, sizeof(float) * SIZE);
+    gpuErrchk(cudaMalloc(&cuda_histogram_ptr, sizeof(float) * SIZE));
     cudaMalloc(&cuda_label_ptr, sizeof(int) * data_size);
     cudaMalloc(&cuda_value_ptr, sizeof(float) * data_size * num_of_features);
     cudaMalloc(&cuda_histogram_id_ptr, sizeof(int) * data_size);
