@@ -1,5 +1,5 @@
-#include "array_CUDA.h"
 #include "tree_CUDA.h"
+#include "array_CUDA.h"
 
 float* histogram = NULL;
 
@@ -7,24 +7,23 @@ float* histogram = NULL;
  * For A[][M][N][Z]
  * A[i][j][k][e] = A[N*Z*M*i+Z*N*j+k*Z+e]
  */
-__host__ __device__
-inline int RLOC(int i, int j, int k, int e, int M, int N, int Z){
-    return N*Z*M*i+Z*N*j+k*Z+e;
+int RLOC(int i, int j, int k, int e, int M, int N, int Z){
+    return N*Z*M*i + Z*N*j + k*Z+e;
 }
 
 /*
  * For A[][M][N][Z]
  * A[i][j][k] = A[N*Z*M*i+Z*N*j+k*Z]
  */
-inline int RLOC(int i, int j, int k, int M, int N, int Z){
-    return N*Z*M*i+Z*N*j+Z*k;
+int RLOC(int i, int j, int k, int M, int N, int Z){
+    return N*Z*M*i + Z*N*j + Z*k;
 }
 
 /*
  * For A[][M][N][Z]
  * A[i][j] = A[N*Z*M*i+Z*N*j]
  */
-inline int RLOC(int i, int j, int M, int N, int Z){
+int RLOC(int i, int j, int M, int N, int Z){
     return N*Z*M*i+Z*N*j;
 }
 
@@ -32,57 +31,53 @@ inline int RLOC(int i, int j, int M, int N, int Z){
  * For A[][M][N][Z]
  * A[i] = A[N*Z*M*i]
  */
-inline int RLOC(int i, int M, int N, int Z){
+int RLOC(int i, int M, int N, int Z){
     return N*Z*M*i;
 }
 
-__host__ __device__
-float get_bin_size(float* histo){
-	return *histo;
+inline int get_bin_size(float* histo){
+	return (int)*histo;
 }
 
-__host__ __device__
 inline int increase_bin_size(float* histo){
 	return (*histo) += 1.f;
 }
 
-__host__ __device__
 inline int decrease_bin_size(float* histo){
 	return (*histo) -= 1.f;
 }
 
-__host__ __device__ 
-float *get_histogram_array(int histogram_id, int feature_id, int label,
-	float *histogram, int num_of_features, int num_of_classes, int max_bin_size) {
+float *get_histogram_array(int histogram_id, int feature_id, int label) {
     return histogram + 
         RLOC(histogram_id, feature_id, label, 0, 
         num_of_features, num_of_classes, (max_bin_size + 1) * 2 + 1);
 }
 
-__host__ __device__
+float *get_histogram_array(float *histo, int histogram_id, int feature_id, int label) {
+    return histo + 
+        RLOC(histogram_id, feature_id, label, 0, 
+        num_of_features, num_of_classes, (max_bin_size + 1) * 2 + 1);
+}
+
 inline float get_bin_freq(float *histo, int index) {
     return *(histo + index * 2 + 1);
 }
 
-__host__ __device__
 inline float get_bin_value(float *histo, int index) {
     return *(histo + index * 2 + 2);
 }
 
-__host__ __device__
 inline void set_bin_freq(float *histo, int index, float freq) {
     *(histo + index * 2 + 1) = freq;
 }
 
-__host__ __device__
 inline void set_bin_value(float *histo, int index, float value) {
     *(histo + index * 2 + 2) = value;
 }
 
 int get_total_array(int histogram_id, int feature_id, int label) {
     int t = 0;
-	float *histo = get_histogram_array(histogram_id, feature_id, label,
-		histogram, num_of_features, num_of_classes, max_bin_size);
+    float *histo = get_histogram_array(histogram_id, feature_id, label);
     int bin_size = *histo;
     for (int i = 0; i < bin_size; i++){
         t += get_bin_freq(histo, i);
@@ -90,13 +85,23 @@ int get_total_array(int histogram_id, int feature_id, int label) {
     return t;
 }
 
+void print_array(float* histo){
+	int bin_size = get_bin_size(histo);
+	printf("size=%d, [", bin_size);
+	for(int i=0; i<bin_size; i++){
+		auto freq = get_bin_freq(histo, i);
+		auto value = get_bin_value(histo, i);
+		printf("(%.8f, %.f),", value, freq);
+	}
+	printf("]\n");
+}
+
 float sum_array(int histogram_id, int feature_id, int label, float value) {	
 	int index = 0;
 	float mb = 0;
 	float s = 0;
 
-    float *histo = get_histogram_array(histogram_id, feature_id, label,
-		histogram, num_of_features, num_of_classes, max_bin_size);
+    float *histo = get_histogram_array(histogram_id, feature_id, label);
     int bin_size = *histo;
 
 	if (bin_size == 1) {
@@ -157,7 +162,6 @@ float sum_array(int histogram_id, int feature_id, int label, float value) {
 	return s;
 }
 
-__host__ __device__
 void merge_same_array(float *histo) {
     int bin_size = *histo;
     for (int i = 0; i + 1 < bin_size; i++) {        
@@ -173,17 +177,14 @@ void merge_same_array(float *histo) {
 			i--;
 		}
 	}
-    *histo = bin_size;
+    *histo = (float) bin_size;
 }
 
-__host__ __device__
 void merge_bin_array(float *histo) {    
 	int index = 0;
     float new_freq = 0;
     float new_value = 0;
-
     int bin_size = get_bin_size(histo);
-
 	// find the min value of difference
 	for (int i = 0; i < bin_size - 1; i++) {
 		if (get_bin_value(histo, i + 1) - get_bin_value(histo, i)
@@ -208,8 +209,7 @@ void merge_bin_array(float *histo) {
         set_bin_value(histo, i, get_bin_value(histo, i + 1));
  	}
 	bin_size--;
-    *histo = bin_size;
-
+	decrease_bin_size(histo);
     merge_same_array(histo);
 }
 
@@ -217,7 +217,7 @@ void merge_bin_array(float *histo) {
  * merge histo1 with histo2.
  * Write the results in histo1.
 */
-void merge_array_pointers(float *histo1, float *histo2, int max_bin_size) {
+void merge_array_pointers(float *histo1, float *histo2) {
     int bin_size1 = *histo1;
     int bin_size2 = *histo2;
 	if (bin_size2 == 0)
@@ -245,7 +245,8 @@ void merge_array_pointers(float *histo1, float *histo2, int max_bin_size) {
 			freq = get_bin_freq(histo1, index1);
 			value = get_bin_value(histo1, index1);
 			index1 ++;
-		} else {
+		}
+		else{
 			if (get_bin_value(histo1, index1) < get_bin_value(histo2, index2)) {
 				// put the index1 in histo1 to the next place of histo_merge
 				freq = get_bin_freq(histo1, index1);
@@ -282,23 +283,14 @@ void merge_array_pointers(float *histo1, float *histo2, int max_bin_size) {
 	return;
 }
 
-
-void merge_array(int histogram_id1, int feature_id1, int label1, 
-	int histogram_id2, int feature_id2, int label2) {
-	// printf("merge_array(histogram_id1=%d, feature_id1=%d, label1=%d, histogram_id2=%d, feature_id2=%d, label2=%d)\n", 
-	// 	histogram_id1, feature_id1, label1,
-	// 	histogram_id2, feature_id2, label2);
-	float *histo1 = get_histogram_array(histogram_id1, feature_id1, label1,
-		histogram, num_of_features, num_of_classes, max_bin_size);
-	float *histo2 = get_histogram_array(histogram_id2, feature_id2, label2,
-		histogram, num_of_features, num_of_classes, max_bin_size);
-	merge_array_pointers(histo1, histo2, max_bin_size);	
+void merge_array(int histogram_id1, int feature_id1, int label1, int histogram_id2, int feature_id2, int label2) {
+	float *histo1 = get_histogram_array(histogram_id1, feature_id1, label1);
+    float *histo2 = get_histogram_array(histogram_id2, feature_id2, label2);
+	merge_array_pointers(histo1, histo2);
 	return;
 }
 
-void uniform_array(std::vector<float> &u, int histogram_id, int feature_id, int label) {
-	float *histo = get_histogram_array(histogram_id, feature_id, label,
-		histogram, num_of_features, num_of_classes, max_bin_size);	
+void uniform_array(std::vector<float> &u, int histogram_id, int feature_id, int label, float* histo) {	
     int bin_size = get_bin_size(histo);
     int B = bin_size;
 	float tmpsum = 0;
@@ -308,7 +300,7 @@ void uniform_array(std::vector<float> &u, int histogram_id, int feature_id, int 
 	float uj = 0;
 	u.clear();
 
-	if (bin_size <= 1) {		
+	if (bin_size <= 1) {
 		return;
 	}
 	
@@ -347,54 +339,49 @@ void uniform_array(std::vector<float> &u, int histogram_id, int feature_id, int 
 		
 		uj = get_bin_value(histo, index) + z * (get_bin_value(histo, index + 1) - get_bin_value(histo, index));		
 		u.push_back(uj);				
-	}	
+	}
+	
 	return;
 }
 
-__device__
-void update_array(int histogram_id, int feature_id, int label, float value,
-	int num_of_features, int num_of_classes, int max_bin_size, float* histogram) {	
-	// histogram[magic] = 2222.f;
+void update_array(int histogram_id, int feature_id, int label, float value) {		
+	float *histo = get_histogram_array(histogram_id, feature_id, label);
+	// If there are values in the bin equals to the value here
+	int bin_size = get_bin_size(histo);
+	for (int i = 0; i < bin_size; i++) {
+		if (abs(get_bin_value(histo, i) - value) < EPS) {		
+			set_bin_freq(histo, i, get_bin_freq(histo, i)+1.f);
+			return;
+		}
+	}
+
+	// put the next element into the correct place in bin_size
+	// find the index to insert value
+	// bins[index - 1].value < value
+	// bins[index].value > value
+	int index = bin_size;	
+	for (int i = 0; i < bin_size; i++) {
+		if (get_bin_value(histo, i) > value) {
+			index = i;
+			break;
+		}
+	}
+	// move the [index, bin_size - 1] an element further
+	for (int i = bin_size; i >= index + 1; i--) {
+		set_bin_value(histo, i, get_bin_value(histo, i-1));
+		set_bin_freq(histo, i, get_bin_freq(histo, i-1));
+	}
+
+	bin_size++;
+	increase_bin_size(histo);
+
+	// put value into the place of bins[index]
+	set_bin_value(histo, index, value);
+	set_bin_freq(histo, index, 1.f);
+	if (bin_size <= max_bin_size) {
+		return;
+	}
+
+	merge_bin_array(histo);	
 	return;
-	// float *histo = get_histogram_array(histogram_id, feature_id, label,
-	// 	histogram, num_of_features, num_of_classes, max_bin_size);
-
-	// // If there are values in the bin equals to the value here
-	// int bin_size = get_bin_size(histo);
-	// for (int i = 0; i < bin_size; i++) {
-	// 	if (abs(get_bin_value(histo, i) - value) < EPS) {		
-	// 		set_bin_freq(histo, i, get_bin_freq(histo, i)+1.f);
-	// 		return;
-	// 	}
-	// }
-
-	// // put the next element into the correct place in bin_size
-	// // find the index to insert value
-	// // bins[index - 1].value < value
-	// // bins[index].value > value
-	// int index = bin_size;	
-	// for (int i = 0; i < bin_size; i++) {
-	// 	if (get_bin_value(histo, i) > value) {
-	// 		index = i;
-	// 		break;
-	// 	}
-	// }
-	// // move the [index, bin_size - 1] an element further
-	// for (int i = bin_size; i >= index + 1; i--) {
-	// 	set_bin_value(histo, i, get_bin_value(histo, i-1));
-	// 	set_bin_freq(histo, i, get_bin_freq(histo, i-1));
-	// }
-
-	// bin_size++;
-	// increase_bin_size(histo);
-
-	// // put value into the place of bins[index]
-	// set_bin_value(histo, index, value);
-	// set_bin_freq(histo, index, 1.f);
-	// if (bin_size <= max_bin_size) {
-	// 	return;
-	// }
-
-	// merge_bin_array(histo);	
-	// return;
 }

@@ -1,7 +1,8 @@
 #include "tree_CUDA.h"
 #include "parser_CUDA.h"
-#include "array_CUDA.h"
+#include "array_CUDA.cu_inl"
 #include "../SPDT_general/timing.h"
+#include "array.h"
 #include "panel.h"
 #include <assert.h>
 #include <queue>
@@ -11,7 +12,6 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <driver_functions.h>
-#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
 // https://stackoverflow.com/questions/14038589/what-is-the-canonical-way-to-check-for-errors-using-the-cuda-runtime-api
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
@@ -37,14 +37,6 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
-__global__ void
-navigate_samples_kernel() {
-
-    // compute overall index from position of thread in current block,
-    // and given the block we are in
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-}
-
 /*
  * Similar to update
  */
@@ -68,7 +60,7 @@ histogram_update_kernel() {
     int max_bin_size = cuConstTreeParams.max_bin_size;
     float* _histogram_ = cuConstTreeParams.cuda_histogram_ptr;
     _histogram_[magic] = 1111.f;
-    update_array(
+    CUDA_update_array(
         cuda_histogram_id_ptr[data_id], 
         feature_id, 
         cuda_label_ptr[data_id], 
@@ -151,14 +143,12 @@ void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
 {
     this->split_ptr = best_split;
     this->entropy = best_split.entropy;
-    float split_value = best_split.feature_value;
     int num_pos_label_left=0;
     int num_pos_label_right=0;
     for (int i = 0; i < this->datasetPointer->num_of_data; i++) {
         if (this->datasetPointer->histogram_id_ptr[i] != this->histogram_id) {
             continue;
         }
-        float p_value = this->datasetPointer->value_ptr[i * num_of_features + best_split.feature_id];
         if (best_split.decision_rule(i)) {
             this->datasetPointer->histogram_id_ptr[i] = right->histogram_id;
             num_pos_label_right = (this->datasetPointer->label_ptr[i] == POS_LABEL) ? num_pos_label_right + 1 : num_pos_label_right;
@@ -234,11 +224,11 @@ DecisionTree::~DecisionTree(){
 void DecisionTree::initCUDA() {
     int data_size = this->datasetPointer->num_of_data;
     // Construct the histogram. and navigate each data to its leaf.  
-
+    histogram[magic] = 1.234f;
     gpuErrchk(cudaMalloc(&cuda_histogram_ptr, sizeof(float) * SIZE));
-    cudaMalloc(&cuda_label_ptr, sizeof(int) * data_size);
-    cudaMalloc(&cuda_value_ptr, sizeof(float) * data_size * num_of_features);
-    cudaMalloc(&cuda_histogram_id_ptr, sizeof(int) * data_size);
+    gpuErrchk(cudaMalloc(&cuda_label_ptr, sizeof(int) * data_size));
+    gpuErrchk(cudaMalloc(&cuda_value_ptr, sizeof(float) * data_size * num_of_features));
+    gpuErrchk(cudaMalloc(&cuda_histogram_id_ptr, sizeof(int) * data_size));
     gpuErrchk(cudaMemcpy(cuda_histogram_ptr,
         histogram,
         sizeof(float) * SIZE,
@@ -334,7 +324,7 @@ void DecisionTree::initialize(Dataset &train_data, const int batch_size){
     printf("Init Root Node [%.4f] MB\n", SIZE * sizeof(float) / 1024.f / 1024.f);
     
     histogram = new float[SIZE];
-    memset(histogram, 0, SIZE * sizeof(float));          
+    memset(histogram, 0, SIZE * sizeof(float));  
     printf("Init success\n");
 }
 
@@ -434,7 +424,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
         }
 
         std::vector<float> possible_splits;
-        uniform_array(possible_splits, node->histogram_id, i, 0);        
+        uniform_array(possible_splits, node->histogram_id, i, 0, histogram);        
         dbg_assert(possible_splits.size() <= max_bin_size);
         for (auto& split_value: possible_splits)
         {
@@ -478,8 +468,8 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
     printf("After check = %f\n", histogram2[magic]);
     delete[] histogram2;
 
-    float *histo = NULL;
-    int bin_size = 0;
+    // float *histo = NULL;
+    // int bin_size = 0;
     // for (int i = 0; i < num_of_features; i++) {
     //     for (int j = 0; j < num_of_classes; j++) {
     //         histo = get_histogram_array(0, i, j, histogram, num_of_features, num_of_classes, max_bin_size);
@@ -630,8 +620,6 @@ vector<TreeNode *> DecisionTree::__get_unlabeled(TreeNode *node)
  */
 void DecisionTree::batch_initialize(TreeNode *node)
 {
-    int feature_id = 0, class_id = 0;
-
     if (node == NULL)
     {
         // should never reach here.

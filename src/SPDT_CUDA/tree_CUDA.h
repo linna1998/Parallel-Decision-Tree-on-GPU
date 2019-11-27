@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <omp.h>
 
-// #define DEBUG
+#define DEBUG
 #ifdef DEBUG
 /* When DEBUG is defined, these form aliases to useful functions */
 #define dbg_printf(...) printf(__VA_ARGS__)
@@ -33,7 +33,6 @@
 extern float COMPRESS_TIME;
 extern float SPLIT_TIME;
 extern float COMMUNICATION_TIME;
-
 extern int num_of_features;
 extern int num_of_classes;
 extern int max_bin_size;
