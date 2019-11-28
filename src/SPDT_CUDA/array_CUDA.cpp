@@ -35,7 +35,7 @@ int RLOC(int i, int M, int N, int Z){
     return N*Z*M*i;
 }
 
-inline int get_bin_size(float* histo){
+int get_bin_size(float* histo){
 	return (int)*histo;
 }
 
