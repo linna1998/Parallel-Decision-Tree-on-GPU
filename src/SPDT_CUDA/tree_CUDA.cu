@@ -386,8 +386,8 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     float px = (left_sum_class_0 + left_sum_class_1) / (1.0 * total_sum); // p(x<a)
     float py_x0 = (left_sum <= EPS) ? 0.f : left_sum_class_0 / left_sum;                            // p(y=0|x < a)
     float py_x1 = (right_sum <= EPS) ? 0.f : right_sum_class_0 / right_sum;                          // p(y=0|x >= a)
-    // printf("sum_class_1=%f, sum_class_0=%f, right_sum = %f, right_sum_class_0 = %f right_sum_class_1= %f\n", sum_class_1, sum_class_0, right_sum, right_sum_class_0, right_sum_class_1);
-    // printf("py_x0 = %f, py_x1 = %f\n", py_x0, py_x1);
+    printf("sum_class_1=%f, sum_class_0=%f, right_sum = %f, right_sum_class_0 = %f right_sum_class_1= %f\n", sum_class_1, sum_class_0, right_sum, right_sum_class_0, right_sum_class_1);
+    printf("py_x0 = %f, py_x1 = %f\n", py_x0, py_x1);
     dbg_ensures(py_x0 >= -EPS && py_x0 <= 1+EPS);
     dbg_ensures(py_x1 >= -EPS && py_x1 <= 1+EPS);
     dbg_ensures(px >= -EPS && px <= 1+EPS);
@@ -398,7 +398,7 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     dbg_ensures(px_prior > 0 && px_prior < 1);
     split.entropy = ((1-px_prior) < EPS || px_prior < EPS) ? 0 : -px_prior * log2((double)px_prior) - (1-px_prior) * log2((double)1-px_prior);
     split.gain = split.entropy - H_YX;
-    // printf("%f = %f - %f\n", split.gain, split.entropy, H_YX);
+    printf("%f = %f - %f\n", split.gain, split.entropy, H_YX);
     dbg_ensures(split.gain >= -EPS);
 }
 
@@ -409,33 +409,30 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
 void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 {              
     assert(node != NULL);
-
-    std::vector<SplitPoint> results;
-
+    
+    float* buf_merge = new float[2 * max_bin_size + 1];
+    SplitPoint best_split = SplitPoint();
     for (int i = 0; i < num_of_features; i++)
     {
         // merge different labels
         // put the result back into (node->histogram_id, i, 0)
-        for (int k = 1; k < num_of_classes; k++) {
-            merge_array(node->histogram_id, i, 0, node->histogram_id, i, k);
-        }
-
+        float* histo_for_class_0 = get_histogram_array(node->histogram_id, i, 0);
+        float* histo_for_class_1 = get_histogram_array(node->histogram_id, i, 1);
+        memcpy(buf_merge, histo_for_class_0, sizeof(float) * (2 * max_bin_size + 1));
         std::vector<float> possible_splits;
-        uniform_array(possible_splits, node->histogram_id, i, 0, histogram);        
+        merge_array_pointers(buf_merge, histo_for_class_1);
+        uniform_array(possible_splits, node->histogram_id, i, 0, buf_merge);
         dbg_assert(possible_splits.size() <= max_bin_size);
         for (auto& split_value: possible_splits)
         {
-            SplitPoint t = SplitPoint(i, split_value, datasetPointer);
+            SplitPoint t = SplitPoint(i, split_value, this->datasetPointer);
             get_gain(node, t, i);
-            results.push_back(t);
+            if (best_split.gain < t.gain)
+                best_split = t;
         }
     }
-    std::vector<SplitPoint>::iterator best_split = std::max_element(results.begin(), results.end(),
-                                                                    [](const SplitPoint &l, const SplitPoint &r) { return l.gain < r.gain; });
-
-    split.feature_id = best_split->feature_id;
-    split.feature_value = best_split->feature_value;
-    split.gain = best_split->gain;
+    split = best_split;
+    delete[] buf_merge;
 }
 
 /*
