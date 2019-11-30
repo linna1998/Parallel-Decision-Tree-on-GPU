@@ -223,11 +223,7 @@ void merge_array_pointers(float *histo1, float *histo2) {
 	if (bin_size2 == 0)
 		return;
 	if (bin_size1 == 0){
-		for(int k=0; k< bin_size2; k++){
-			set_bin_freq(histo1, k, get_bin_freq(histo2, k));
-			set_bin_value(histo1, k, get_bin_value(histo2, k));
-		}
-		*histo1 = (float) bin_size2;
+		memcpy(histo1, histo2, sizeof(float) * (2 * bin_size2 + 1));
 		return;
 	}
     int bin_size_merge = 0;
@@ -273,12 +269,8 @@ void merge_array_pointers(float *histo1, float *histo2) {
 		bin_size_merge --;		
 	}
 
-    // copy from histo_merge into histo1    
-    *histo1 = (float) bin_size_merge;
-    for (int i = 0; i < bin_size_merge; i++) {
-        set_bin_freq(histo1, i, get_bin_freq(histo_merge, i));
-        set_bin_value(histo1, i, get_bin_value(histo_merge, i));
-    }
+    // copy from histo_merge into histo1   
+	memcpy(histo1, histo_merge, sizeof(float) * (2 * bin_size_merge + 1)); 
 	delete []histo_merge;
 	return;
 }

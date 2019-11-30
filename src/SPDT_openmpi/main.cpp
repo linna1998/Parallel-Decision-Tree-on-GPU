@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
     int taskid, numtasks;
     MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
     MPI_Comm_size(MPI_COMM_WORLD, &numtasks);  
-    int index = 5;
+    int index = 0;
     double cpu_time_used_train;
     double cpu_time_used_test;
     int c;

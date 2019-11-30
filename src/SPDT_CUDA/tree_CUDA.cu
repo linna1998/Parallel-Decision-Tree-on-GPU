@@ -257,16 +257,6 @@ void DecisionTree::initCUDA() {
     params.num_of_features = num_of_features;
     gpuErrchk(cudaMemcpyToSymbol(cuConstTreeParams, &params, sizeof(GlobalConstants)));
 
-    // float* histogram2 = new float[SIZE];
-    // memset(histogram2, 0, SIZE * sizeof(float));    
-    // gpuErrchk(cudaMemcpy(histogram2, cuda_histogram_ptr, sizeof(float) * SIZE, cudaMemcpyDeviceToHost))
-
-    // gpuErrchk(cudaMemcpy(histogram2, cuda_histogram_ptr, sizeof(float) * SIZE, cudaMemcpyDeviceToHost))
-    
-    // printf("before check = %f\n", histogram[magic]);
-    // printf("after check = %f\n", histogram2[magic]);
-    // delete[] histogram2;
-
 }
 
 void DecisionTree::terminateCUDA() {
@@ -416,11 +406,18 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
     {
         // merge different labels
         // put the result back into (node->histogram_id, i, 0)
-        float* histo_for_class_0 = get_histogram_array(node->histogram_id, i, 0);
-        float* histo_for_class_1 = get_histogram_array(node->histogram_id, i, 1);
+        float* histo_for_class_0 = get_histogram_array(node->histogram_id, i, NEG_LABEL);
+        float* histo_for_class_1 = get_histogram_array(node->histogram_id, i, POS_LABEL);
+        // initialize the buf_merge
         memcpy(buf_merge, histo_for_class_0, sizeof(float) * (2 * max_bin_size + 1));
+        cout << "histo_0: ";
+        print_array(histo_for_class_0);
+        cout << "histo_1: ";
+        print_array(histo_for_class_1);
         std::vector<float> possible_splits;
         merge_array_pointers(buf_merge, histo_for_class_1);
+        cout << "merged: ";
+        print_array(buf_merge);
         uniform_array(possible_splits, node->histogram_id, i, 0, buf_merge);
         dbg_assert(possible_splits.size() <= max_bin_size);
         for (auto& split_value: possible_splits)
@@ -452,15 +449,15 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
         sizeof(float) * SIZE,
         cudaMemcpyDeviceToHost);  
 
-    float *histo = NULL;
-    int bin_size = 0;
-    for (int i = 0; i < num_of_features; i++) {
-        for (int j = 0; j < num_of_classes; j++) {
-            histo = get_histogram_array(0, i, j);
-            bin_size = get_bin_size(histo);
-            printf("[%d][%d]: bin_size %d\n", i, j, bin_size);
-        }
-    }    
+    // float *histo = NULL;
+    // int bin_size = 0;
+    // for (int i = 0; i < num_of_features; i++) {
+    //     for (int j = 0; j < num_of_classes; j++) {
+    //         histo = get_histogram_array(0, i, j);
+    //         bin_size = get_bin_size(histo);
+    //         printf("[%d][%d]: bin_size %d\n", i, j, bin_size);
+    //     }
+    // }    
 }
 
 /*
