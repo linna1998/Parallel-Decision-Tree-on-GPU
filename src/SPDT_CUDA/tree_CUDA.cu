@@ -76,10 +76,8 @@ histogram_update_kernel() {
 __global__ void
 histogram_update_kernel_2() {
     int histogram_id = blockIdx.x;
-    int feature_id = threadIdx.x;
-    int data_size = cuConstTreeParams.num_of_data;
-    int num_of_features = cuConstTreeParams.num_of_features;
-    int i = 0;
+    int feature_id = threadIdx.x;    
+    int num_of_features = cuConstTreeParams.num_of_features;    
 
     if (histogram_id >= cuConstTreeParams.max_num_leaves || feature_id >= num_of_features)
        return;
@@ -91,7 +89,7 @@ histogram_update_kernel_2() {
     int max_bin_size = cuConstTreeParams.max_bin_size;
     float* _histogram_ = cuConstTreeParams.cuda_histogram_ptr;
 
-    for (i = 0; i < cuConstTreeParams.num_of_data; i++) {
+    for (int i = 0; i < cuConstTreeParams.num_of_data; i++) {
         if (cuda_histogram_id_ptr[i] != histogram_id) continue;
         CUDA_update_array(
             cuda_histogram_id_ptr[i], 
@@ -124,11 +122,15 @@ SplitPoint::SplitPoint(int feature_id, float feature_value, Dataset* datasetPoin
  * Reture True if the data is larger or equal than the split value
  */
 bool SplitPoint::decision_rule(int data_index)
-{
+{    
     dbg_ensures(entropy >= -EPS);
     dbg_ensures(gain >= -EPS);
-    dbg_ensures(feature_id >= 0);
-    return datasetPointer->value_ptr[data_index * num_of_features + feature_id] >= feature_value;    
+    dbg_ensures(feature_id >= 0); 
+    assert(datasetPointer->value_ptr != NULL);    
+    assert(data_index * num_of_features + feature_id >= 0);    
+    assert(data_index * num_of_features + feature_id < this->datasetPointer->num_of_data * num_of_features);
+    bool result = datasetPointer->value_ptr[data_index * num_of_features + feature_id] >= feature_value;    
+    return result;
 }
 
 // constructor function
@@ -173,21 +175,27 @@ void TreeNode::set_label()
  * The data would be appended to the `left` if the data value is smaller than the split value
  */
 void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
-{
+{    
+    assert(left != NULL);
+    assert(right != NULL);
     this->split_ptr = best_split;
     this->entropy = best_split.entropy;
     int num_pos_label_left=0;
-    int num_pos_label_right=0;
-    for (int i = 0; i < this->datasetPointer->num_of_data; i++) {
+    int num_pos_label_right=0;    
+    for (int i = 0; i < this->datasetPointer->num_of_data; i++) {        
         if (this->datasetPointer->histogram_id_ptr[i] != this->histogram_id) {
             continue;
-        }
-        if (best_split.decision_rule(i)) {
+        }        
+        if (best_split.decision_rule(i)) {            
+            assert(this->datasetPointer->histogram_id_ptr != NULL);
             this->datasetPointer->histogram_id_ptr[i] = right->histogram_id;
+            assert(this->datasetPointer->label_ptr != NULL);
             num_pos_label_right = (this->datasetPointer->label_ptr[i] == POS_LABEL) ? num_pos_label_right + 1 : num_pos_label_right;
             right->data_size++;
-        } else {
-            this->datasetPointer->histogram_id_ptr[i] = left->histogram_id;
+        } else {            
+            assert(this->datasetPointer->histogram_id_ptr != NULL);
+            this->datasetPointer->histogram_id_ptr[i] = left->histogram_id; 
+            assert(this->datasetPointer->label_ptr != NULL);           
             num_pos_label_left = (this->datasetPointer->label_ptr[i] == POS_LABEL) ? num_pos_label_left + 1 : num_pos_label_left;
             left->data_size++;
         }
@@ -438,6 +446,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
     
     float* buf_merge = new float[2 * max_bin_size + 1];
     SplitPoint best_split = SplitPoint();
+    best_split.datasetPointer = this->datasetPointer;
     for (int i = 0; i < num_of_features; i++)
     {
         // merge different labels
@@ -539,6 +548,7 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             else
             {                
                 SplitPoint best_split;
+                best_split.datasetPointer = this->datasetPointer;
                 Timer t2 = Timer();
                 t2.reset();
                 find_best_split(cur_leaf, best_split);

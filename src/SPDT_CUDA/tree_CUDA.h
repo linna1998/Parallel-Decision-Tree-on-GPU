@@ -27,7 +27,7 @@
 #define dbg_printheap(...) ((void)sizeof(__VA_ARGS__))
 #endif
 
-#define EPS 1e-8
+#define EPS 1e-5
 #define magic 2
 
 extern float COMPRESS_TIME;
