@@ -100,6 +100,7 @@ histogram_update_kernel_2() {
             num_of_classes,
             max_bin_size,
             _histogram_);
+        __syncthreads();
     }
     
 }
@@ -182,21 +183,20 @@ void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
     this->entropy = best_split.entropy;
     int num_pos_label_left=0;
     int num_pos_label_right=0;    
-    for (int i = 0; i < this->datasetPointer->num_of_data; i++) {        
-        if (this->datasetPointer->histogram_id_ptr[i] != this->histogram_id) {
-            continue;
-        }        
-        if (best_split.decision_rule(i)) {            
-            assert(this->datasetPointer->histogram_id_ptr != NULL);
-            this->datasetPointer->histogram_id_ptr[i] = right->histogram_id;
+    printf("this->histogram_id: %d\n", this->histogram_id);
+    printf("left->histogram_id: %d\n", left->histogram_id);
+    printf("right->histogram_id: %d\n", right->histogram_id);
+    for (int i = 0; i < this->data_ptr.size(); i++) {        
+        int data_index = this->data_ptr[i];
+        if (best_split.decision_rule(data_index)) {                        
+            right->data_ptr.push_back(data_index);
             assert(this->datasetPointer->label_ptr != NULL);
-            num_pos_label_right = (this->datasetPointer->label_ptr[i] == POS_LABEL) ? num_pos_label_right + 1 : num_pos_label_right;
+            num_pos_label_right = (this->datasetPointer->label_ptr[data_index] == POS_LABEL) ? num_pos_label_right + 1 : num_pos_label_right;
             right->data_size++;
         } else {            
-            assert(this->datasetPointer->histogram_id_ptr != NULL);
-            this->datasetPointer->histogram_id_ptr[i] = left->histogram_id; 
+            left->data_ptr.push_back(data_index);
             assert(this->datasetPointer->label_ptr != NULL);           
-            num_pos_label_left = (this->datasetPointer->label_ptr[i] == POS_LABEL) ? num_pos_label_left + 1 : num_pos_label_left;
+            num_pos_label_left = (this->datasetPointer->label_ptr[data_index] == POS_LABEL) ? num_pos_label_left + 1 : num_pos_label_left;
             left->data_size++;
         }
     }
@@ -207,6 +207,7 @@ void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
     dbg_assert(left->num_pos_label >= 0);
     dbg_assert(right->num_pos_label >= 0);
     dbg_assert(left->num_pos_label + right->num_pos_label == this->num_pos_label);
+    dbg_assert(left->data_size + right->data_size == this->data_size);    
 }
 
 void TreeNode::printspaces() {
@@ -347,10 +348,13 @@ void DecisionTree::initialize(Dataset &train_data, const int batch_size){
     this->datasetPointer = &train_data;    
     root = new TreeNode(0, this->num_nodes++, datasetPointer);  
     root->data_size = train_data.num_of_data;
+    for (int i = 0; i < root->data_size; i++) {
+        root->data_ptr.push_back(i);
+    }
+
     if (histogram != NULL) {        
         delete[] histogram;
-    }
-    
+    }    
     SIZE = (long long) max_num_leaves * num_of_features * num_of_classes * ((max_bin_size + 1) * 2 + 1);    
     printf("Init Root Node [%.4f] MB\n", SIZE * sizeof(float) / 1024.f / 1024.f);
     
@@ -409,7 +413,9 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     dbg_ensures(total_sum > 0);
     float sum_class_0 = get_total_array(node->histogram_id, feature_id, NEG_LABEL);
     float sum_class_1 = get_total_array(node->histogram_id, feature_id, POS_LABEL);
-    dbg_assert((sum_class_1 - node->num_pos_label) < EPS);
+    printf("(int)sum_class_1: %d\n", (int)sum_class_1);
+    printf("node->num_pos_label: %d\n", node->num_pos_label);    
+    dbg_assert((int)sum_class_1 == node->num_pos_label);
     float left_sum_class_0 = sum_array(node->histogram_id, feature_id, NEG_LABEL, split.feature_value);
     float right_sum_class_0 = sum_class_0 - left_sum_class_0;
     float left_sum_class_1 = sum_array(node->histogram_id, feature_id, POS_LABEL, split.feature_value);
@@ -487,9 +493,9 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
     // int thread_per_block = num_of_features;                                 
     // histogram_update_kernel<<<block_num, thread_per_block>>>();  
     
-    int block_num = max_num_leaves;
-    int thread_per_block = num_of_features;                                 
-    histogram_update_kernel_2<<<block_num, thread_per_block>>>();  
+    // int block_num = max_num_leaves;
+    // int thread_per_block = num_of_features;                                 
+    // histogram_update_kernel_2<<<block_num, thread_per_block>>>();         
 
     cudaDeviceSynchronize();
     cudaMemcpy(histogram,
@@ -506,6 +512,18 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
     //         printf("[%d][%d]: bin_size %d\n", i, j, bin_size);
     //     }
     // }    
+    
+    // sequential version for DEBUG!!!
+    // Construct the histogram. and navigate each data to its leaf.    
+    for (int data_id = 0; data_id < this->datasetPointer->num_of_data; data_id++) {
+        for (int feature_id = 0; feature_id < num_of_features; feature_id++) {
+            update_array(
+                this->datasetPointer->histogram_id_ptr[data_id], 
+                feature_id, 
+                this->datasetPointer->label_ptr[data_id], 
+                this->datasetPointer->value_ptr[data_id * num_of_features + feature_id]);
+        }        
+    }   
 }
 
 /*
@@ -692,6 +710,10 @@ void DecisionTree::init_histogram(vector<TreeNode *> &unlabeled_leaf)
     int c = 0;      
     assert(unlabeled_leaf.size() <= max_num_leaves);
     
-    for (auto &p : unlabeled_leaf)
+    for (auto &p : unlabeled_leaf) {
         p->histogram_id = c++;
+        for (int i = 0; i < p->data_ptr.size(); i++) {
+            this->datasetPointer->histogram_id_ptr[p->data_ptr[i]] = p->histogram_id;
+        }
+    }                
 }

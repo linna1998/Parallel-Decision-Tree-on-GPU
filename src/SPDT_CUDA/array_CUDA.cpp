@@ -77,10 +77,12 @@ inline void set_bin_value(float *histo, int index, float value) {
 
 int get_total_array(int histogram_id, int feature_id, int label) {
     int t = 0;
+	assert(histogram != NULL);
+
     float *histo = get_histogram_array(histogram_id, feature_id, label);
-    int bin_size = *histo;
-    for (int i = 0; i < bin_size; i++){
-        t += get_bin_freq(histo, i);
+    int bin_size = get_bin_size(histo);	
+    for (int i = 0; i < bin_size; i++) {		
+        t += (int)get_bin_freq(histo, i);
     }
     return t;
 }

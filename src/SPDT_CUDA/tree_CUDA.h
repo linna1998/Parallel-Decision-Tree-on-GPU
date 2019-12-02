@@ -86,7 +86,11 @@ public:
     int histogram_id;   
     int num_pos_label;
     Dataset* datasetPointer; 
-    
+
+    // when split, use data_ptr to split
+    // then put the information into this->datasetPointer->histogram_id_ptr
+    // in the future init_histogram process
+    vector<int> data_ptr;
     int data_size;
     SplitPoint split_ptr;
 
