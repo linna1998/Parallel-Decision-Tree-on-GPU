@@ -1,5 +1,6 @@
 #include "tree_CUDA.h"
 #include "array_CUDA.h"
+#include "parser_CUDA.h"
 
 float* histogram = NULL;
 

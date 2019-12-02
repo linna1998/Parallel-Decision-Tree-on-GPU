@@ -59,11 +59,10 @@ public:
     int feature_id;
     float feature_value;
 	float gain;
-	float entropy;
-    Dataset* datasetPointer; 
+	float entropy;    
     SplitPoint();
-    SplitPoint(int feature_id, float feature_value, Dataset* datasetPointer);
-    bool decision_rule(int data_index);
+    SplitPoint(int feature_id, float feature_value);
+    bool decision_rule(int data_index, Dataset *datasetPointer);
     inline SplitPoint& operator = (const SplitPoint& split){
         this->feature_id = split.feature_id;
         this->feature_value = split.feature_value;
@@ -155,7 +154,7 @@ public:
     void batch_initialize(TreeNode* node);
     void initialize(Dataset &train_data, const int batch_size);
     void init_histogram(vector<TreeNode* >& unlabled_leaf);
-    TreeNode* navigate(int data_index);
+    TreeNode* navigate(int data_index, Dataset *datasetPointer);
     bool is_terminated(TreeNode* node);
 
     void initCUDA();

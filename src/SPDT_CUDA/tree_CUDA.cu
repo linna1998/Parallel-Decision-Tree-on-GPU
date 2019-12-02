@@ -112,25 +112,32 @@ SplitPoint::SplitPoint()
     entropy = 0;
 }
 
-SplitPoint::SplitPoint(int feature_id, float feature_value, Dataset* datasetPointer)
+SplitPoint::SplitPoint(int feature_id, float feature_value)
 {
     this->feature_id = feature_id;
     this->feature_value = feature_value;
-    this->entropy = 0;
-    this->datasetPointer = datasetPointer;
+    this->entropy = 0;    
 }
 /*
  * Reture True if the data is larger or equal than the split value
  */
-bool SplitPoint::decision_rule(int data_index)
-{    
-    dbg_ensures(entropy >= -EPS);
-    dbg_ensures(gain >= -EPS);
-    dbg_ensures(feature_id >= 0); 
-    assert(datasetPointer->value_ptr != NULL);    
-    assert(data_index * num_of_features + feature_id >= 0);    
-    assert(data_index * num_of_features + feature_id < this->datasetPointer->num_of_data * num_of_features);
-    bool result = datasetPointer->value_ptr[data_index * num_of_features + feature_id] >= feature_value;    
+bool SplitPoint::decision_rule(int data_index, Dataset *datasetPointer)
+{        
+    dbg_ensures(entropy >= -EPS);    
+    dbg_ensures(gain >= -EPS);    
+    dbg_ensures(feature_id >= 0);
+    dbg_ensures(feature_id < num_of_features);     
+    assert(datasetPointer->value_ptr != NULL);        
+    assert(data_index * num_of_features + feature_id >= 0); 
+
+    // printf("data_index %d\n", data_index);
+    // printf("num_of_features %d\n", num_of_features);
+    // printf("feature_id %d\n", feature_id);
+    // printf("datasetPointer->num_of_data %d\n", datasetPointer->num_of_data);
+
+    assert((long long int) data_index * num_of_features + feature_id < 
+        (long long int) datasetPointer->num_of_data * num_of_features);    
+    bool result = datasetPointer->value_ptr[data_index * num_of_features + feature_id] >= feature_value;        
     return result;
 }
 
@@ -182,13 +189,10 @@ void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
     this->split_ptr = best_split;
     this->entropy = best_split.entropy;
     int num_pos_label_left=0;
-    int num_pos_label_right=0;    
-    printf("this->histogram_id: %d\n", this->histogram_id);
-    printf("left->histogram_id: %d\n", left->histogram_id);
-    printf("right->histogram_id: %d\n", right->histogram_id);
+    int num_pos_label_right=0;
     for (int i = 0; i < this->data_ptr.size(); i++) {        
         int data_index = this->data_ptr[i];
-        if (best_split.decision_rule(data_index)) {                        
+        if (best_split.decision_rule(data_index, this->datasetPointer)) {                        
             right->data_ptr.push_back(data_index);
             assert(this->datasetPointer->label_ptr != NULL);
             num_pos_label_right = (this->datasetPointer->label_ptr[data_index] == POS_LABEL) ? num_pos_label_right + 1 : num_pos_label_right;
@@ -392,11 +396,12 @@ float DecisionTree::test(Dataset &test_data) {
 
     int i = 0;
     int correct_num = 0;
-    test_data.streaming_read_data(test_data.num_of_data);
+    test_data.streaming_read_data(test_data.num_of_data);   
+    this->datasetPointer = &test_data;     
 
-    for (i = 0; i < test_data.num_of_data; i++) {
-        assert(navigate(i)->label != -1);        
-        if (navigate(i)->label == test_data.label_ptr[i]) {
+    for (i = 0; i < test_data.num_of_data; i++) {        
+        assert(navigate(i, &test_data)->label != -1);        
+        if (navigate(i, &test_data)->label == test_data.label_ptr[i]) {
             correct_num++;
         }
     }    
@@ -413,8 +418,8 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     dbg_ensures(total_sum > 0);
     float sum_class_0 = get_total_array(node->histogram_id, feature_id, NEG_LABEL);
     float sum_class_1 = get_total_array(node->histogram_id, feature_id, POS_LABEL);
-    printf("(int)sum_class_1: %d\n", (int)sum_class_1);
-    printf("node->num_pos_label: %d\n", node->num_pos_label);    
+    // printf("(int)sum_class_1: %d\n", (int)sum_class_1);
+    // printf("node->num_pos_label: %d\n", node->num_pos_label);    
     dbg_assert((int)sum_class_1 == node->num_pos_label);
     float left_sum_class_0 = sum_array(node->histogram_id, feature_id, NEG_LABEL, split.feature_value);
     float right_sum_class_0 = sum_class_0 - left_sum_class_0;
@@ -426,8 +431,8 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     float px = (left_sum_class_0 + left_sum_class_1) / (1.0 * total_sum); // p(x<a)
     float py_x0 = (left_sum <= EPS) ? 0.f : left_sum_class_0 / left_sum;                            // p(y=0|x < a)
     float py_x1 = (right_sum <= EPS) ? 0.f : right_sum_class_0 / right_sum;                          // p(y=0|x >= a)
-    printf("sum_class_1=%f, sum_class_0=%f, right_sum = %f, right_sum_class_0 = %f right_sum_class_1= %f\n", sum_class_1, sum_class_0, right_sum, right_sum_class_0, right_sum_class_1);
-    printf("py_x0 = %f, py_x1 = %f\n", py_x0, py_x1);
+    // printf("sum_class_1=%f, sum_class_0=%f, right_sum = %f, right_sum_class_0 = %f right_sum_class_1= %f\n", sum_class_1, sum_class_0, right_sum, right_sum_class_0, right_sum_class_1);
+    // printf("py_x0 = %f, py_x1 = %f\n", py_x0, py_x1);
     dbg_ensures(py_x0 >= -EPS && py_x0 <= 1+EPS);
     dbg_ensures(py_x1 >= -EPS && py_x1 <= 1+EPS);
     dbg_ensures(px >= -EPS && px <= 1+EPS);
@@ -438,7 +443,7 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     dbg_ensures(px_prior > 0 && px_prior < 1);
     split.entropy = ((1-px_prior) < EPS || px_prior < EPS) ? 0 : -px_prior * log2((double)px_prior) - (1-px_prior) * log2((double)1-px_prior);
     split.gain = split.entropy - H_YX;
-    printf("%f = %f - %f\n", split.gain, split.entropy, H_YX);
+    // printf("%f = %f - %f\n", split.gain, split.entropy, H_YX);
     dbg_ensures(split.gain + EPS >= 0);
 }
 
@@ -451,8 +456,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
     assert(node != NULL);
     
     float* buf_merge = new float[2 * max_bin_size + 1];
-    SplitPoint best_split = SplitPoint();
-    best_split.datasetPointer = this->datasetPointer;
+    SplitPoint best_split = SplitPoint();    
     for (int i = 0; i < num_of_features; i++)
     {
         // merge different labels
@@ -473,7 +477,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
         dbg_assert(possible_splits.size() <= max_bin_size);
         for (auto& split_value: possible_splits)
         {
-            SplitPoint t = SplitPoint(i, split_value, this->datasetPointer);
+            SplitPoint t = SplitPoint(i, split_value);
             get_gain(node, t, i);
             if (best_split.gain < t.gain)
                 best_split = t;
@@ -565,8 +569,7 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             }
             else
             {                
-                SplitPoint best_split;
-                best_split.datasetPointer = this->datasetPointer;
+                SplitPoint best_split;                
                 Timer t2 = Timer();
                 t2.reset();
                 find_best_split(cur_leaf, best_split);
@@ -690,13 +693,13 @@ void DecisionTree::batch_initialize(TreeNode *node)
 /*
  *
  */
-TreeNode *DecisionTree::navigate(int data_index)
+TreeNode *DecisionTree::navigate(int data_index, Dataset *datasetPointer)
 {
     TreeNode *ptr = this->root;
     while (!ptr->is_leaf)
     {
         dbg_assert(ptr->right_node != NULL && ptr->left_node != NULL);
-        ptr = (ptr->split_ptr.decision_rule(data_index)) ? ptr->right_node : ptr->left_node;
+        ptr = (ptr->split_ptr.decision_rule(data_index, datasetPointer)) ? ptr->right_node : ptr->left_node;
     }
     return ptr;
 }
