@@ -71,6 +71,41 @@ histogram_update_kernel() {
         _histogram_);
 }
 
+// block_num: max_num_leaves
+// thread_num: num_of_features
+__global__ void
+histogram_update_kernel_2() {
+    int histogram_id = blockIdx.x;
+    int feature_id = threadIdx.x;
+    int data_size = cuConstTreeParams.num_of_data;
+    int num_of_features = cuConstTreeParams.num_of_features;
+    int i = 0;
+
+    if (histogram_id >= cuConstTreeParams.max_num_leaves || feature_id >= num_of_features)
+       return;
+
+    int* cuda_label_ptr = cuConstTreeParams.cuda_label_ptr;
+    float* cuda_value_ptr = cuConstTreeParams.cuda_value_ptr;
+    int* cuda_histogram_id_ptr = cuConstTreeParams.cuda_histogram_id_ptr;
+	int num_of_classes = cuConstTreeParams.num_of_classes;
+    int max_bin_size = cuConstTreeParams.max_bin_size;
+    float* _histogram_ = cuConstTreeParams.cuda_histogram_ptr;
+
+    for (i = 0; i < cuConstTreeParams.num_of_data; i++) {
+        if (cuda_histogram_id_ptr[i] != histogram_id) continue;
+        CUDA_update_array(
+            cuda_histogram_id_ptr[i], 
+            feature_id, 
+            cuda_label_ptr[i], 
+            cuda_value_ptr[i * num_of_features + feature_id],
+            num_of_features,
+            num_of_classes,
+            max_bin_size,
+            _histogram_);
+    }
+    
+}
+
 SplitPoint::SplitPoint()
 {
     feature_id = -1;
@@ -255,6 +290,7 @@ void DecisionTree::initCUDA() {
     params.num_of_classes = num_of_classes;
     params.max_bin_size = max_bin_size;
     params.num_of_features = num_of_features;
+    params.max_num_leaves = max_num_leaves;
     gpuErrchk(cudaMemcpyToSymbol(cuConstTreeParams, &params, sizeof(GlobalConstants)));
 
 }
@@ -307,7 +343,7 @@ void DecisionTree::initialize(Dataset &train_data, const int batch_size){
         delete[] histogram;
     }
     
-    SIZE  = (long long) max_num_leaves * num_of_features * num_of_classes * ((max_bin_size + 1) * 2 + 1);    
+    SIZE = (long long) max_num_leaves * num_of_features * num_of_classes * ((max_bin_size + 1) * 2 + 1);    
     printf("Init Root Node [%.4f] MB\n", SIZE * sizeof(float) / 1024.f / 1024.f);
     
     histogram = new float[SIZE];
@@ -389,7 +425,7 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     split.entropy = ((1-px_prior) < EPS || px_prior < EPS) ? 0 : -px_prior * log2((double)px_prior) - (1-px_prior) * log2((double)1-px_prior);
     split.gain = split.entropy - H_YX;
     printf("%f = %f - %f\n", split.gain, split.entropy, H_YX);
-    dbg_ensures(split.gain >= -EPS);
+    dbg_ensures(split.gain + EPS >= 0);
 }
 
 /*
@@ -438,10 +474,13 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
  * This function takes the assumption that each leaf is re-initialized (we use a batch mode)
 */
 void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
-    int block_num = this->datasetPointer->num_of_data;
-    int thread_per_block = num_of_features; 
-                                
-    histogram_update_kernel<<<block_num, thread_per_block>>>();  
+    // int block_num = this->datasetPointer->num_of_data;
+    // int thread_per_block = num_of_features;                                 
+    // histogram_update_kernel<<<block_num, thread_per_block>>>();  
+    
+    int block_num = max_num_leaves;
+    int thread_per_block = num_of_features;                                 
+    histogram_update_kernel_2<<<block_num, thread_per_block>>>();  
 
     cudaDeviceSynchronize();
     cudaMemcpy(histogram,

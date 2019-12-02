@@ -27,7 +27,7 @@
 #define dbg_printheap(...) ((void)sizeof(__VA_ARGS__))
 #endif
 
-#define EPS 1e-9
+#define EPS 1e-8
 #define magic 2
 
 extern float COMPRESS_TIME;
@@ -41,7 +41,7 @@ extern int max_num_leaves;
 extern long long SIZE;
 
 struct GlobalConstants {
-
+    int max_num_leaves;
     int num_of_features;
     int num_of_data;
     int max_bin_size;
