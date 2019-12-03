@@ -71,7 +71,7 @@ histogram_update_kernel() {
         _histogram_);
 }
 
-// block_num: max_num_leaves
+// block_num: size of unlabeled leaves
 // thread_num: num_of_features
 __global__ void
 histogram_update_kernel_2() {
@@ -418,8 +418,8 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     dbg_ensures(total_sum > 0);
     float sum_class_0 = get_total_array(node->histogram_id, feature_id, NEG_LABEL);
     float sum_class_1 = get_total_array(node->histogram_id, feature_id, POS_LABEL);
-    // printf("(int)sum_class_1: %d\n", (int)sum_class_1);
-    // printf("node->num_pos_label: %d\n", node->num_pos_label);    
+    printf("(int)sum_class_1: %d\n", (int)sum_class_1);
+    printf("node->num_pos_label: %d\n", node->num_pos_label);    
     dbg_assert((int)sum_class_1 == node->num_pos_label);
     float left_sum_class_0 = sum_array(node->histogram_id, feature_id, NEG_LABEL, split.feature_value);
     float right_sum_class_0 = sum_class_0 - left_sum_class_0;
@@ -495,11 +495,21 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
     // int block_num = this->datasetPointer->num_of_data;
     // int thread_per_block = num_of_features;                                 
-    // histogram_update_kernel<<<block_num, thread_per_block>>>();  
-    
-    // int block_num = max_num_leaves;
-    // int thread_per_block = num_of_features;                                 
-    // histogram_update_kernel_2<<<block_num, thread_per_block>>>();         
+    // histogram_update_kernel<<<block_num, thread_per_block>>>();      
+        
+    int block_num = unlabeled_leaf.size();
+    int thread_per_block = num_of_features;
+
+    gpuErrchk(cudaMemcpy(cuda_histogram_id_ptr,
+        this->datasetPointer->histogram_id_ptr,
+        sizeof(int) * this->datasetPointer->num_of_data,
+        cudaMemcpyHostToDevice)); 
+    gpuErrchk(cudaMemcpy(cuda_histogram_ptr,
+        histogram,
+        sizeof(float) * SIZE,
+        cudaMemcpyHostToDevice));
+
+    histogram_update_kernel_2<<<block_num, thread_per_block>>>();         
 
     cudaDeviceSynchronize();
     cudaMemcpy(histogram,
@@ -517,17 +527,17 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
     //     }
     // }    
     
-    // sequential version for DEBUG!!!
-    // Construct the histogram. and navigate each data to its leaf.    
-    for (int data_id = 0; data_id < this->datasetPointer->num_of_data; data_id++) {
-        for (int feature_id = 0; feature_id < num_of_features; feature_id++) {
-            update_array(
-                this->datasetPointer->histogram_id_ptr[data_id], 
-                feature_id, 
-                this->datasetPointer->label_ptr[data_id], 
-                this->datasetPointer->value_ptr[data_id * num_of_features + feature_id]);
-        }        
-    }   
+    // // sequential version for DEBUG!!!
+    // // Construct the histogram. and navigate each data to its leaf.    
+    // for (int data_id = 0; data_id < this->datasetPointer->num_of_data; data_id++) {
+    //     for (int feature_id = 0; feature_id < num_of_features; feature_id++) {
+    //         update_array(
+    //             this->datasetPointer->histogram_id_ptr[data_id], 
+    //             feature_id, 
+    //             this->datasetPointer->label_ptr[data_id], 
+    //             this->datasetPointer->value_ptr[data_id * num_of_features + feature_id]);
+    //     }        
+    // }   
 }
 
 /*
@@ -718,5 +728,6 @@ void DecisionTree::init_histogram(vector<TreeNode *> &unlabeled_leaf)
         for (int i = 0; i < p->data_ptr.size(); i++) {
             this->datasetPointer->histogram_id_ptr[p->data_ptr[i]] = p->histogram_id;
         }
-    }                
+    }        
+    memset(histogram, 0, sizeof(float) * SIZE);       
 }
