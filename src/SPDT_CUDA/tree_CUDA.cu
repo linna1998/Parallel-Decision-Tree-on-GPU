@@ -478,10 +478,48 @@ calculate_feature_value_kernel(int histogram_id, int* cuda_feature_value_num, in
     delete[] buf_merge;    
 }
 
-__global__ void
-calculate_gain_deltas_kernel() {
+__device__
+void CUDA_get_gain(int histogram_id, int total_sum, int feature_id, int split_index,
+    int* cuda_feature_id, float* cuda_feature_value, float* cuda_gain, float* cuda_entropy) {     
+
+    float sum_class_0 = CUDA_get_total_array(histogram_id, feature_id, NEG_LABEL, cuConstTreeParams.cuda_histogram_ptr, cuConstTreeParams.num_of_features, cuConstTreeParams.num_of_classes, cuConstTreeParams.max_bin_size);
+    float sum_class_1 = CUDA_get_total_array(histogram_id, feature_id, POS_LABEL, cuConstTreeParams.cuda_histogram_ptr, cuConstTreeParams.num_of_features, cuConstTreeParams.num_of_classes, cuConstTreeParams.max_bin_size);
+
+    float left_sum_class_0 = CUDA_sum_array(histogram_id, feature_id, NEG_LABEL, cuda_feature_value[split_index], cuConstTreeParams.cuda_histogram_ptr, cuConstTreeParams.num_of_features, cuConstTreeParams.num_of_classes, cuConstTreeParams.max_bin_size);
+    float right_sum_class_0 = sum_class_0 - left_sum_class_0;
+    float left_sum_class_1 = CUDA_sum_array(histogram_id, feature_id, POS_LABEL, cuda_feature_value[split_index], cuConstTreeParams.cuda_histogram_ptr, cuConstTreeParams.num_of_features, cuConstTreeParams.num_of_classes, cuConstTreeParams.max_bin_size);
+    float right_sum_class_1 = sum_class_1 - left_sum_class_1;
+    float left_sum = left_sum_class_0 + left_sum_class_1;
+    float right_sum = right_sum_class_0 + right_sum_class_1;
+
+    float px = (left_sum_class_0 + left_sum_class_1) / (1.0 * total_sum); // p(x<a)
+    float py_x0 = (left_sum <= EPS) ? 0.f : left_sum_class_0 / left_sum;                            // p(y=0|x < a)
+    float py_x1 = (right_sum <= EPS) ? 0.f : right_sum_class_0 / right_sum;                          // p(y=0|x >= a)
+    float entropy_left = ((1-py_x0) < EPS || py_x0 < EPS) ? 0 : -py_x0 * log2((double)py_x0) - (1-py_x0)*log2((double)1-py_x0);
+    float entropy_right = ((1-py_x1) < EPS || py_x1 < EPS) ? 0 : -py_x1 * log2((double)py_x1) - (1-py_x1)*log2((double)1-py_x1);
+    float H_YX = px * entropy_left + (1-px) * entropy_right;
+    float px_prior = sum_class_0 / (sum_class_0 + sum_class_1);
     
-    int index = blockIdx.x * blockDim.x + threadIdx.x;    
+    cuda_entropy[split_index] = ((1-px_prior) < EPS || px_prior < EPS) ? 0 : -px_prior * log2((double)px_prior) - (1-px_prior) * log2((double)1-px_prior);
+    cuda_gain[split_index] = cuda_entropy[split_index] - H_YX;
+    
+}
+
+__global__ void
+calculate_gain_deltas_kernel(int histogram_id, int data_size,
+    int* cuda_feature_value_num, int* cuda_feature_id, float* cuda_feature_value, float* cuda_gain, float* cuda_entropy) {
+            
+    // index: feature id
+    int feature_id = blockIdx.x;
+    int split_id = threadIdx.x;
+
+    if (feature_id >= cuConstTreeParams.num_of_features) return;
+    if (split_id >= cuda_feature_value_num[feature_id]) return;
+
+    int split_index = feature_id * cuConstTreeParams.num_of_features + split_id;    
+    
+    CUDA_get_gain(histogram_id, data_size, feature_id, split_index,
+        cuda_feature_id, cuda_feature_value, cuda_gain, cuda_entropy);
     
     __syncthreads(); 
 }
@@ -525,8 +563,10 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
         (node->histogram_id, cuda_feature_value_num, cuda_feature_id, cuda_feature_value);    
 
     // second, calcualte the gain and entropy
-    // for these split points
-
+    // for these split points    
+    // blockIdx: featureId
+    // thread num: max_bin_size
+    calculate_gain_deltas_kernel<<<block_num, thread_num>>>(node->histogram_id, node->data_size, cuda_feature_value_num, cuda_feature_id, cuda_feature_value, cuda_gain, cuda_entropy);
 
     // third, choose the max gain, put it into split
     // as final result

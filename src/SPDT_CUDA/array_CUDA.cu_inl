@@ -340,3 +340,17 @@ int CUDA_uniform_array(float *u, int histogram_id, int feature_id, int label,
 	return u_size;
 }
 
+__device__
+int CUDA_get_total_array(int histogram_id, int feature_id, int label,
+	float *histogram, int num_of_features, int num_of_classes, int max_bin_size) {
+    int t = 0;
+	assert(histogram != NULL);
+
+    float *histo = CUDA_get_histogram_array(histogram_id, feature_id, label,
+		histogram, num_of_features, num_of_classes, max_bin_size);
+    int bin_size = CUDA_get_bin_size(histo);	
+    for (int i = 0; i < bin_size; i++) {		
+        t += (int)CUDA_get_bin_freq(histo, i);
+    }
+    return t;
+}
