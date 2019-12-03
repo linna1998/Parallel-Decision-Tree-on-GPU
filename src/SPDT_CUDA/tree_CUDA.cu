@@ -194,11 +194,13 @@ void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
         int data_index = this->data_ptr[i];
         if (best_split.decision_rule(data_index, this->datasetPointer)) {                        
             right->data_ptr.push_back(data_index);
+            this->datasetPointer->histogram_id_ptr[data_index] = right->id;
             assert(this->datasetPointer->label_ptr != NULL);
             num_pos_label_right = (this->datasetPointer->label_ptr[data_index] == POS_LABEL) ? num_pos_label_right + 1 : num_pos_label_right;
             right->data_size++;
         } else {            
             left->data_ptr.push_back(data_index);
+            this->datasetPointer->histogram_id_ptr[data_index] = left->id;
             assert(this->datasetPointer->label_ptr != NULL);           
             num_pos_label_left = (this->datasetPointer->label_ptr[data_index] == POS_LABEL) ? num_pos_label_left + 1 : num_pos_label_left;
             left->data_size++;
@@ -499,11 +501,7 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
         
     int block_num = unlabeled_leaf.size();
     int thread_per_block = num_of_features;
-
-    gpuErrchk(cudaMemcpy(cuda_histogram_id_ptr,
-        this->datasetPointer->histogram_id_ptr,
-        sizeof(int) * this->datasetPointer->num_of_data,
-        cudaMemcpyHostToDevice)); 
+    
     gpuErrchk(cudaMemcpy(cuda_histogram_ptr,
         histogram,
         sizeof(float) * SIZE,
@@ -714,6 +712,24 @@ TreeNode *DecisionTree::navigate(int data_index, Dataset *datasetPointer)
     return ptr;
 }
 
+__global__ void
+navigate_sample_kernel(int unlabeled_leaf_size, int *cuda_histogram_id_2_node_id) {
+    
+    int index = blockIdx.x * blockDim.x + threadIdx.x;    
+    int data_size = cuConstTreeParams.num_of_data;
+    
+    if (index >= data_size) return;
+    int* cuda_histogram_id_ptr = cuConstTreeParams.cuda_histogram_id_ptr;
+	
+    for (int i = 0; i < unlabeled_leaf_size; i++) {
+        if (cuda_histogram_id_ptr[index] == cuda_histogram_id_2_node_id[i]) {
+            cuda_histogram_id_ptr[index] = i;
+            break;
+        }
+    }    
+    __syncthreads(); 
+}
+
 /*
  * This function initialize the histogram for each unlabeled leaf node.
  * Also, potentially, it would free the previous histogram.
@@ -721,13 +737,38 @@ TreeNode *DecisionTree::navigate(int data_index, Dataset *datasetPointer)
 void DecisionTree::init_histogram(vector<TreeNode *> &unlabeled_leaf)
 {
     int c = 0;      
-    assert(unlabeled_leaf.size() <= max_num_leaves);
+    assert(unlabeled_leaf.size() <= max_num_leaves);   
+    
+    // map the histogram id to node id
+    // TODO: use another map? map node id to histogram id
+    int histogram_id_2_node_id[unlabeled_leaf.size()];
+    int* cuda_histogram_id_2_node_id;
     
     for (auto &p : unlabeled_leaf) {
-        p->histogram_id = c++;
-        for (int i = 0; i < p->data_ptr.size(); i++) {
-            this->datasetPointer->histogram_id_ptr[p->data_ptr[i]] = p->histogram_id;
-        }
-    }        
+        p->histogram_id = c++;   
+        // build an array index, between node's node_id and histogram_id
+        histogram_id_2_node_id[p->histogram_id] = p->id;     
+    }   
+        
+    int thread_num = 128;
+    int block_num = (this->datasetPointer->num_of_data + thread_num - 1) / thread_num;        
+
+    // previously, store the node id in histogram_id_ptr
+    gpuErrchk(cudaMemcpy(cuda_histogram_id_ptr,
+        this->datasetPointer->histogram_id_ptr,
+        sizeof(int) * this->datasetPointer->num_of_data,
+        cudaMemcpyHostToDevice)); 
+
+    gpuErrchk(cudaMalloc(&cuda_histogram_id_2_node_id, sizeof(int) * unlabeled_leaf.size()));
+
+    gpuErrchk(cudaMemcpy(cuda_histogram_id_2_node_id,
+        histogram_id_2_node_id,
+        sizeof(int) * unlabeled_leaf.size(),
+        cudaMemcpyHostToDevice)); 
+
+    // change the node id into histogram id
+    navigate_sample_kernel<<<block_num, thread_num>>>(unlabeled_leaf.size(), cuda_histogram_id_2_node_id); 
+    cudaDeviceSynchronize();  
+
     memset(histogram, 0, sizeof(float) * SIZE);       
 }
