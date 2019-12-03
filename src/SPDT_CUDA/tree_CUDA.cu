@@ -502,10 +502,7 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
     int block_num = unlabeled_leaf.size();
     int thread_per_block = num_of_features;
     
-    gpuErrchk(cudaMemcpy(cuda_histogram_ptr,
-        histogram,
-        sizeof(float) * SIZE,
-        cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemset(cuda_histogram_ptr, 0, sizeof(float) * SIZE));   
 
     histogram_update_kernel_2<<<block_num, thread_per_block>>>();         
 
@@ -768,7 +765,5 @@ void DecisionTree::init_histogram(vector<TreeNode *> &unlabeled_leaf)
 
     // change the node id into histogram id
     navigate_sample_kernel<<<block_num, thread_num>>>(unlabeled_leaf.size(), cuda_histogram_id_2_node_id); 
-    cudaDeviceSynchronize();  
-
-    memset(histogram, 0, sizeof(float) * SIZE);       
+    cudaDeviceSynchronize();        
 }
