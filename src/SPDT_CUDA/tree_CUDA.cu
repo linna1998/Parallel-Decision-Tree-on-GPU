@@ -449,44 +449,120 @@ void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
     dbg_ensures(split.gain + EPS >= 0);
 }
 
+__global__ void
+calculate_feature_value_kernel(int histogram_id, int* cuda_feature_value_num, int* cuda_feature_id, float* cuda_feature_value) {    
+    int num_of_features = cuConstTreeParams.num_of_features;
+    int max_bin_size = cuConstTreeParams.max_bin_size;
+    int num_of_classes = cuConstTreeParams.num_of_classes;    
+    float* _histogram_ = cuConstTreeParams.cuda_histogram_ptr;
+
+    // index: feature id
+    int index = blockIdx.x * blockDim.x + threadIdx.x;  
+    if (index >= num_of_features) return;
+
+    float* buf_merge = new float[2 * max_bin_size + 1];
+
+    float* histo_for_class_0 = CUDA_get_histogram_array(histogram_id, index, NEG_LABEL, _histogram_, num_of_features, num_of_classes, max_bin_size);
+    float* histo_for_class_1 = CUDA_get_histogram_array(histogram_id, index, POS_LABEL, _histogram_, num_of_features, num_of_classes, max_bin_size);
+    // initialize the buf_merge
+    memcpy(buf_merge, histo_for_class_0, sizeof(float) * (2 * max_bin_size + 1));
+            
+    CUDA_merge_array_pointers(buf_merge, histo_for_class_1, max_bin_size);
+    cuda_feature_value_num[index] = CUDA_uniform_array(cuda_feature_value + index * num_of_features, histogram_id, index, 0, buf_merge, num_of_features, num_of_classes, max_bin_size);        
+
+    // write the result of possible splits 
+    // into cuda arrays     
+    for (int i = 0; i < cuda_feature_value_num[index]; i++) {
+        cuda_feature_id[index * num_of_features + i] = index;        
+    }     
+    delete[] buf_merge;    
+}
+
+__global__ void
+calculate_gain_deltas_kernel() {
+    
+    int index = blockIdx.x * blockDim.x + threadIdx.x;    
+    
+    __syncthreads(); 
+}
+
 /*
  * This function return the best split point at a given leaf node.
  * Best split is store in `split`
 */
 void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 {              
-    assert(node != NULL);
+    assert(node != NULL);       
+
+    // store the number of possible splits
+    // for each feature_id
+    // feature_value_num[i]: there are feature_value_num[i] possible split values
+    // valid in feture_value array for feature id i
+    // from feature_value[i * num_of_features]
+    // to feature_value[i * num_of_features + feature_value_num[i] - 1]
+    int* cuda_feature_value_num;
+    gpuErrchk(cudaMalloc(&cuda_feature_value_num, sizeof(int) * num_of_features));    
     
-    float* buf_merge = new float[2 * max_bin_size + 1];
-    SplitPoint best_split = SplitPoint();    
-    for (int i = 0; i < num_of_features; i++)
-    {
-        // merge different labels
-        // put the result back into (node->histogram_id, i, 0)
-        float* histo_for_class_0 = get_histogram_array(node->histogram_id, i, NEG_LABEL);
-        float* histo_for_class_1 = get_histogram_array(node->histogram_id, i, POS_LABEL);
-        // initialize the buf_merge
-        memcpy(buf_merge, histo_for_class_0, sizeof(float) * (2 * max_bin_size + 1));
-        cout << "histo_0: ";
-        print_array(histo_for_class_0);
-        cout << "histo_1: ";
-        print_array(histo_for_class_1);
-        std::vector<float> possible_splits;
-        merge_array_pointers(buf_merge, histo_for_class_1);
-        cout << "merged: ";
-        print_array(buf_merge);
-        uniform_array(possible_splits, node->histogram_id, i, 0, buf_merge);
-        dbg_assert(possible_splits.size() <= max_bin_size);
-        for (auto& split_value: possible_splits)
-        {
-            SplitPoint t = SplitPoint(i, split_value);
-            get_gain(node, t, i);
-            if (best_split.gain < t.gain)
-                best_split = t;
-        }
-    }
-    split = best_split;
-    delete[] buf_merge;
+    // store the split points into four arrays in device
+    int* cuda_feature_id;
+    float* cuda_feature_value;    
+	float* cuda_gain;
+    float* cuda_entropy;
+
+    int split_point_num = num_of_features * max_bin_size;
+
+    gpuErrchk(cudaMalloc(&cuda_feature_id, sizeof(int) * split_point_num));
+    gpuErrchk(cudaMalloc(&cuda_feature_value, sizeof(float) * split_point_num));
+    gpuErrchk(cudaMalloc(&cuda_gain, sizeof(float) * split_point_num));
+    gpuErrchk(cudaMalloc(&cuda_entropy, sizeof(float) * split_point_num));
+    
+    // first, build an array of feature_id, feature_value
+    // as possible split points
+    
+    int thread_num = 128;
+    int block_num = (num_of_features + thread_num - 1) / thread_num;
+    calculate_feature_value_kernel<<<block_num, thread_num>>>
+        (node->histogram_id, cuda_feature_value_num, cuda_feature_id, cuda_feature_value);    
+
+    // second, calcualte the gain and entropy
+    // for these split points
+
+
+    // third, choose the max gain, put it into split
+    // as final result
+
+
+    // // Origin version for debug
+    // float* buf_merge = new float[2 * max_bin_size + 1];
+    // SplitPoint best_split = SplitPoint();  
+    // for (int i = 0; i < num_of_features; i++)
+    // {
+    //     // merge different labels
+    //     // put the result back into (node->histogram_id, i, 0)
+    //     float* histo_for_class_0 = get_histogram_array(node->histogram_id, i, NEG_LABEL);
+    //     float* histo_for_class_1 = get_histogram_array(node->histogram_id, i, POS_LABEL);
+    //     // initialize the buf_merge
+    //     memcpy(buf_merge, histo_for_class_0, sizeof(float) * (2 * max_bin_size + 1));
+    //     cout << "histo_0: ";
+    //     print_array(histo_for_class_0);
+    //     cout << "histo_1: ";
+    //     print_array(histo_for_class_1);
+    //     std::vector<float> possible_splits;
+    //     merge_array_pointers(buf_merge, histo_for_class_1);
+    //     cout << "merged: ";
+    //     print_array(buf_merge);
+    //     uniform_array(possible_splits, node->histogram_id, i, 0, buf_merge);
+    //     dbg_assert(possible_splits.size() <= max_bin_size);
+    //     for (auto& split_value: possible_splits)
+    //     {
+    //         SplitPoint t = SplitPoint(i, split_value);
+    //         get_gain(node, t, i);
+    //         if (best_split.gain < t.gain)
+    //             best_split = t;
+    //     }
+    // }
+    // split = best_split;
+    // delete[] buf_merge;
 }
 
 /*
