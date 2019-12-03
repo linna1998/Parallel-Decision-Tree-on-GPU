@@ -410,45 +410,6 @@ float DecisionTree::test(Dataset &test_data) {
     return (float)correct_num / (float)test_data.num_of_data;
 }
 
-/*
- * Calculate the entropy gain = H(Y) - H(Y|X)
- * H(Y|X) needs parameters p(X<a), p(Y=0|X<a), p(Y=0|X>=a)
- * Assuming binary classification problem
- */
-void get_gain(TreeNode* node, SplitPoint& split, int feature_id){
-    int total_sum = node->data_size;
-    dbg_ensures(total_sum > 0);
-    float sum_class_0 = get_total_array(node->histogram_id, feature_id, NEG_LABEL);
-    float sum_class_1 = get_total_array(node->histogram_id, feature_id, POS_LABEL);
-    printf("(int)sum_class_1: %d\n", (int)sum_class_1);
-    printf("node->num_pos_label: %d\n", node->num_pos_label);    
-    dbg_assert((int)sum_class_1 == node->num_pos_label);
-    float left_sum_class_0 = sum_array(node->histogram_id, feature_id, NEG_LABEL, split.feature_value);
-    float right_sum_class_0 = sum_class_0 - left_sum_class_0;
-    float left_sum_class_1 = sum_array(node->histogram_id, feature_id, POS_LABEL, split.feature_value);
-    float right_sum_class_1 = sum_class_1 - left_sum_class_1;
-    float left_sum = left_sum_class_0 + left_sum_class_1;
-    float right_sum = right_sum_class_0 + right_sum_class_1;
-
-    float px = (left_sum_class_0 + left_sum_class_1) / (1.0 * total_sum); // p(x<a)
-    float py_x0 = (left_sum <= EPS) ? 0.f : left_sum_class_0 / left_sum;                            // p(y=0|x < a)
-    float py_x1 = (right_sum <= EPS) ? 0.f : right_sum_class_0 / right_sum;                          // p(y=0|x >= a)
-    // printf("sum_class_1=%f, sum_class_0=%f, right_sum = %f, right_sum_class_0 = %f right_sum_class_1= %f\n", sum_class_1, sum_class_0, right_sum, right_sum_class_0, right_sum_class_1);
-    // printf("py_x0 = %f, py_x1 = %f\n", py_x0, py_x1);
-    dbg_ensures(py_x0 >= -EPS && py_x0 <= 1+EPS);
-    dbg_ensures(py_x1 >= -EPS && py_x1 <= 1+EPS);
-    dbg_ensures(px >= -EPS && px <= 1+EPS);
-    float entropy_left = ((1-py_x0) < EPS || py_x0 < EPS) ? 0 : -py_x0 * log2((double)py_x0) - (1-py_x0)*log2((double)1-py_x0);
-    float entropy_right = ((1-py_x1) < EPS || py_x1 < EPS) ? 0 : -py_x1 * log2((double)py_x1) - (1-py_x1)*log2((double)1-py_x1);
-    float H_YX = px * entropy_left + (1-px) * entropy_right;
-    float px_prior = sum_class_0 / (sum_class_0 + sum_class_1);
-    dbg_ensures(px_prior > 0 && px_prior < 1);
-    split.entropy = ((1-px_prior) < EPS || px_prior < EPS) ? 0 : -px_prior * log2((double)px_prior) - (1-px_prior) * log2((double)1-px_prior);
-    split.gain = split.entropy - H_YX;
-    // printf("%f = %f - %f\n", split.gain, split.entropy, H_YX);
-    dbg_ensures(split.gain + EPS >= 0);
-}
-
 __global__ void
 calculate_feature_value_kernel(int histogram_id, int* cuda_feature_value_num, int* cuda_feature_id, float* cuda_feature_value) {    
     int num_of_features = cuConstTreeParams.num_of_features;
@@ -473,11 +434,16 @@ calculate_feature_value_kernel(int histogram_id, int* cuda_feature_value_num, in
     // write the result of possible splits 
     // into cuda arrays     
     for (int i = 0; i < cuda_feature_value_num[index]; i++) {
-        cuda_feature_id[index * num_of_features + i] = index;        
+        cuda_feature_id[index * max_bin_size + i] = index;        
     }     
     delete[] buf_merge;    
 }
 
+/*
+ * Calculate the entropy gain = H(Y) - H(Y|X)
+ * H(Y|X) needs parameters p(X<a), p(Y=0|X<a), p(Y=0|X>=a)
+ * Assuming binary classification problem
+ */
 __device__
 void CUDA_get_gain(int histogram_id, int total_sum, int feature_id, int split_index,
     int* cuda_feature_id, float* cuda_feature_value, float* cuda_gain, float* cuda_entropy) {     
@@ -516,14 +482,34 @@ calculate_gain_deltas_kernel(int histogram_id, int data_size,
     if (feature_id >= cuConstTreeParams.num_of_features) return;
     if (split_id >= cuda_feature_value_num[feature_id]) return;
 
-    int split_index = feature_id * cuConstTreeParams.num_of_features + split_id;    
+    int split_index = feature_id * cuConstTreeParams.max_bin_size + split_id;    
     
     CUDA_get_gain(histogram_id, data_size, feature_id, split_index,
-        cuda_feature_id, cuda_feature_value, cuda_gain, cuda_entropy);
-    
-    __syncthreads(); 
+        cuda_feature_id, cuda_feature_value, cuda_gain, cuda_entropy);    
 }
 
+__global__ void
+find_most_gain_kernel(int histogram_id, int data_size, int *max_gain_index, int *max_gain_feature_id, float *max_gain_value, float *max_gain, float *max_gain_entropy,
+    int* cuda_feature_value_num, int* cuda_feature_id, float* cuda_feature_value, float* cuda_gain, float* cuda_entropy) {
+                
+    int feature_id = blockIdx.x;
+    int split_id = threadIdx.x;
+
+    if (feature_id >= cuConstTreeParams.num_of_features) return;
+    if (split_id >= cuda_feature_value_num[feature_id]) return;
+
+    int split_index = feature_id * cuConstTreeParams.max_bin_size + split_id;    
+    
+    if (cuda_gain[split_index] >= cuda_gain[*max_gain_index]) {
+        *max_gain_index = split_index;
+    }
+    __syncthreads(); 
+
+    *max_gain_feature_id = cuda_feature_id[*max_gain_index];
+    *max_gain_value = cuda_feature_value[*max_gain_index];
+    *max_gain = cuda_gain[*max_gain_index];
+    *max_gain_entropy = cuda_entropy[*max_gain_index];
+}
 /*
  * This function return the best split point at a given leaf node.
  * Best split is store in `split`
@@ -560,49 +546,134 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
     int thread_num = 128;
     int block_num = (num_of_features + thread_num - 1) / thread_num;
     calculate_feature_value_kernel<<<block_num, thread_num>>>
-        (node->histogram_id, cuda_feature_value_num, cuda_feature_id, cuda_feature_value);    
+        (node->histogram_id, cuda_feature_value_num, cuda_feature_id, cuda_feature_value); 
+    cudaDeviceSynchronize();          
 
     // second, calcualte the gain and entropy
     // for these split points    
     // blockIdx: featureId
     // thread num: max_bin_size
     calculate_gain_deltas_kernel<<<block_num, thread_num>>>(node->histogram_id, node->data_size, cuda_feature_value_num, cuda_feature_id, cuda_feature_value, cuda_gain, cuda_entropy);
-
+    cudaDeviceSynchronize();    
+    
     // third, choose the max gain, put it into split
     // as final result
+    // parse data to CPU
+    int feature_value_num[num_of_features];        
+    int feature_id[split_point_num];
+    float feature_value[split_point_num];    
+	float gain[split_point_num];    
+    float entropy[split_point_num];
+        
+    cudaMemcpy(feature_value_num,
+        cuda_feature_value_num,
+        sizeof(int) * num_of_features,
+        cudaMemcpyDeviceToHost); 
+    // for (int i = 0; i < num_of_features; i++) {
+    //     if (feature_value_num[i] > 0) {
+    //         printf("%d ", feature_value_num[i]);
+    //     }        
+    // }
+    // printf("\n");
 
+    cudaMemcpy(feature_id,
+        cuda_feature_id,
+        sizeof(int) * split_point_num,
+        cudaMemcpyDeviceToHost); 
 
-    // // Origin version for debug
-    // float* buf_merge = new float[2 * max_bin_size + 1];
-    // SplitPoint best_split = SplitPoint();  
-    // for (int i = 0; i < num_of_features; i++)
-    // {
-    //     // merge different labels
-    //     // put the result back into (node->histogram_id, i, 0)
-    //     float* histo_for_class_0 = get_histogram_array(node->histogram_id, i, NEG_LABEL);
-    //     float* histo_for_class_1 = get_histogram_array(node->histogram_id, i, POS_LABEL);
-    //     // initialize the buf_merge
-    //     memcpy(buf_merge, histo_for_class_0, sizeof(float) * (2 * max_bin_size + 1));
-    //     cout << "histo_0: ";
-    //     print_array(histo_for_class_0);
-    //     cout << "histo_1: ";
-    //     print_array(histo_for_class_1);
-    //     std::vector<float> possible_splits;
-    //     merge_array_pointers(buf_merge, histo_for_class_1);
-    //     cout << "merged: ";
-    //     print_array(buf_merge);
-    //     uniform_array(possible_splits, node->histogram_id, i, 0, buf_merge);
-    //     dbg_assert(possible_splits.size() <= max_bin_size);
-    //     for (auto& split_value: possible_splits)
-    //     {
-    //         SplitPoint t = SplitPoint(i, split_value);
-    //         get_gain(node, t, i);
-    //         if (best_split.gain < t.gain)
-    //             best_split = t;
+    // for (int i = 0; i < split_point_num; i++) {
+    //     if (feature_id[i] > 0) {
+    //         printf("%d ", feature_id[i]);
     //     }
     // }
-    // split = best_split;
-    // delete[] buf_merge;
+    // printf("\n");
+
+    cudaMemcpy(feature_value,
+        cuda_feature_value,
+        sizeof(float) * split_point_num,
+        cudaMemcpyDeviceToHost); 
+    // for (int i = 0; i < split_point_num; i++) {
+    //     if (feature_value[i] > 0) {
+    //         printf("%f ", feature_value[i]);
+    //     }        
+    // }
+    // printf("\n");  
+
+    cudaMemcpy(gain,
+        cuda_gain,
+        sizeof(int) * split_point_num,
+        cudaMemcpyDeviceToHost); 
+
+    // for (int i = 0; i < split_point_num; i++) {
+    //     if (gain[i] > 0) {
+    //         printf("%f ", gain[i]);
+    //     }        
+    // }
+    // printf("\n");
+
+    cudaMemcpy(entropy,
+        cuda_entropy,
+        sizeof(float) * split_point_num,
+        cudaMemcpyDeviceToHost); 
+    // for (int i = 0; i < split_point_num; i++) {
+    //     if (entropy[i] > 0) {
+    //         printf("%f ", entropy[i]);
+    //     }        
+    // }
+    // printf("\n");
+        
+    split.gain = 0;
+    for (int i = 0; i < num_of_features; i++) {        
+        for (int j = 0; j < feature_value_num[i]; j++) {            
+            if (gain[i * max_bin_size + j] > split.gain) {
+                split.gain = gain[i * max_bin_size + j];
+                split.feature_id = feature_id[i * max_bin_size + j];
+                split.feature_value = feature_value[i * max_bin_size + j];
+                split.entropy = entropy[i * max_bin_size + j];                
+            }
+        }
+    }
+
+    // // UNFINISHED GPU version for step 3
+    // // BUGGY version, could not find the max gain
+    // block_num = num_of_features;
+    // thread_num = max_bin_size;
+    // int max_gain_index = 0;
+    // int max_gain_feature_id;
+    // float max_gain_value;
+    // float max_gain;
+    // float max_gain_entropy;
+
+    // find_most_gain_kernel<<<block_num, thread_num>>>(
+    //     node->histogram_id, 
+    //     node->data_size, 
+    //     &max_gain_index, 
+    //     &max_gain_feature_id, 
+    //     &max_gain_value, 
+    //     &max_gain, 
+    //     &max_gain_entropy,
+    //     cuda_feature_value_num, 
+    //     cuda_feature_id, 
+    //     cuda_feature_value, 
+    //     cuda_gain, 
+    //     cuda_entropy);
+    // cudaDeviceSynchronize();    
+
+    // split.feature_id = max_gain_feature_id;
+    // split.feature_value = max_gain_value;
+    // split.entropy = max_gain_entropy;
+    // split.gain = max_gain;  
+
+    // printf("split.feature_id %d\n", split.feature_id);
+    // printf("split.feature_value %f\n", split.feature_value);
+    // printf("split.entropy %f\n", split.entropy);
+    // printf("split.gain %f\n", split.gain);
+
+    cudaFree(cuda_feature_value_num);
+    cudaFree(cuda_feature_id);
+    cudaFree(cuda_feature_value);
+    cudaFree(cuda_gain);
+    cudaFree(cuda_entropy);
 }
 
 /*
@@ -881,5 +952,6 @@ void DecisionTree::init_histogram(vector<TreeNode *> &unlabeled_leaf)
 
     // change the node id into histogram id
     navigate_sample_kernel<<<block_num, thread_num>>>(unlabeled_leaf.size(), cuda_histogram_id_2_node_id); 
-    cudaDeviceSynchronize();        
+    cudaDeviceSynchronize();  
+    cudaFree(cuda_histogram_id_2_node_id);      
 }
