@@ -271,30 +271,51 @@ DecisionTree::~DecisionTree(){
 
 void DecisionTree::initCUDA() {
     int data_size = this->datasetPointer->num_of_data;
-    // Construct the histogram. and navigate each data to its leaf.  
+    // Construct the histogram. and navigate each data to its leaf. 
+    Timer t = Timer();
+    t.reset();        
     gpuErrchk(cudaMalloc(&cuda_histogram_ptr, sizeof(float) * SIZE));
+    printf("cuda_histogram_ptr: malloc time %f\n", t.elapsed());
+
+    t.reset(); 
     gpuErrchk(cudaMalloc(&cuda_label_ptr, sizeof(int) * data_size));
+    printf("cuda_label_ptr: malloc time %f\n", t.elapsed());
+
+    t.reset(); 
     gpuErrchk(cudaMalloc(&cuda_value_ptr, sizeof(float) * data_size * num_of_features));
+    printf("cuda_value_ptr: malloc time %f\n", t.elapsed());
+
+    t.reset(); 
     gpuErrchk(cudaMalloc(&cuda_histogram_id_ptr, sizeof(int) * data_size));
+    printf("cuda_histogram_id_ptr: malloc time %f\n", t.elapsed());
+
+    t.reset(); 
     gpuErrchk(cudaMemcpy(cuda_histogram_ptr,
         histogram,
         sizeof(float) * SIZE,
         cudaMemcpyHostToDevice));
+    printf("cuda_histogram_ptr: memcpy time %f\n", t.elapsed());
 
+    t.reset(); 
     gpuErrchk(cudaMemcpy(cuda_label_ptr,
         this->datasetPointer->label_ptr,
         sizeof(int) * data_size,
         cudaMemcpyHostToDevice)); 
+    printf("cuda_label_ptr: memcpy time %f\n", t.elapsed());
 
+    t.reset(); 
     gpuErrchk(cudaMemcpy(cuda_value_ptr,
         this->datasetPointer->value_ptr,
         sizeof(float) * data_size * num_of_features,
-        cudaMemcpyHostToDevice));  
+        cudaMemcpyHostToDevice));
+    printf("cuda_value_ptr: memcpy time %f\n", t.elapsed());  
 
+    t.reset(); 
     gpuErrchk(cudaMemcpy(cuda_histogram_id_ptr,
         this->datasetPointer->histogram_id_ptr,
         sizeof(int) * data_size,
-        cudaMemcpyHostToDevice)); 
+        cudaMemcpyHostToDevice));
+    printf("cuda_histogram_id_ptr: mempcy time %f\n", t.elapsed()); 
 
     GlobalConstants params;
     params.cuda_histogram_id_ptr = cuda_histogram_id_ptr;
@@ -382,6 +403,7 @@ void DecisionTree::train(Dataset &train_data, const int batch_size)
         t.reset();
         initCUDA();
         COMMUNICATION_TIME += t.elapsed();
+        printf("COMMUNICATION TIME: %f\n", COMMUNICATION_TIME);
 
         train_on_batch(train_data);        
 		if (!hasNext) break;
