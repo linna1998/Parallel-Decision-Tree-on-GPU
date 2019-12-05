@@ -1,0 +1,356 @@
+#include "tree_CUDA.h"
+#include "array_CUDA.h"
+#include "parser_CUDA.h"
+
+/*
+ * For A[][M][N][Z]
+ * A[i][j][k][e] = A[N*Z*M*i+Z*N*j+k*Z+e]
+ */
+__device__ __inline__ 
+int CUDA_RLOC(int i, int j, int k, int e, int M, int N, int Z){
+    return N*Z*M*i+Z*N*j+k*Z+e;
+}
+
+__device__ __inline__
+float CUDA_get_bin_size(float* histo){
+	return *histo;
+}
+__device__ __inline__
+int CUDA_increase_bin_size(float* histo){
+	return (*histo) += 1.f;
+}
+__device__ __inline__
+int CUDA_decrease_bin_size(float* histo){
+	return (*histo) -= 1.f;
+}
+
+__device__
+float *CUDA_get_histogram_array(int histogram_id, int feature_id, int label,
+	float *histogram, int num_of_features, int num_of_classes, int max_bin_size) {
+    return histogram + 
+        CUDA_RLOC(histogram_id, feature_id, label, 0, 
+        num_of_features, num_of_classes, (max_bin_size + 1) * 2 + 1);
+}
+
+__device__
+inline float CUDA_get_bin_freq(float *histo, int index) {
+    return *(histo + index * 2 + 1);
+}
+
+__device__
+inline float CUDA_get_bin_value(float *histo, int index) {
+    return *(histo + index * 2 + 2);
+}
+
+__device__ __inline__
+void CUDA_set_bin_freq(float *histo, int index, float freq) {
+    *(histo + index * 2 + 1) = freq;
+}
+
+__device__ __inline__
+void CUDA_set_bin_value(float *histo, int index, float value) {
+    *(histo + index * 2 + 2) = value;
+}
+
+__device__
+void CUDA_merge_same_array(float *histo) {
+    int bin_size = *histo;
+    for (int i = 0; i + 1 < bin_size; i++) {        
+		if (abs(CUDA_get_bin_value(histo, i) - CUDA_get_bin_value(histo, i + 1)) < EPS) {
+			CUDA_set_bin_freq(histo, i, CUDA_get_bin_freq(histo, i) + CUDA_get_bin_freq(histo, i + 1));			
+			
+            // erase vec[i + 1]
+			for (int j = i + 1; j <= bin_size - 2; j++) {
+                CUDA_set_bin_freq(histo, j, CUDA_get_bin_freq(histo, j + 1));
+                CUDA_set_bin_value(histo, j, CUDA_get_bin_value(histo, j + 1));
+			}
+			bin_size--;
+			i--;
+		}
+	}
+    *histo = bin_size;
+}
+
+__device__
+void CUDA_merge_bin_array(float *histo) {    
+	int index = 0;
+    float new_freq = 0;
+    float new_value = 0;
+
+    int bin_size = CUDA_get_bin_size(histo);
+
+	// find the min value of difference
+	for (int i = 0; i < bin_size - 1; i++) {
+		if (CUDA_get_bin_value(histo, i + 1) - CUDA_get_bin_value(histo, i)
+			< CUDA_get_bin_value(histo, index + 1) - CUDA_get_bin_value(histo, index)) {
+			index = i;
+		}
+	}
+
+	// merge bins[index], bins[index + 1] into a new element
+	new_freq = CUDA_get_bin_freq(histo, index) + CUDA_get_bin_freq(histo, index + 1);
+	new_value = (CUDA_get_bin_value(histo, index) * CUDA_get_bin_freq(histo, index)
+		+ CUDA_get_bin_value(histo, index + 1) * CUDA_get_bin_freq(histo, index + 1)) /
+		new_freq;
+
+	// change vec[index] with newbin
+	CUDA_set_bin_freq(histo, index, new_freq);
+    CUDA_set_bin_value(histo, index, new_value);
+
+	// erase vec[index + 1]
+	for (int i = index + 1; i <= bin_size - 2; i++) {
+        CUDA_set_bin_freq(histo, i, CUDA_get_bin_freq(histo, i + 1));
+        CUDA_set_bin_value(histo, i, CUDA_get_bin_value(histo, i + 1));
+ 	}
+	bin_size--;
+    *histo = bin_size;
+
+    CUDA_merge_same_array(histo);
+}
+
+__device__
+void CUDA_update_array(int histogram_id, int feature_id, int label, float value,
+	int num_of_features, int num_of_classes, int max_bin_size, float* histogram) {	
+	float *histo = CUDA_get_histogram_array(histogram_id, feature_id, label,
+		histogram, num_of_features, num_of_classes, max_bin_size);
+
+	// If there are values in the bin equals to the value here
+	int bin_size = CUDA_get_bin_size(histo);
+	for (int i = 0; i < bin_size; i++) {
+		if (abs(CUDA_get_bin_value(histo, i) - value) < EPS) {		
+			CUDA_set_bin_freq(histo, i, CUDA_get_bin_freq(histo, i)+1.f);
+			return;
+		}
+	}
+
+	// put the next element into the correct place in bin_size
+	// find the index to insert value
+	// bins[index - 1].value < value
+	// bins[index].value > value
+	int index = bin_size;	
+	for (int i = 0; i < bin_size; i++) {
+		if (CUDA_get_bin_value(histo, i) > value) {
+			index = i;
+			break;
+		}
+	}
+	// move the [index, bin_size - 1] an element further
+	for (int i = bin_size; i >= index + 1; i--) {
+		CUDA_set_bin_value(histo, i, CUDA_get_bin_value(histo, i-1));
+		CUDA_set_bin_freq(histo, i, CUDA_get_bin_freq(histo, i-1));
+	}
+
+	bin_size++;
+	CUDA_increase_bin_size(histo);
+
+	// put value into the place of bins[index]
+	CUDA_set_bin_value(histo, index, value);
+	CUDA_set_bin_freq(histo, index, 1.f);
+	if (bin_size <= max_bin_size) {
+		return;
+	}
+
+	CUDA_merge_bin_array(histo);	
+	return;
+}
+
+__device__
+void CUDA_merge_array_pointers(float *histo1, float *histo2, int max_bin_size) {
+    int bin_size1 = CUDA_get_bin_size(histo1);
+    int bin_size2 = CUDA_get_bin_size(histo2);
+	if (bin_size2 == 0)
+		return;
+	if (bin_size1 == 0){
+		memcpy(histo1, histo2, sizeof(float) * (2 * bin_size2 + 1));
+		return;
+	}
+    int bin_size_merge = 0;
+    int index1 = 0, index2 = 0;
+    float *histo_merge = new float[max_bin_size * 4 + 1]; //TODO: optimize
+    while (index1 < bin_size1 || index2 < bin_size2) {
+		float freq;
+		float value;
+		if (index1 >= bin_size1){
+			freq = CUDA_get_bin_freq(histo2, index2);
+			value = CUDA_get_bin_value(histo2, index2);
+			index2 ++;
+		}
+		else if (index2 >= bin_size2){
+			freq = CUDA_get_bin_freq(histo1, index1);
+			value = CUDA_get_bin_value(histo1, index1);
+			index1 ++;
+		}
+		else{
+			if (CUDA_get_bin_value(histo1, index1) < CUDA_get_bin_value(histo2, index2)) {
+				// put the index1 in histo1 to the next place of histo_merge
+				freq = CUDA_get_bin_freq(histo1, index1);
+				value = CUDA_get_bin_value(histo1, index1);
+				index1++;
+			} else {
+				// put the index2 in histo2 to the next place of histo_merge
+				freq = CUDA_get_bin_freq(histo2, index2);
+				value = CUDA_get_bin_value(histo2, index2);            
+				index2++;
+			}
+		}
+		CUDA_set_bin_freq(histo_merge, bin_size_merge, freq);
+		CUDA_set_bin_value(histo_merge, bin_size_merge, value);
+        bin_size_merge++;
+    }
+	*histo_merge = (float) bin_size_merge;
+
+	// merge the same values in vec
+	CUDA_merge_same_array(histo_merge);
+
+	while (bin_size_merge > max_bin_size) {
+		CUDA_merge_bin_array(histo_merge);
+		bin_size_merge --;		
+	}
+
+    // copy from histo_merge into histo1   
+	memcpy(histo1, histo_merge, sizeof(float) * (2 * bin_size_merge + 1)); 
+	delete []histo_merge;
+	return;
+}
+
+__device__
+float CUDA_sum_array(int histogram_id, int feature_id, int label, float value,
+	float *histogram, int num_of_features, int num_of_classes, int max_bin_size) {	
+	int index = 0;
+	float mb = 0;
+	float s = 0;
+
+    float *histo = CUDA_get_histogram_array(histogram_id, feature_id, label,
+		histogram, num_of_features, num_of_classes, max_bin_size);
+    int bin_size = CUDA_get_bin_size(histo);
+
+	if (bin_size == 1) {
+		return CUDA_get_bin_freq(histo, 0);
+	}
+
+    // value < the first value in histo
+	if (value < CUDA_get_bin_value(histo, 0)) {
+		return 0;
+	}
+
+    // value >= the last value in histogram
+	if (value >= CUDA_get_bin_value(histo, bin_size - 1)) {
+		for (int i = 0; i < bin_size; i++) {
+			s += CUDA_get_bin_freq(histo, i);			
+		}
+		return s;
+	}
+
+	for (index = 0; index + 1 < bin_size; index++) {
+		if (CUDA_get_bin_value(histo, index) <= value 
+            && CUDA_get_bin_value(histo, index + 1) > value) {
+			break;
+		}
+	}		
+
+	if (abs(CUDA_get_bin_value(histo, index + 1) - CUDA_get_bin_value(histo, index)) <= EPS) {		
+		asm("exit;");
+	}
+
+	if (abs(CUDA_get_bin_value(histo, index + 1) - CUDA_get_bin_value(histo, index)) > EPS) {
+		mb = CUDA_get_bin_freq(histo, index + 1) - CUDA_get_bin_freq(histo, index);
+		mb = mb * (value - CUDA_get_bin_value(histo, index));
+		mb = mb / (CUDA_get_bin_value(histo, index + 1) - CUDA_get_bin_value(histo, index));
+		mb = CUDA_get_bin_freq(histo, index) + mb;
+	} else {		
+		asm("exit;");		
+	}
+	
+	if (abs(CUDA_get_bin_value(histo, index + 1) - CUDA_get_bin_value(histo, index)) > EPS) {
+		s = (CUDA_get_bin_freq(histo, index) + mb) / 2;
+		s = s * (value - CUDA_get_bin_value(histo, index));
+		s = s / (CUDA_get_bin_value(histo, index + 1) - CUDA_get_bin_value(histo, index));
+	} else {		
+		asm("exit;");		
+	}
+
+	for (int j = 0; j < index; j++) {
+		s = s + CUDA_get_bin_freq(histo, j);
+	}
+
+	s = s + ((float)CUDA_get_bin_freq(histo, index)) / 2;	
+	return s;
+}
+
+// put the result into array u
+// return the size of u
+__device__
+int CUDA_uniform_array(float *u, int histogram_id, int feature_id, int label, 
+	float* histo, int num_of_features, int num_of_classes, int max_bin_size) {	
+    int bin_size = CUDA_get_bin_size(histo);
+    int B = bin_size;
+	float tmpsum = 0;
+	float s = 0;
+	int index = 0;
+	float a = 0, b = 0, c = 0, d = 0, z = 0;	
+	float uj = 0;
+	int u_size = 0;
+
+	if (bin_size == 0) {
+		return 0;
+	}
+
+	if (bin_size == 1) {
+		u[0] = CUDA_get_bin_value(histo, 0);
+		return 1;
+	}
+	
+	for (int i = 0; i < bin_size; i++) {
+		tmpsum += CUDA_get_bin_freq(histo, i);
+	}	
+
+	for (int j = 0; j <= B - 2; j++) {
+		s = tmpsum * (j + 1) / B;		
+		
+		for (index = 0; index + 1 < bin_size; index++) {			
+			if (CUDA_sum_array(histogram_id, feature_id, label, CUDA_get_bin_value(histo, index), histo, num_of_features, num_of_classes, max_bin_size) < s
+				&& s < CUDA_sum_array(histogram_id, feature_id, label, CUDA_get_bin_value(histo, index + 1), histo, num_of_features, num_of_classes, max_bin_size)) {
+				break;
+			}
+		}
+
+		d = s - CUDA_sum_array(histogram_id, feature_id, label, CUDA_get_bin_value(histo, index), histo, num_of_features, num_of_classes, max_bin_size);
+
+		a = CUDA_get_bin_freq(histo, index + 1) - CUDA_get_bin_freq(histo, index);
+		b = 2 * CUDA_get_bin_freq(histo, index);
+		c = -2 * d;		
+		
+		if (abs(a) > EPS && b * b - 4 * a * c >= 0) {
+			z = -b + sqrt(b * b - 4 * a * c);
+			z = z / (2 * a);
+		} else if (abs(b) > EPS) {
+			// b * z + c = 0
+			z = -c / b;
+		} else {
+			z = 0;
+		}
+		if (z < 0) z = 0;
+		if (z > 1) z = 1;
+		
+		uj = CUDA_get_bin_value(histo, index) + z * (CUDA_get_bin_value(histo, index + 1) - CUDA_get_bin_value(histo, index));		
+		u[u_size] = uj;
+		u_size++;				
+	}
+	
+	return u_size;
+}
+
+__device__
+int CUDA_get_total_array(int histogram_id, int feature_id, int label,
+	float *histogram, int num_of_features, int num_of_classes, int max_bin_size) {
+    int t = 0;
+	assert(histogram != NULL);
+
+    float *histo = CUDA_get_histogram_array(histogram_id, feature_id, label,
+		histogram, num_of_features, num_of_classes, max_bin_size);
+    int bin_size = CUDA_get_bin_size(histo);	
+    for (int i = 0; i < bin_size; i++) {		
+        t += (int)CUDA_get_bin_freq(histo, i);
+    }
+    return t;
+}

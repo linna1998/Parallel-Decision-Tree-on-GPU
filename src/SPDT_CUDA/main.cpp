@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "tree_CUDA.h"
+#include "array_CUDA.h"
+#include "parser_CUDA.h"
 #include "../SPDT_general/timing.h"
 vector<string> names = {"a1a", "ijcnn1", "avazu-app", "rcv1", "covtype", "generated"};
 
@@ -14,47 +16,13 @@ string help_msg = "-l: max_num_leaf.\n-d: max_depth.\n-n: number of"\
 
 int main(int argc, char **argv) {
 
-    int index = 5;
-    clock_t start, end;
+    int index = 0;
     double cpu_time_used_train;
-    double cpu_time_used_test;
-    int c;
+    double cpu_time_used_test;    
     int num_of_thread = -1;    
     int min_node_size = -1;
     int max_depth = -1;
-    // while((c = getopt(argc, argv, "b:n:l:d:eh")) != -1){
-    //     switch (c)
-    //     {
-    //     case 'n':
-    //         num_of_thread = (int)std::atoi(optarg);
-    //         cout << "using " << num_of_thread << " threads" << endl;
-    //         break;
 
-    //     case 'b':
-    //         max_bin_size = (int)std::atoi(optarg);
-    //         break;
-
-    //     case 'l':
-    //         max_num_leaf = (int)std::atoi(optarg);
-    //         break;
-
-    //     case 'd':
-    //         max_depth = (int)std::atoi(optarg);
-    //         break;
-
-    //     case 'e':
-    //         cout << "e" << endl;
-    //         min_node_size = (int)std::atoi(optarg);
-    //         cout << "e" << endl;
-
-    //         break;
-    //     case 'h':
-    //         cout << help_msg << endl;
-    //         exit(0);
-    //     default:
-    //         break;
-    //     }
-    // }
     num_of_thread = (num_of_thread == -1)? 8 : num_of_thread;
     max_num_leaves = (max_num_leaves == -1) ? 64 : max_num_leaves;
     max_depth = (max_depth == -1) ? 9 : max_depth;
@@ -81,6 +49,7 @@ int main(int argc, char **argv) {
     // test
     string testName = "./data/" + names[index] + ".test.txt";
     Dataset testDataset(testSize[index]);
+    assert(testDataset.value_ptr != NULL);
     testDataset.open_read_data(testName);	
     t.reset();
     printf("correct rate: %f\n", decisionTree.test(testDataset));  

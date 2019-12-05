@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <omp.h>
 
-// #define DEBUG
+#define DEBUG
 #ifdef DEBUG
 /* When DEBUG is defined, these form aliases to useful functions */
 #define dbg_printf(...) printf(__VA_ARGS__)
@@ -27,12 +27,12 @@
 #define dbg_printheap(...) ((void)sizeof(__VA_ARGS__))
 #endif
 
-#define EPS 1e-9
+#define EPS 1e-5
+#define magic 2
 
 extern float COMPRESS_TIME;
 extern float SPLIT_TIME;
 extern float COMMUNICATION_TIME;
-
 extern int num_of_features;
 extern int num_of_classes;
 extern int max_bin_size;
@@ -41,7 +41,7 @@ extern int max_num_leaves;
 extern long long SIZE;
 
 struct GlobalConstants {
-
+    int max_num_leaves;
     int num_of_features;
     int num_of_data;
     int max_bin_size;
@@ -59,11 +59,10 @@ public:
     int feature_id;
     float feature_value;
 	float gain;
-	float entropy;
-    Dataset* datasetPointer; 
+	float entropy;    
     SplitPoint();
-    SplitPoint(int feature_id, float feature_value, Dataset* datasetPointer);
-    bool decision_rule(int data_index);
+    SplitPoint(int feature_id, float feature_value);
+    bool decision_rule(int data_index, Dataset *datasetPointer);
     inline SplitPoint& operator = (const SplitPoint& split){
         this->feature_id = split.feature_id;
         this->feature_value = split.feature_value;
@@ -86,7 +85,11 @@ public:
     int histogram_id;   
     int num_pos_label;
     Dataset* datasetPointer; 
-    
+
+    // when split, use data_ptr to split
+    // then put the information into this->datasetPointer->histogram_id_ptr
+    // in the future init_histogram process
+    vector<int> data_ptr;
     int data_size;
     SplitPoint split_ptr;
 
@@ -151,7 +154,7 @@ public:
     void batch_initialize(TreeNode* node);
     void initialize(Dataset &train_data, const int batch_size);
     void init_histogram(vector<TreeNode* >& unlabled_leaf);
-    TreeNode* navigate(int data_index);
+    TreeNode* navigate(int data_index, Dataset *datasetPointer);
     bool is_terminated(TreeNode* node);
 
     void initCUDA();

@@ -11,7 +11,7 @@ Dataset::Dataset(int _num_of_data):
 	already_read_data = 0;
 	num_pos_label = 0;
 	label_ptr = (int*)calloc(_num_of_data, sizeof(int));
-	value_ptr = (float*)calloc(_num_of_data * num_of_features, sizeof(float));
+	value_ptr = (float*)calloc((long long int)_num_of_data * num_of_features, sizeof(float));
 	histogram_id_ptr = (int*)calloc(_num_of_data, sizeof(int));
 }
 

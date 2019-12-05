@@ -165,7 +165,17 @@ void DecisionTree::compress(vector<Data> &data)
     {
         delete[] buffer;
         delete[] buffer2;
+        // float *histo = NULL;
+        // int bin_size = 0;
+        // for (int i = 0; i < num_of_features; i++) {
+        //     for (int j = 0; j < num_of_classes; j++) {
+        //         histo = get_histogram_array(0, i, j);
+        //         bin_size = (int)(*histo);
+        //         printf("[%d][%d]: bin_size %d\n", i, j, bin_size);
+        //     }
+        // } 
     }
+
 }
 
 SplitPoint::SplitPoint()
