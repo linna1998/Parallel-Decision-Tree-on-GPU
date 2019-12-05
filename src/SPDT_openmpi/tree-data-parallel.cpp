@@ -129,11 +129,11 @@ void DecisionTree::compress(vector<Data> &data)
     t.reset();
     if (taskid == MASTER)
     {
+        buffer = new float[SIZE];
+        buffer2 = new float[SIZE];
         int task_left = numtasks - 1;
         while (task_left > 0)
-        {
-            buffer = new float[SIZE];
-            buffer2 = new float[SIZE];
+        {            
             t.reset();
             MPI_Recv(buffer, SIZE, MPI_FLOAT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
             COMMUNICATION_TIME += t.elapsed();
@@ -149,8 +149,7 @@ void DecisionTree::compress(vector<Data> &data)
                 }
             }
             task_left--;
-            delete[] buffer;
-            delete[] buffer2;
+            
         }
     }
     else
@@ -161,7 +160,12 @@ void DecisionTree::compress(vector<Data> &data)
     }
     t.reset();
     MPI_Bcast(histogram, SIZE, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
-    COMMUNICATION_TIME += t.elapsed();    
+    COMMUNICATION_TIME += t.elapsed();   
+
+    if (taskid == MASTER) {
+        delete[] buffer;
+        delete[] buffer2;
+    } 
 
 }
 
