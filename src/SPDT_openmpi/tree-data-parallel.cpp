@@ -149,6 +149,8 @@ void DecisionTree::compress(vector<Data> &data)
                 }
             }
             task_left--;
+            delete[] buffer;
+            delete[] buffer2;
         }
     }
     else
@@ -159,22 +161,7 @@ void DecisionTree::compress(vector<Data> &data)
     }
     t.reset();
     MPI_Bcast(histogram, SIZE, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
-    COMMUNICATION_TIME += t.elapsed();
-
-    if (taskid == MASTER)
-    {
-        delete[] buffer;
-        delete[] buffer2;
-        // float *histo = NULL;
-        // int bin_size = 0;
-        // for (int i = 0; i < num_of_features; i++) {
-        //     for (int j = 0; j < num_of_classes; j++) {
-        //         histo = get_histogram_array(0, i, j);
-        //         bin_size = (int)(*histo);
-        //         printf("[%d][%d]: bin_size %d\n", i, j, bin_size);
-        //     }
-        // } 
-    }
+    COMMUNICATION_TIME += t.elapsed();    
 
 }
 
@@ -586,7 +573,9 @@ void DecisionTree::train_on_batch(Dataset &train_data)
         init_histogram(unlabeled_leaf);
         Timer t;
         t.reset();
+        printf("before compress\n");
         compress(train_data.dataset);
+        printf("after compress\n");
         COMPRESS_TIME += t.elapsed();
         for (auto &cur_leaf : unlabeled_leaf)
         {
