@@ -573,9 +573,7 @@ void DecisionTree::train_on_batch(Dataset &train_data)
         init_histogram(unlabeled_leaf);
         Timer t;
         t.reset();
-        printf("before compress\n");
         compress(train_data.dataset);
-        printf("after compress\n");
         COMPRESS_TIME += t.elapsed();
         for (auto &cur_leaf : unlabeled_leaf)
         {
