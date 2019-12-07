@@ -22,39 +22,16 @@ int main(int argc, char **argv) {
     int num_of_thread = -1;    
     int min_node_size = -1;
     int max_depth = -1;
-    // while((c = getopt(argc, argv, "b:n:l:d:eh")) != -1){
-    //     switch (c)
-    //     {
-    //     case 'n':
-    //         num_of_thread = (int)std::atoi(optarg);
-    //         cout << "using " << num_of_thread << " threads" << endl;
-    //         break;
-
-    //     case 'b':
-    //         max_bin_size = (int)std::atoi(optarg);
-    //         break;
-
-    //     case 'l':
-    //         max_num_leaf = (int)std::atoi(optarg);
-    //         break;
-
-    //     case 'd':
-    //         max_depth = (int)std::atoi(optarg);
-    //         break;
-
-    //     case 'e':
-    //         cout << "e" << endl;
-    //         min_node_size = (int)std::atoi(optarg);
-    //         cout << "e" << endl;
-
-    //         break;
-    //     case 'h':
-    //         cout << help_msg << endl;
-    //         exit(0);
-    //     default:
-    //         break;
-    //     }
-    // }
+    while((c = getopt(argc, argv, "i:")) != -1 ){
+        switch (c)
+        {
+        case 'i':
+            index = (int)std::atoi(optarg);            
+            break;        
+        default:
+            break;
+        }
+    }
     num_of_thread = (num_of_thread == -1)? 8 : num_of_thread;
     max_num_leaves = (max_num_leaves == -1) ? 64 : max_num_leaves;
     max_depth = (max_depth == -1) ? 9 : max_depth;
@@ -68,6 +45,7 @@ int main(int argc, char **argv) {
             max_num_leaves, max_depth, min_node_size, max_bin_size);
             
     string trainName = "./data/" + names[index] + ".train.txt";
+    cout << "dataset name: " << names[index] << endl;
     DecisionTree decisionTree(max_depth, min_node_size);
     Dataset trainDataset(trainSize[index]);
     trainDataset.open_read_data(trainName);

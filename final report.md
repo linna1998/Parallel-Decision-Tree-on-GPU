@@ -66,6 +66,9 @@ Parallel on data, when navigate the samples
 
 [Speedup table in Evaluation folder]
 
+Problems:
+1. OpenMPI, train_time > split_time
+2. openmp feature parallel, data index = 1/5, abort
 
 ## References
 
