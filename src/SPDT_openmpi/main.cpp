@@ -45,15 +45,14 @@ int main(int argc, char *argv[]) {
     max_depth = (max_depth == -1) ? 9 : max_depth;
     min_node_size = (min_node_size == -1) ? 32 : min_node_size;
     // the global max_bin_size
-    max_bin_size = (max_bin_size == -1) ? 256 : max_bin_size;
+    max_bin_size = (max_bin_size == -1) ? 64 : max_bin_size;
     num_of_features = featureNum[index];
     num_of_classes = 2;
-    if (taskid == 0)
-        printf("[%d] max_num_leaf=%d, max_depth=%d, min_node_size=%d, max_bin_size=%d\n", taskid,
-                max_num_leaves, max_depth, min_node_size, max_bin_size);
-            
     string trainName = "./data/" + names[index] + ".train.txt";
-    cout << "dataset name: " << names[index] << endl;
+    prefix_printf("DATASET: %s\n", trainName.c_str());
+    prefix_printf("SIZE: (%d, %d) BIN_SIZE: %d DEPTH: %d\n", 
+            taskid, trainSize[index], num_of_features, max_bin_size, max_depth);
+    
     DecisionTree decisionTree(max_depth, min_node_size);
     Dataset trainDataset(trainSize[index]);
     trainDataset.open_read_data(trainName);
@@ -61,22 +60,22 @@ int main(int argc, char *argv[]) {
     t.reset();
     decisionTree.train(trainDataset, trainSize[index]);
     cpu_time_used_train = t.elapsed();
-  
     // test
     string testName = "./data/" + names[index] + ".test.txt";
     Dataset testDataset(testSize[index]);
     testDataset.open_read_data(testName);	
-    if (taskid == 0){
-        printf("[%d] Train Time: %f\n", taskid, cpu_time_used_train);
-        printf("[%d] COMPRESS TIME: %f\n[%d] SPLIT TIME: %f\n", taskid, COMPRESS_TIME, SPLIT_TIME); 
-        t.reset();
-        printf("[%d] COMMUNICATION time: %f\n", taskid, COMMUNICATION_TIME);
-        printf("[%d] Train Time: %f\n", taskid, cpu_time_used_train);
-        printf("[%d] Training Correct Rate: %f\n", taskid, decisionTree.test(trainDataset)); 
-        printf("[%d] Testing Correct Rate: %f\n", taskid, decisionTree.test(testDataset)); 
-        cpu_time_used_test = t.elapsed();
-        printf("[%d] Test Time: %f\n", taskid, cpu_time_used_test);
-    }
+    prefix_printf("COMPRESS TIME: %f\n", COMPRESS_TIME); 
+    prefix_printf("NET COMPRESS TIME: %f\n", COMPRESS_TIME-COMPRESS_COMMUNICATION_TIME); 
+    prefix_printf("SPLIT TIME: %f\n", SPLIT_TIME); 
+    prefix_printf("NET SPLIT TIME: %f\n", SPLIT_TIME-SPLIT_COMMUNICATION_TIME); 
+    prefix_printf("COMPRESS_COMMUNICATION time: %f\n", COMPRESS_COMMUNICATION_TIME);
+    prefix_printf("SPLIT_COMMUNICATION time: %f\n", SPLIT_COMMUNICATION_TIME);
+    prefix_printf("Train Time: %f\n", cpu_time_used_train);
+    prefix_printf("Training Correct Rate: %f\n", decisionTree.test(trainDataset));
+    t.reset();
+    prefix_printf("Testing Correct Rate: %f\n", decisionTree.test(testDataset)); 
+    cpu_time_used_test = t.elapsed();
+    prefix_printf("Test Time: %f\n", cpu_time_used_test);
     MPI_Finalize();
     return 0;  
 }

@@ -104,13 +104,13 @@ float sum_array(int histogram_id, int feature_id, int label, float value) {
     float *histo = get_histogram_array(histogram_id, feature_id, label);
     int bin_size = *histo;
 
-	if (bin_size == 1) {
-		return get_bin_freq(histo, 0);
-	}
-
     // value < the first value in histo
 	if (value < get_bin_value(histo, 0)) {
 		return 0;
+	}
+	
+	if (bin_size == 1) {
+		return get_bin_freq(histo, 0);
 	}
 
     // value >= the last value in histogram
@@ -259,14 +259,20 @@ void merge_array_pointers(float *histo1, float *histo2) {
 				index2++;
 			}
 		}
-		set_bin_freq(histo_merge, bin_size_merge, freq);
-		set_bin_value(histo_merge, bin_size_merge, value);
-        bin_size_merge++;
+		// if the value is the same, then merge here
+		if (bin_size_merge > 0 && abs(get_bin_value(histo_merge, bin_size_merge-1) - value) < EPS){
+			set_bin_freq(histo_merge, bin_size_merge-1, freq + get_bin_freq(histo_merge, bin_size_merge-1));
+		}
+		else{
+			set_bin_freq(histo_merge, bin_size_merge, freq);
+			set_bin_value(histo_merge, bin_size_merge, value);
+			bin_size_merge++;
+		}
     }
 	*histo_merge = (float) bin_size_merge;
 
 	// merge the same values in vec
-	merge_same_array(histo_merge);
+	// merge_same_array(histo_merge);
 
 	while (bin_size_merge > max_bin_size) {
 		merge_bin_array(histo_merge);

@@ -32,7 +32,8 @@
 extern double COMPRESS_TIME;
 extern double SPLIT_TIME;
 extern double COMMUNICATION_TIME;
-
+extern double COMPRESS_COMMUNICATION_TIME;
+extern double SPLIT_COMMUNICATION_TIME;
 
 extern int num_of_features;
 extern int num_of_classes;
@@ -138,3 +139,4 @@ public:
 
 
 void get_gain(TreeNode* node, SplitPoint& split, int feature_id);
+void prefix_printf(const char* format, ...);

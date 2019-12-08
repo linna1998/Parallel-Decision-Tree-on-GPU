@@ -145,10 +145,6 @@ double Histogram::sum(double value) {
 	double mb = 0;
 	double s = 0;
 
-	if (bin_size == 1) {
-		return bins[0].freq;
-	}
-
 	if (value < bins[0].value) {
 		return 0;
 	}
@@ -159,7 +155,11 @@ double Histogram::sum(double value) {
 		}
 		return s;
 	}
-
+	
+	if (bin_size == 1) {
+		return bins[0].freq;
+	}
+	
 	for (index = 0; index + 1 < bin_size; index++) {
 		if (bins[index].value <= value && bins[index + 1].value > value) {
 			break;

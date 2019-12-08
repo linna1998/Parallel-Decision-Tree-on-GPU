@@ -107,13 +107,13 @@ float sum_array(int histogram_id, int feature_id, int label, float value) {
     float *histo = get_histogram_array(histogram_id, feature_id, label);
     int bin_size = *histo;
 
-	if (bin_size == 1) {
-		return get_bin_freq(histo, 0);
-	}
-
     // value < the first value in histo
 	if (value < get_bin_value(histo, 0)) {
 		return 0;
+	}
+
+	if (bin_size == 1) {
+		return get_bin_freq(histo, 0);
 	}
 
     // value >= the last value in histogram

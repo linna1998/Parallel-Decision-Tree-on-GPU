@@ -8,10 +8,12 @@
 #include "../SPDT_general/timing.h"
 #include "../SPDT_general/array.h"
 #include "mpi.h"
+#include "stdarg.h"
 
 double COMPRESS_TIME = 0.f;
 double SPLIT_TIME = 0.f;
-double COMMUNICATION_TIME = 0.f;
+double COMPRESS_COMMUNICATION_TIME = 0.f;
+double SPLIT_COMMUNICATION_TIME = 0.f;
 long long SIZE = 0;
 
 int num_of_features = -1;
@@ -21,6 +23,17 @@ int max_num_leaves = -1;
 
 #define MASTER 0
 
+void prefix_printf(const char* format, ...){
+    va_list args;
+    int taskid;
+    MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
+    if (taskid == 0){
+        printf("MPI [%d] ", taskid);
+        va_start(args, format);
+        vprintf(format, args);
+        va_end(args);
+    }
+}
 /*
  * This function compress the data into histograms.
  * Each unlabeled leaf would have a (num_feature, num_class) histograms
@@ -60,20 +73,39 @@ void TreeNode::split(SplitPoint &best_split, TreeNode *left, TreeNode *right)
     dbg_assert(left->num_pos_label + right->num_pos_label == this->num_pos_label);
 }
 
+
+typedef struct MPI_split_info {
+    int feature_id;
+    float feature_value;
+	double gain;
+	double entropy;
+} MPI_split_info;
+
 /*
  * This function return the best split point at a given leaf node.
  * Best split is store in `split`
 */
 void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 {
-    clock_t start, end;
+    Timer t;
     int taskid, numtasks;
     MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
     MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
-    start = clock();
+    const int nitems = 4;
+    int          blocklengths[4] = {1,1,1,1};
+    MPI_Datatype types[4] = {MPI_INT, MPI_FLOAT, MPI_DOUBLE, MPI_DOUBLE};
+    MPI_Datatype mpi_split_info;
+    MPI_Aint     offsets[4];
+    offsets[0] = offsetof(MPI_split_info, feature_id);
+    offsets[1] = offsetof(MPI_split_info, feature_value);
+    offsets[2] = offsetof(MPI_split_info, gain);
+    offsets[3] = offsetof(MPI_split_info, entropy);
+    MPI_Type_create_struct(nitems, blocklengths, offsets, types, &mpi_split_info);
+    MPI_Type_commit(&mpi_split_info);
+    MPI_split_info mpi_best;
     float *buf_merge = new float[2 * max_bin_size + 1];
     SplitPoint best_split = SplitPoint();
-    for (int i = 0; i < num_of_features; i++)
+    for (int i = taskid; i < num_of_features; i+=numtasks)
     {
         // merge different labels
         // put the result back into (node->histogram_id, i, 0)
@@ -82,6 +114,8 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
         memcpy(buf_merge, histo_for_class_0, sizeof(float) * (2 * max_bin_size + 1));
         std::vector<float> possible_splits;
         merge_array_pointers(buf_merge, histo_for_class_1);
+        // print_array(histo_for_class_0);
+        // print_array(histo_for_class_1);
         uniform_array(possible_splits, node->histogram_id, i, 0, buf_merge);
         dbg_assert(possible_splits.size() <= max_bin_size);
         for (auto &split_value : possible_splits)
@@ -92,10 +126,39 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
                 best_split = t;
         }
     }
+    mpi_best.feature_id = best_split.feature_id;
+    mpi_best.feature_value = best_split.feature_value;
+    mpi_best.gain = best_split.gain;
+    mpi_best.entropy = best_split.entropy;
+    MPI_split_info* candidates;
+    if (taskid == MASTER)
+        candidates = new MPI_split_info[numtasks];
+    t.reset();
+    MPI_Gather(&mpi_best, 1, mpi_split_info, candidates, 1, mpi_split_info, MASTER, MPI_COMM_WORLD);
+    SPLIT_COMMUNICATION_TIME += t.elapsed();
+    
+    if (taskid == MASTER){
+        for(int m=0; m<numtasks; m++){
+            auto& p = candidates[m];
+            if (p.gain > mpi_best.gain ){
+                mpi_best.gain = p.gain;
+                mpi_best.feature_id = p.feature_id;
+                mpi_best.feature_value = p.feature_value;
+                mpi_best.entropy = p.entropy;
+            }
+        }
+    }
+    t.reset();
+    MPI_Bcast(&mpi_best, 1, mpi_split_info, MASTER, MPI_COMM_WORLD);
+    SPLIT_COMMUNICATION_TIME += t.elapsed();
+    best_split.feature_id = mpi_best.feature_id;
+    best_split.feature_value = mpi_best.feature_value;
+    best_split.entropy = mpi_best.entropy;
+    best_split.gain = mpi_best.gain;
     split = best_split;
-    end = clock();
-    SPLIT_TIME += ((double)(end - start)) / CLOCKS_PER_SEC;
     delete[] buf_merge;
+    if (taskid == MASTER)
+        delete[] candidates;
 }
 
 void DecisionTree::compress(vector<Data> &data)
@@ -136,8 +199,9 @@ void DecisionTree::compress(vector<Data> &data)
         {            
             t.reset();
             MPI_Recv(buffer, SIZE, MPI_FLOAT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
-            COMMUNICATION_TIME += t.elapsed();
             memcpy(buffer2, buffer, SIZE * sizeof(float));
+            COMPRESS_COMMUNICATION_TIME += t.elapsed();
+
             for (int j = 0; j < num_unlabled_leaves; j++)
             { // merge the results in the master thread
                 for (int k = 0; k < num_of_features; k++)
@@ -156,11 +220,11 @@ void DecisionTree::compress(vector<Data> &data)
     {
         t.reset();
         MPI_Send(histogram, SIZE, MPI_FLOAT, MASTER, 0, MPI_COMM_WORLD);
-        COMMUNICATION_TIME += t.elapsed();
+        COMPRESS_COMMUNICATION_TIME += t.elapsed();
     }
     t.reset();
     MPI_Bcast(histogram, SIZE, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
-    COMMUNICATION_TIME += t.elapsed();   
+    COMPRESS_COMMUNICATION_TIME += t.elapsed();   
 
     if (taskid == MASTER) {
         delete[] buffer;
@@ -314,8 +378,7 @@ bool DecisionTree::is_terminated(TreeNode *node)
         dbg_printf("Node [%d] terminated: max_num_leaves\n", node->id);
         return true;
     }
-
-    if (!node->num_pos_label || node->num_pos_label == (int)node->data_ptr.size())
+    if (node->num_pos_label < EPS || node->num_pos_label == (int)node->data_ptr.size())
     {
         dbg_assert(node->entropy < EPS);
         dbg_printf("Node [%d] terminated: all samples belong to same class\n", node->id);
@@ -327,6 +390,8 @@ bool DecisionTree::is_terminated(TreeNode *node)
 
 void DecisionTree::initialize(Dataset &train_data, const int batch_size)
 {
+    int taskid;
+    MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
     this->datasetPointer = &train_data;
     root = new TreeNode(0, this->num_nodes++);
     if (histogram != NULL)
@@ -334,11 +399,11 @@ void DecisionTree::initialize(Dataset &train_data, const int batch_size)
         delete[] histogram;
     }
     SIZE = (long long)max_num_leaves * num_of_features * num_of_classes * ((max_bin_size + 1) * 2 + 1);
-    printf("Init Root Node [%.4f] MB\n", SIZE * sizeof(float) / 1024.f / 1024.f);
-
+    if (taskid == MASTER)
+        printf("MPI [%d] Init Root Node [%.4f] MB\n", taskid, SIZE * sizeof(float) / 1024.f / 1024.f);
+    
     histogram = new float[SIZE];
     memset(histogram, 0, SIZE * sizeof(float));
-    printf("Init success\n");
 }
 
 void DecisionTree::train(Dataset &train_data, const int batch_size)
@@ -384,9 +449,6 @@ double DecisionTree::test(Dataset &test_data)
  */
 void get_gain(TreeNode *node, SplitPoint &split, int feature_id)
 {
-    int taskid, numtasks;
-    MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
-    MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
     int total_sum = node->data_ptr.size();
     dbg_ensures(total_sum > 0);
     double sum_class_0 = get_total_array(node->histogram_id, feature_id, NEG_LABEL);
@@ -408,12 +470,17 @@ void get_gain(TreeNode *node, SplitPoint &split, int feature_id)
     double entropy_right = ((1 - py_x1) < EPS || py_x1 < EPS) ? 0 : -py_x1 * log2(py_x1) - (1 - py_x1) * log2(1 - py_x1);
     double H_YX = px * entropy_left + (1 - px) * entropy_right;
     double px_prior = sum_class_0 / (sum_class_0 + sum_class_1);
-    dbg_ensures(px_prior > 0 && px_prior < 1);
+    // prefix_printf("right_sum_class_0:%.7f = %.7f - %.7f\n", right_sum_class_0, sum_class_0, left_sum_class_0);
+    // prefix_printf("right_sum_class_1:%.7f = %.7f - %.7f\n", right_sum_class_1, sum_class_1, left_sum_class_1);
+    // prefix_printf("H_YX:%.7f = %.7f * %.7f - %.7f * %.7f\n", H_YX, px, entropy_left, 1-px, entropy_right);
+    // prefix_printf("entropy: px_prior = %.7f\n", px_prior);
+    // prefix_printf("entropy_left: px_prior = %.7f\n", py_x0);
+    // prefix_printf("entropy_right: px_prior = %.7f\n", py_x1);
+    // prefix_printf("%.7f = %.7f - %.7f\n", split.gain, split.entropy, H_YX);
+    dbg_ensures(px_prior >= 0 && px_prior <= 1); // buggy. inconsistency between data and histograms.
     split.entropy = ((1 - px_prior) < EPS || px_prior < EPS) ? 0 : -px_prior * log2(px_prior) - (1 - px_prior) * log2(1 - px_prior);
-    split.gain = split.entropy - H_YX;
-    // if (taskid == MASTER)
-    //     printf("%.7f = %.7f - %.7f\n", split.gain, split.entropy, H_YX);
-    dbg_ensures(split.gain >= -EPS);
+    split.gain = split.entropy - H_YX; 
+    // dbg_ensures(split.gain >= -EPS); // could be negative for some categorical features
 }
 
 void DecisionTree::self_check()
@@ -562,9 +629,10 @@ void DecisionTree::train_on_batch(Dataset &train_data)
     {
         // each while loop would add a new level node.
         this->cur_depth++;
-        if (taskid == MASTER)
-            printf("depth [%d] finished\n", this->cur_depth);
         vector<TreeNode *> unlabeled_leaf_new;
+        if (taskid == MASTER){
+            printf("MPI [%d] WORKING ON DEPTH [%d]\n", taskid, this->cur_depth);
+        }
         if (unlabeled_leaf.size() > max_num_leaves)
         {
             for (int i = 0; i < unlabeled_leaf.size(); i++)
