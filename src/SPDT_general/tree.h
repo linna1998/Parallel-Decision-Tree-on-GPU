@@ -39,7 +39,7 @@ extern int num_of_features;
 extern int num_of_classes;
 extern int max_bin_size;
 extern int max_num_leaves;
-
+extern int NUM_OF_THREAD;
 
 extern long long SIZE;
 class SplitPoint{

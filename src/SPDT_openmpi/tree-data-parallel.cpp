@@ -28,7 +28,7 @@ void prefix_printf(const char* format, ...){
     int taskid;
     MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
     if (taskid == 0){
-        printf("MPI [%d] ", taskid);
+        printf("MPI ", taskid);
         va_start(args, format);
         vprintf(format, args);
         va_end(args);

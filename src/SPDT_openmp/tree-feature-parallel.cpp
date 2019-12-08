@@ -6,10 +6,10 @@
 #include <algorithm>
 #include <math.h>
 #include <time.h>
+#include <omp.h>
+
 #include "../SPDT_general/array.h"
 #include "../SPDT_general/timing.h"
-
-#define NUM_OF_THREADS 8
 
 void prefix_printf(const char* format, ...){
     va_list args;
@@ -58,13 +58,13 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 {    
     float* buf_merge = new float[2 * max_bin_size + 1];
 
-    SplitPoint results[NUM_OF_THREADS];
-    for (int j = 0; j<NUM_OF_THREADS; j++)
+    SplitPoint* results = new SplitPoint[NUM_OF_THREAD];
+    for (int j = 0; j<NUM_OF_THREAD; j++)
         results[j] = SplitPoint();
 
     int tot = 0; // used to count the number of results
     #pragma barrier
-    #pragma omp parallel for num_threads(NUM_OF_THREADS)
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < num_of_features; i++)
     {
         int tid = omp_get_thread_num();
@@ -86,7 +86,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 
     SplitPoint best_split;
     best_split = results[0];
-    for(int ii=0; ii<NUM_OF_THREADS; ii++){
+    for(int ii=0; ii < NUM_OF_THREAD; ii++){
         if (results[ii].gain > best_split.gain)
             best_split = results[ii];
     }
@@ -94,6 +94,7 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
     split.feature_id = best_split.feature_id;
     split.feature_value = best_split.feature_value;
     split.gain = best_split.gain;
+    delete[] results;
     delete[] buf_merge;
 }
 
