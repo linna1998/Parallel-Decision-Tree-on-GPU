@@ -1,21 +1,33 @@
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
-x, y = make_classification(n_samples=40000, 
-                           n_features=100, 
-                           n_informative=80)
-
-xt, xv, yt, yv = train_test_split(x, y, test_size=0.2)
-
-with open("data/generated.train.txt", "w") as f:
-    for i in range(xt.shape[0]):
-        x_line = xt[i, :].tolist()
-        x_line = ["{0}:{1:.6f}".format(j+1, value) for j, value in enumerate(x_line)]
-        line = str(yt[i]) + " " + " ".join(x_line) + "\n"
-        f.write(line)
+ 
+def generate(name, **k):
+    x, y = make_classification(**k)
+    xt, xv, yt, yv = train_test_split(x, y, test_size=0.1)
+    with open("data/{name}.train.txt".format(name), "w") as f:
+        for i in range(xt.shape[0]):
+            x_line = xt[i, :].tolist()
+            x_line = ["{0}:{1:.6f}".format(j+1, value) for j, value in enumerate(x_line)]
+            line = str(yt[i]) + " " + " ".join(x_line) + "\n"
+            f.write(line)
+        
+    with open("data/{name}.test.txt".format(name), "w") as f:
+        for i in range(xv.shape[0]):
+            x_line = xv[i, :].tolist()
+            x_line = ["{0}:{1:.6f}".format(j+1, value) for j, value in enumerate(x_line)]
+            line = str(yv[i]) + " " + " ".join(x_line) + "\n"
+            f.write(line)
+            
+if __name__ == "__main__":
+    # used by the open-mpi
+    generate("big_size_small_feature", n_samples=110000, n_features=20, n_informative=20)
+    generate("middle_size_small_feature", n_samples=55000, n_features=20, n_informative=20)
+    generate("small_size_small_feature", n_samples=11000, n_features=20, n_informative=20)
+    generate("tiny_size_small_feature", n_samples=1100, n_features=20, n_informative=20)
     
-with open("data/generated.test.txt", "w") as f:
-    for i in range(xv.shape[0]):
-        x_line = xv[i, :].tolist()
-        x_line = ["{0}:{1:.6f}".format(j+1, value) for j, value in enumerate(x_line)]
-        line = str(yv[i]) + " " + " ".join(x_line) + "\n"
-        f.write(line)
+    # used by some feature parallel
+    generate("small_size_middle_feature", n_samples=11000, n_features=200, n_informative=200)
+    generate("small_size_big_feature", n_samples=11000, n_features=1000, n_informative=1000)
+    
+    
+    
