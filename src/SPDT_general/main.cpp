@@ -17,7 +17,7 @@ vector<int> testSize = {30956, 91701, 4577464, 677399, -1, 10000,
                         110000, 11000, 1100, 110,
                         11000, 11000};
 vector<int> featureNum = {123, 22, 1000000, 47236, 54, 300,
-                          20, 20, 20, 20,
+                          50, 50, 50, 50,
                           200, 1000};
 
 string help_msg = "-l: max_num_leaf.\n-d: max_depth.\n-n: number of"\
@@ -71,6 +71,7 @@ int main(int argc, char **argv) {
     prefix_printf("DATASET: %s\n", trainName.c_str());
     prefix_printf("SIZE: (%d, %d) BIN_SIZE: %d DEPTH: %d\n", 
             trainSize[index], num_of_features, max_bin_size, max_depth);
+    prefix_printf("NUM WORKDERS: (%d, %d) \n", NUM_OF_THREAD);
     prefix_printf("COMPRESS TIME: %f\n", COMPRESS_TIME); 
     prefix_printf("NET COMPRESS TIME: %f\n", COMPRESS_TIME-COMPRESS_COMMUNICATION_TIME); 
     prefix_printf("SPLIT TIME: %f\n", SPLIT_TIME); 

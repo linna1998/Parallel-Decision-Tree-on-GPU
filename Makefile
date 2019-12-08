@@ -12,6 +12,7 @@ SEQUENTIAL = src/SPDT_sequential/tree.cpp
 FEATURE_PARALLEL = src/SPDT_openmp/tree-feature-parallel.cpp
 DATA_PARALLEL = src/SPDT_openmpi/tree-data-parallel.cpp
 DATA_PARALLEL2 = src/SPDT_openmp/tree-data-parallel.cpp
+DATA_PARALLEL3 = src/SPDT_openmp/tree-feature-data-parallel.cpp
 
 HEADERS := src/SPDT_general/array.h src/SPDT_general/parser.h src/SPDT_general/tree.h src/SPDT_general/timing.h
 
@@ -20,6 +21,7 @@ TARGETBIN_DBG := decision-tree-dbg
 TARGETBIN_FEATURE := decision-tree-feature
 TARGETBIN_DATA := decision-tree-data
 TARGETBIN_DATA2 := decision-tree-data-openmp
+TARGETBIN_DATA3 := decision-tree-feature-data-openmp
 TARGETBIN_CUDA := decision-tree-cuda
 
 
@@ -50,7 +52,7 @@ OBJS_CUDA = $(OBJDIR_CUDA)/tree_CUDA.o $(OBJDIR_CUDA)/parser_CUDA.o $(OBJDIR_CUD
 .SUFFIXES:
 .PHONY: all clean
 
-all: $(TARGETBIN) $(TARGETBIN_FEATURE) $(TARGETBIN_DATA) $(TARGETBIN_DATA2) $(TARGETBIN_CUDA)
+all: $(TARGETBIN) $(TARGETBIN_FEATURE) $(TARGETBIN_DATA) $(TARGETBIN_DATA2) $(TARGETBIN_DATA3) $(TARGETBIN_CUDA) 
 
 $(TARGETBIN): $(SOURCES) $(HEADERS) $(SEQUENTIAL) 
 	$(CXX) -o $@ $(CFLAGS) $(SOURCES) $(SEQUENTIAL)
@@ -74,6 +76,10 @@ $(TARGETBIN_DATA): $(SOURCES_MPI) $(HEADERS) $(DATA_PARALLEL)
 data-openmp: $(TARGETBIN_DATA2)
 $(TARGETBIN_DATA2): $(SOURCES) $(HEADERS) $(DATA_PARALLEL2)
 	$(CXX_MPI) -o $@ $(CFLAGS) -fopenmp $(SOURCES) $(DATA_PARALLEL2)
+
+feature-data-openmp: $(TARGETBIN_DATA3)
+$(TARGETBIN_DATA3): $(SOURCES) $(HEADERS) $(DATA_PARALLEL3)
+	$(CXX_MPI) -o $@ $(CFLAGS) -fopenmp $(SOURCES) $(DATA_PARALLEL3)
 
 dirs:
 	mkdir -p $(OBJDIR)/
