@@ -56,7 +56,9 @@ void TreeNode::split(SplitPoint &best_split, TreeNode* left, TreeNode* right)
 */
 void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 {    
-    float* buf_merge = new float[2 * max_bin_size + 1];
+    float** buf_merge = (float**) malloc(NUM_OF_THREAD * sizeof(float*));
+    for (int k=0; k<NUM_OF_THREAD; k++)
+        buf_merge[k] = (float*) malloc(sizeof(float) * (2 * max_bin_size + 1));
 
     SplitPoint* results = new SplitPoint[NUM_OF_THREAD];
     for (int j = 0; j<NUM_OF_THREAD; j++)
@@ -64,17 +66,17 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 
     int tot = 0; // used to count the number of results
     #pragma barrier
-    #pragma omp parallel for schedule(static)
+    #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < num_of_features; i++)
     {
         int tid = omp_get_thread_num();
         // merge different labels
         float* histo_for_class_0 = get_histogram_array(node->histogram_id, i, 0);
         float* histo_for_class_1 = get_histogram_array(node->histogram_id, i, 1);
-        memcpy(buf_merge, histo_for_class_0, sizeof(float) * (2 * max_bin_size + 1));
+        memcpy(buf_merge[tid], histo_for_class_0, sizeof(float) * (2 * max_bin_size + 1));
         std::vector<float> possible_splits;
-        merge_array_pointers(buf_merge, histo_for_class_1);
-        uniform_array(possible_splits, node->histogram_id, i, 0, buf_merge);
+        merge_array_pointers(buf_merge[tid], histo_for_class_1);
+        uniform_array(possible_splits, node->histogram_id, i, 0, buf_merge[tid]);
         for (int j=0; j<possible_splits.size(); j++)
         {
             SplitPoint t = SplitPoint(i, possible_splits[j]);
@@ -95,7 +97,9 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
     split.feature_value = best_split.feature_value;
     split.gain = best_split.gain;
     delete[] results;
-    delete[] buf_merge;
+    for (int k=0; k<NUM_OF_THREAD; k++)
+        free(buf_merge[k]);
+    free(buf_merge);
 }
 
 

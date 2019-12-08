@@ -9,21 +9,18 @@
 
 vector<string> names = {"a1a", "ijcnn1", "avazu-app", "rcv1", "covtype", "generated",
                         "big_size_small_feature", "middle_size_small_feature", "small_size_small_feature", "tiny_size_small_feature",
-                        "small_size_middle_feature", "small_size_big_feature", // testing feature parallel
+                        "middle_size_middle_feature", "middle_size_big_feature", // testing feature parallel
                         };
 
 vector<int> trainSize = {1605, 49990, 40428967, 20242, 581012, 40000,
-                        99000, 49500, 9900, 990,
-                        9900, 9900};
-
+                        990000, 99000, 9900, 990,
+                        99000, 99000};
 vector<int> testSize = {30956, 91701, 4577464, 677399, -1, 10000,
-                        11000, 5500, 1100, 110,
-                        1100, 1100};
-
+                        110000, 11000, 1100, 110,
+                        11000, 11000};
 vector<int> featureNum = {123, 22, 1000000, 47236, 54, 300,
-                          20, 20, 20, 20,
+                          50, 50, 50, 50,
                           200, 1000};
-
 string help_msg = "-l: max_num_leaf.\n-d: max_depth.\n-n: number of"\
                   "threads.\n-b: max_bin_size\n-l: max_num_leaf\n-e: min_node_size\n";
 

@@ -61,8 +61,6 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
         results[j] = SplitPoint();
 
     int tot = 0; // used to count the number of results
-    // #pragma barrier
-    // #pragma omp parallel for num_threads(NUM_OF_THREADS)
     for (int i = 0; i < num_of_features; i++)
     {
         int tid = omp_get_thread_num();
@@ -150,8 +148,11 @@ void DecisionTree::train_on_batch(Dataset &train_data)
         t1.reset();
         compress(train_data.dataset, unlabeled_leaf); 
         COMPRESS_TIME += t1.elapsed();
-        for (auto &cur_leaf : unlabeled_leaf)
-        {            
+        int siz = unlabeled_leaf.size();
+        #pragma omp parallel for
+        for (int e=0; e < siz; e++)
+        {        
+            auto& cur_leaf = unlabeled_leaf[e];    
             if (is_terminated(cur_leaf))
             {         
                 cur_leaf->set_label();
@@ -176,10 +177,15 @@ void DecisionTree::train_on_batch(Dataset &train_data)
                 cur_leaf->split(best_split, cur_leaf->left_node, cur_leaf->right_node);
                 cur_leaf->is_leaf = false;
                 cur_leaf->label = -1;
-                unlabeled_leaf_new.push_back(cur_leaf->left_node);
-                unlabeled_leaf_new.push_back(cur_leaf->right_node);
+                #pragma omp critical
+                {
+                    unlabeled_leaf_new.push_back(cur_leaf->left_node);
+                    unlabeled_leaf_new.push_back(cur_leaf->right_node);
+                }
+
             }
         }
+        #pragma omp barrier
         unlabeled_leaf = unlabeled_leaf_new;
         unlabeled_leaf_new.clear(); 
     }
