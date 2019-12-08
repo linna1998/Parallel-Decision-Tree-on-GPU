@@ -9,6 +9,15 @@
 #include "../SPDT_general/timing.h"
 
 #define NUM_OF_THREADS 8
+
+void prefix_printf(const char* format, ...){
+    va_list args;
+    printf("DATA-OPENMP ");
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+}
+
 /*
  * This function split the data according to the best split feature id and value.
  * The data would be appended to the `left` if the data value is smaller than the split value

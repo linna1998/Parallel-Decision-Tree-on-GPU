@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
     string trainName = "./data/" + names[index] + ".train.txt";
     prefix_printf("DATASET: %s\n", trainName.c_str());
     prefix_printf("SIZE: (%d, %d) BIN_SIZE: %d DEPTH: %d\n", 
-            taskid, trainSize[index], num_of_features, max_bin_size, max_depth);
+            trainSize[index], num_of_features, max_bin_size, max_depth);
     
     DecisionTree decisionTree(max_depth, min_node_size);
     Dataset trainDataset(trainSize[index]);
@@ -60,14 +60,15 @@ int main(int argc, char *argv[]) {
     t.reset();
     decisionTree.train(trainDataset, trainSize[index]);
     cpu_time_used_train = t.elapsed();
+    
     // test
     string testName = "./data/" + names[index] + ".test.txt";
     Dataset testDataset(testSize[index]);
     testDataset.open_read_data(testName);	
     prefix_printf("COMPRESS TIME: %f\n", COMPRESS_TIME); 
-    prefix_printf("NET COMPRESS TIME: %f\n", COMPRESS_TIME-COMPRESS_COMMUNICATION_TIME); 
+    prefix_printf("NET COMPRESS TIME: %f\n", COMPRESS_TIME - COMPRESS_COMMUNICATION_TIME); 
     prefix_printf("SPLIT TIME: %f\n", SPLIT_TIME); 
-    prefix_printf("NET SPLIT TIME: %f\n", SPLIT_TIME-SPLIT_COMMUNICATION_TIME); 
+    prefix_printf("NET SPLIT TIME: %f\n", SPLIT_TIME - SPLIT_COMMUNICATION_TIME); 
     prefix_printf("COMPRESS_COMMUNICATION time: %f\n", COMPRESS_COMMUNICATION_TIME);
     prefix_printf("SPLIT_COMMUNICATION time: %f\n", SPLIT_COMMUNICATION_TIME);
     prefix_printf("Train Time: %f\n", cpu_time_used_train);

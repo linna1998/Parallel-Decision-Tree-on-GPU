@@ -11,7 +11,8 @@
 
 double COMPRESS_TIME = 0.f;
 double SPLIT_TIME = 0.f;
-double COMMUNICATION_TIME = 0.f;
+double COMPRESS_COMMUNICATION_TIME = 0.f;
+double SPLIT_COMMUNICATION_TIME = 0.f;
 long long SIZE = 0 ;
 
 int num_of_features = -1;

@@ -10,6 +10,15 @@
 #include "../SPDT_general/timing.h"
 
 #define NUM_OF_THREADS 8
+
+void prefix_printf(const char* format, ...){
+    va_list args;
+    printf("FEATURE ");
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+}
+
 /*
  * This function split the data according to the best split feature id and value.
  * The data would be appended to the `left` if the data value is smaller than the split value
@@ -131,7 +140,6 @@ void DecisionTree::train_on_batch(Dataset &train_data)
     {        
         // each while loop would add a new level node.
         this->cur_depth++;
-        printf("depth [%d] finished\n", this->cur_depth);
         vector<TreeNode *> unlabeled_leaf_new; 
         if (unlabeled_leaf.size() > max_num_leaves) {
             for (int i = 0; i < unlabeled_leaf.size(); i++) {
