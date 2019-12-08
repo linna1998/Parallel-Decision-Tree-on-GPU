@@ -22,7 +22,6 @@ double SPLIT_TIME = 0.f;
 double COMMUNICATION_TIME = 0.f;
 double COMPRESS_COMMUNICATION_TIME = 0.f;
 double SPLIT_COMMUNICATION_TIME = 0.f;
-double SYNC_TIME = 0.f;
 long long SIZE = 0 ;
 
 int num_of_features = -1;
@@ -31,6 +30,14 @@ int max_bin_size = -1;
 int max_num_leaves = -1;
 
 __constant__ GlobalConstants cuConstTreeParams;
+
+void prefix_printf(const char* format, ...){
+    va_list args;
+    printf("CUDA ");
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+}
 
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
@@ -375,6 +382,11 @@ bool DecisionTree::is_terminated(TreeNode *node)
 }
 
 void DecisionTree::initialize(Dataset &train_data, const int batch_size){
+    COMPRESS_TIME = 0.f;
+    SPLIT_TIME = 0.f;
+    COMMUNICATION_TIME = 0.f;
+    COMPRESS_COMMUNICATION_TIME = 0.f;
+    SPLIT_COMMUNICATION_TIME = 0.f;
     this->datasetPointer = &train_data;    
     root = new TreeNode(0, this->num_nodes++, datasetPointer);  
     root->data_size = train_data.num_of_data;
@@ -395,6 +407,7 @@ void DecisionTree::initialize(Dataset &train_data, const int batch_size){
 void DecisionTree::train(Dataset &train_data, const int batch_size)
 {
     int hasNext = TRUE;
+
     initialize(train_data, batch_size);
 	while (TRUE) {
 		hasNext = train_data.streaming_read_data(batch_size);	
@@ -447,7 +460,6 @@ calculate_feature_value_kernel(int histogram_id, int* cuda_feature_value_num, in
     float* histo_for_class_1 = CUDA_get_histogram_array(histogram_id, index, POS_LABEL, _histogram_, num_of_features, num_of_classes, max_bin_size);
     // initialize the buf_merge
     memcpy(buf_merge, histo_for_class_0, sizeof(float) * (2 * max_bin_size + 1));
-            
     CUDA_merge_array_pointers(buf_merge, histo_for_class_1, max_bin_size);
     cuda_feature_value_num[index] = CUDA_uniform_array(cuda_feature_value + index * num_of_features, histogram_id, index, 0, buf_merge, num_of_features, num_of_classes, max_bin_size);        
 
@@ -488,7 +500,6 @@ void CUDA_get_gain(int histogram_id, int total_sum, int feature_id, int split_in
     
     cuda_entropy[split_index] = ((1-px_prior) < EPS || px_prior < EPS) ? 0 : -px_prior * log2((double)px_prior) - (1-px_prior) * log2((double)1-px_prior);
     cuda_gain[split_index] = cuda_entropy[split_index] - H_YX;
-    
 }
 
 __global__ void
@@ -568,17 +579,13 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
     int block_num = (num_of_features + thread_num - 1) / thread_num;
     calculate_feature_value_kernel<<<block_num, thread_num>>>
         (node->histogram_id, cuda_feature_value_num, cuda_feature_id, cuda_feature_value); 
-    t.reset();
     cudaDeviceSynchronize();          
-    SYNC_TIME += t.elapsed();
     // second, calcualte the gain and entropy
     // for these split points    
     // blockIdx: featureId
     // thread num: max_bin_size
     calculate_gain_deltas_kernel<<<block_num, thread_num>>>(node->histogram_id, node->data_size, cuda_feature_value_num, cuda_feature_id, cuda_feature_value, cuda_gain, cuda_entropy);
-    t.reset();
     cudaDeviceSynchronize();    
-    SYNC_TIME += t.elapsed();
     
     // third, choose the max gain, put it into split
     // as final result
@@ -982,6 +989,5 @@ void DecisionTree::init_histogram(vector<TreeNode *> &unlabeled_leaf)
     navigate_sample_kernel<<<block_num, thread_num>>>(unlabeled_leaf.size(), cuda_histogram_id_2_node_id); 
     t.reset();
     cudaDeviceSynchronize();  
-    SYNC_TIME += t.elapsed();
     cudaFree(cuda_histogram_id_2_node_id);      
 }

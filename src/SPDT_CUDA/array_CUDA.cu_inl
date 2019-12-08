@@ -193,14 +193,20 @@ void CUDA_merge_array_pointers(float *histo1, float *histo2, int max_bin_size) {
 				index2++;
 			}
 		}
-		CUDA_set_bin_freq(histo_merge, bin_size_merge, freq);
-		CUDA_set_bin_value(histo_merge, bin_size_merge, value);
-        bin_size_merge++;
+		if (bin_size_merge > 0 && abs(CUDA_get_bin_value(histo_merge, bin_size_merge-1) - value) < EPS){
+			CUDA_set_bin_freq(histo_merge, bin_size_merge-1, freq + CUDA_get_bin_freq(histo_merge, bin_size_merge-1));
+		}
+		else{
+			CUDA_set_bin_freq(histo_merge, bin_size_merge, freq);
+			CUDA_set_bin_value(histo_merge, bin_size_merge, value);
+			bin_size_merge++;
+		}
+
     }
 	*histo_merge = (float) bin_size_merge;
 
 	// merge the same values in vec
-	CUDA_merge_same_array(histo_merge);
+	// CUDA_merge_same_array(histo_merge);
 
 	while (bin_size_merge > max_bin_size) {
 		CUDA_merge_bin_array(histo_merge);
@@ -223,14 +229,13 @@ float CUDA_sum_array(int histogram_id, int feature_id, int label, float value,
     float *histo = CUDA_get_histogram_array(histogram_id, feature_id, label,
 		histogram, num_of_features, num_of_classes, max_bin_size);
     int bin_size = CUDA_get_bin_size(histo);
-
-	if (bin_size == 1) {
-		return CUDA_get_bin_freq(histo, 0);
-	}
-
-    // value < the first value in histo
+    
+	// value < the first value in histo
 	if (value < CUDA_get_bin_value(histo, 0)) {
 		return 0;
+	}
+	if (bin_size == 1) {
+		return CUDA_get_bin_freq(histo, 0);
 	}
 
     // value >= the last value in histogram

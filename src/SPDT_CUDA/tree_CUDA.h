@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <omp.h>
 
-// #define DEBUG
+#define DEBUG
 #ifdef DEBUG
 /* When DEBUG is defined, these form aliases to useful functions */
 #define dbg_printf(...) printf(__VA_ARGS__)
@@ -35,7 +35,6 @@ extern double SPLIT_TIME;
 extern double COMMUNICATION_TIME;
 extern double COMPRESS_COMMUNICATION_TIME;
 extern double SPLIT_COMMUNICATION_TIME;
-extern double SYNC_TIME;
 
 extern int num_of_features;
 extern int num_of_classes;
@@ -164,3 +163,5 @@ public:
     void initCUDA();
     void terminateCUDA();
 };
+
+void prefix_printf(const char* format, ...);
