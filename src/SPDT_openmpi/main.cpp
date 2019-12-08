@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
     prefix_printf("DATASET: %s\n", trainName.c_str());
     prefix_printf("SIZE: (%d, %d) BIN_SIZE: %d DEPTH: %d\n", 
             trainSize[index], num_of_features, max_bin_size, max_depth);
-    
+    prefix_printf("NUM WORKERS: %d\n", numtasks);
     DecisionTree decisionTree(max_depth, min_node_size);
     Dataset trainDataset(trainSize[index]);
     trainDataset.open_read_data(trainName);
