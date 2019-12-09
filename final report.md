@@ -5,8 +5,17 @@
 We implemented the sequential version, the OpenMP version, the OpenMPI version and the CUDA version for decision tree with histogram and compared the performance of four implementations.
 
 ## Takeaways
-The OpenMPI and CUDA version of decision tree could gain promising speedup in CPU and GPU parallel, separately.
+1. OpenMP scales over feature size, while OpenMPI scales poorly over feature size.
+2. OpenMPI could achieve higher speedup than OpenMPI.
+3. On large datasize, CUDA could achieve higher speedup than OpenMP and OpenMPI.
 
+<p float="right">
+  <img src="./img/MP_Speed_up_feature.png" width="300" />
+   
+  <img src="./img/MPI_Speed_up_feature.png" width="300" /> 
+</p>
+
+![big_size_small_feature](./Evaluation/big_size_small_feature.png)
 
 ## Backgrounds
 
@@ -205,6 +214,8 @@ As we expecetd, the node parallel version suffered from tremendous workload imba
 From the above figures, we could see the influence of computation cost and locality. When the sample size is 1000 and we are using 16 threads, we could assume that the data size assigned to each thread is small. Therefore, the data might fit into the cache of the processor. According to the locality, we could achieve higher speedup for the 1000 samples under 16 and 8 threads in OpenMP implementation. When we talk about the computation cost, we could say that a larger dataset includes more computation cost. Therefore, if we increase the size of the dataset, then we could achieve higher speedup in OpenMP and OpenMPI versions.
 
 ### Data-Feature Parallel Scalability over Feature Size
+
+The datasize for the following figure is 100,000.
 
 <p float="right">
   <img src="./img/MP_Speed_up_feature.png" width="300" />
