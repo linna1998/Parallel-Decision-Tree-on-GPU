@@ -194,19 +194,21 @@ As we expecetd, the node parallel version suffered from tremendous workload imba
 
 <!-- ![mp_data](./img/MP_Speed_up_data.png) ![mp_data](./img/MPI_Speed_up_data.png) -->
 <p float="right">
-  <img src="./img/MP_Speed_up_data.png" width="240" />
+  <img src="./img/MP_Speed_up_data.png" width="320" />
    
-  <img src="./img/MPI_Speed_up_data.png" width="260" /> 
+  <img src="./img/MPI_Speed_up_data.png" width="350" /> 
 </p>
 
 ### Data-Feature Parallel Scalability over Feature Size
 
 <p float="right">
-  <img src="./img/MP_Speed_up_feature.png" width="240" />
+  <img src="./img/MP_Speed_up_feature.png" width="300" />
    
-  <img src="./img/MPI_Speed_up_feature.png" width="260" /> 
+  <img src="./img/MPI_Speed_up_feature.png" width="300" /> 
 </p>
+Shared address model shows better scalability over feature size than message passing. This is because the major computation cost is from `compress` and the workload for each worker for one iteration in `compress` is $O(#data/#workers * #feature)$. So as feature size increases, the program becomes more computational-intensive.
 
+However, message passing version shows less scalability as feature size increases from 400 to 1000. This is because that that in `compress` function, the master worker is responsible for merging all the results and thus the computational cost is $O(#feature * #bin)$ and also the communication cost is linearly related to feature size. So even though the increase of feature size leads to higher computational cost, it also increase the non-paralliazable computation in MASTER and communication cost. So the scalability over feature size shows a non-linear relation.
 
 ### CUDA Speedup Analysis
 From the previous figures we can see, the CUDA version is slower than the sequential version in the ijcnn1 dataset. When the size of training dataset began to scale, the CUDA version achieves higher speedup. 
