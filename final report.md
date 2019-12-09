@@ -1,19 +1,34 @@
 # Parallel Streaming Decision Tree - Final Report
 <center> ke Ding(keding@andrew.cmu.edu) || Anxiang Zhang (anxiangz@andrew.cmu.edu) </center>
+
 ## Summary
 We implemented the sequential version, the OpenMP version, the OpenMPI version and the CUDA version for decision tree with histogram and compared the performance of four implementations.
 
 ## Takeaways
+The OpenMPI and CUDA version of decision tree could gain promising speedup in CPU and GPU parallel, separately.
 
 
 ## Backgrounds
 
 ### Decisiton Tree
-Decision Tree is widely used in Machine learning and it is simple and intuitive. (抄一点proposal)
+Decision Tree is widely used in Machine learning and it is simple and intuitive.
 
-### Streaming Decision Tree
+Traditionally, a decision tree is built in the following way.
+```pseudocode
+Function BuildTree(n,A) // n: samples (rows), A: attributes 
+    If empty(A) or all n(L) are the same
+        status = leaf
+        class = most common class in n(L) 
+    else
+        status = internal
+        a <- bestAttributeSplitPoint(n,A)
+        LeftNode = BuildTree(n(a=1), A \ {a}) RightNode = BuildTree(n(a=0), A \ {a})
+    end 
+end
 
-...
+```
+
+However, this approach is expensive in finding the `bestAttributeSplitPoint(n,A) `because it needs to iterate all the data set to find the best split for one feature. So this would lead to a $O(#data*#feature)$ complexity. One approach introduced by  [A Streaming Parallel Decision Tree Algorithm](http://www.jmlr.org/papers/volume11/ben-haim10a/ben-haim10a.pdf )  is to use an approaximation algorith. Firstly, we compress the data into pre-defined number of bins and then we iterate each bin for one feature, which reduce the complexity to $O(#bins * #feature)$. 
 
 ```pseudocode
 Call TreeBuilding procedure:
@@ -39,21 +54,52 @@ foreach batch_data do:
   endwhile
 ```
 
-```pseudocode
-Call COMPRESS procedure:
-	Initalized empty histogram h(v, i, j) for unlabeled leaf v, feature i, class j
-	foreach data point (x, y) do:
-		if the sample belongs to leaf v then:
-			foreach feature i do:
-				Call UPDATE procefure to update h(v, i, y)
-			endfor
-		endif
-	endfor
-```
+In this approaximation algorithm, the computational cost is amortized from one function (`find_best_split`) to two functions(`find_best_split` & `compress`). So our goal is to parallelize these two functions.
+
+### Key Data Structures
+
+#### How we store our dataset in vector version
+We use the class `Dataset` in /src/SPDT\_general/parser.cpp to store the dataset. For each data, we use the class `Data` in the same file to store it. The `Data` class contains an int `label` to mark the label of the data, and an unordered\_map `values` to store the map between feature id and feature values. Some datasets contain sparse features, therefore we are using a map to store all and ignore the other 0's. 
+
+The class `Dataset` contains a vector of `Data`, to store all the possible datas. It also stores some other dataset parameters, such as the number of features, the number of data.
+
+#### How we store our dataset in several serialized arrays for GPU
+When we pass dataset to GPU, the above vector version for dataset storage is not possible here. Therefore, we come up with a new version to store the dataset: several 1-D arrays.
+
+We are storing our dataset into two 1-D arrays. The pointer label\_ptr points to an array of integers. The pointer value\_ptr points to an array of floats. Due to the fact that it's better to pre-malloc place for the whole dataset, we are storing features and values in the dense mode. The size of the label\_ptr is num\_of\_data. The size of the value\_ptr is num\_of\_data * num\_of\_features. If we want to read/write to the (data\_id, feature\_id), then its label is label\_ptr[data\_id], and its value is value\_ptr[data\_id * number\_of\_features + feature\_id].
+
+The limitation of serialized arrays dataset are that, it's difficult to manage this dataset and provide operations. It's hard to write codes and debug. The memory usage of this version is large. While the memory on GPU is limited, it's difficult for some dataset to run in GPU parallel version.
+
+#### How we serialize histograms
+We are serialize histograms in a huge 1-D array. 
+
+For each histogram, we store it into a float array. The first element is the size of the histogram bins. After that, we store the (freq, value) of each element in the histogram. According to these rules, the histogram could be changed into an 1-D array. In order to malloc the place of all histograms together, for each histogram we initially malloc the place for the max_bin_size. We provide some setter and getter functions for histogram related operations. 
+
+
+### Key Operations
+
+#### Several operations for histograms
+The operations for histograms are: update, sum, merge, uniform, compress. The update function updates a value to a histogram. The sum function calculates the estimated sum distribution for values in a specific range. The merge function merges two histograms. If possible, it would merge the bins in the histogram to fit the max bin size. The uniform function provides possible split values for a histogram. The compress function builds the histogram from a series of data.
+
+
+### Algorithm's inputs and outputs
+The input of algorithm includes the train dataset and the test dataset. It also includes some parameters of the dataset, including the number of data, the number of features, the number of classes and so on.
+
+The output of the algorithm is a decision tree. We could use the decision tree to predict the labels of the test dataset, so as to verify the correctness of decision tree.
+
+### Computationally expensive parts
+#### compress function
+
+![Streaming Compress](./img/compress.png "Streaming COMPRESS Algorithm")
+
+#### Get gain function
+This function calcualtes the gain of a specific split feature and split value for the node.It includes many float operations. It also calls functions such as SUM in histogram.
 
 
 ### Key Challenges
-...
+* Dependency Analysis: Histogram is a global variable that we need to protect. If we use shared-memory model, then we need to manually synchronize for the `update` operation to the same `h(v, i, j)`. Similarly, in the `find_best_split` operation, a `best_split` is shared and thus needed to be serialized.
+
+* Memory Latency: Since the data is disk-residency, the memory latency is large. We have the leverage the temporal locality. 
 
 ## Approach
 There are mainly two functions in the tree building process that are costly. `compress` function and `find_best_split` function. And both of them could be parallelized. Since now to do not need to Also, we introduce our baseline parallel strategy ---- Node Parallel. 
@@ -64,7 +110,7 @@ This parallel method is the most intuitive method because there is a natural ind
 
 ### Feature Parallel
 
-In the `find_best_split` procedure, the `for all features i do` loop could be parallelized. One note is that the best split information should be manurally syncronized. One method is to introduce a local varaible for each worker and then merge the results afterwards. Another method is to use lock-based syncronization to protect the shared varaible. After testing, we implemented the first version. Since each thread only needs to send it's best split feature to the master, the communication cost is O(P)
+In the `find_best_split` procedure, the `for all features i do` loop could be parallelized. One note is that the best split information should be manurally syncronized. One method is to introduce a local varaible for each worker and then merge the results afterwards. Another method is to use lock-based syncronization to protect the shared varaible. After testing, we implemented the first version. Since each thread only needs to send it's best split feature to the master, the communication  cost is O(P)
 
 ### Data Parallel
 
@@ -84,7 +130,6 @@ Call COMPRESS procedure:
 ```
 
 This strategy is used by using shared-memory model and implemente by OpenMP. However, this algorithm would suffer from some trivial work imbalance problem as each leaf contains unequal number of data points. But this could be matigated by dynamic scheduling.
-
 
 
 We also introduce a message-passing model data-parallel version here. This strategy is essentially streaming and could handle as much as possible. This parallel algorithm is borrowed from [A Streaming Parallel Decision Tree Algorithm](http://www.jmlr.org/papers/volume11/ben-haim10a/ben-haim10a.pdf ).
@@ -122,71 +167,7 @@ We decide to set the block number to be the number of unlabeled leaves, and the 
 
 We also introduced some helper functions and files to achieve the CUDA implementation. Basically, we have re-write other functions in array and pointers. In the CUDA version, data is at most serialized and stored in some 1-D arrays. Moreover, there is no STL vectors allowed in the CUDA kernel codes. Therefore, we have designed specific data structures and algorithms to support the CUDA version.
 
-### Key Data Structure
 
-#### How we store our dataset in vector version
-We use the class `Dataset` in /src/SPDT\_general/parser.cpp to store the dataset. For each data, we use the class `Data` in the same file to store it. The `Data` class contains an int `label` to mark the label of the data, and an unordered\_map `values` to store the map between feature id and feature values. Some datasets contain sparse features, therefore we are using a map to store all and ignore the other 0's. 
-
-The class `Dataset` contains a vector of `Data`, to store all the possible datas. It also stores some other dataset parameters, such as the number of features, the number of data.
-
-#### How we store our dataset in several serialized arrays for GPU
-When we pass dataset to GPU, the above vector version for dataset storage is not possible here. Therefore, we come up with a new version to store the dataset: several 1-D arrays.
-
-We are storing our dataset into two 1-D arrays. The pointer label\_ptr points to an array of integers. The pointer value\_ptr points to an array of floats. Due to the fact that it's better to pre-malloc place for the whole dataset, we are storing features and values in the dense mode. The size of the label\_ptr is num\_of\_data. The size of the value\_ptr is num\_of\_data * num\_of\_features. If we want to read/write to the (data\_id, feature\_id), then its label is label\_ptr[data\_id], and its value is value\_ptr[data\_id * number\_of\_features + feature\_id].
-
-The limitation of serialized arrays dataset are that, it's difficult to manage this dataset and provide operations. It's hard to write codes and debug. The memory usage of this version is large. While the memory on GPU is limited, it's difficult for some dataset to run in GPU parallel version.
-
-#### How we serialize histograms
-We are serialize histograms in a huge 1-D array. 
-
-For each histogram, we store it into a float array. The first element is the size of the histogram bins. After that, we store the (freq, value) of each element in the histogram. According to these rules, the histogram could be changed into an 1-D array. In order to malloc the place of all histograms together, for each histogram we initially malloc the place for the max_bin_size. We provide some setter and getter functions for histogram related operations. 
-
-#### How we serialize promising split points
-In the CUDA version, we are storing the promising (feature, value) split points in several 1-D arrays.
-
-
-
-#### Split Node
-
-#### Decision Tree
-
-### Key operations
-
-#### Read/write through the vector version dataset
-Use vector and map. Save space.
-
-#### Read/write through the serialized array version dataset
-
-
-#### Several operations for histograms in vector version
-Operations: update, sum, merge, uniform, compress
-
-#### Several operations for histograms in array version
-Operations: update, sum, merge, uniform, compress. HARD to implement in array version
-
-### Algorithm's inputs and outputs
-Input: train dataset, test dataset. Some parameters of the dataset (Num of data, feature num, class num)
-
-Output: A decision tree. Predict on the test dataset, to verify the correctness of decision tree.
-
-### Computationally expensive parts
-
-#### Get gain function
-
-#### Assign dataset to leaf nodes
-
-#### Update the histogram
-
-#### Navigate the samples
-
-### The parallel in program
-Several parallel approaches
-
-Parallel on data / leaf nodes, when assign dataset to leaf nodes
-
-Parallel on histograms / data, when update the histogram
-
-Parallel on data, when navigate the samples
 
 ## Results
 
@@ -212,11 +193,19 @@ Parallel on data, when navigate the samples
 
 [Speedup table in Evaluation folder]
 
-Problems:
-1. OpenMPI, train_time > split_time
-2. openmp feature parallel, data index = 1/5, abort
+
 
 ## References
+
+[1]: Srivastava, Anurag, et al. "Parallel formulations of decision-tree classification algorithms." High Performance Data Mining. Springer, Boston, MA, 1999. 237-261.
+
+[2]: Ben-Haim, Yael, and Elad Tom-Tov. "A streaming parallel decision tree algorithm." Journal of Machine Learning Research 11.Feb (2010): 849-872.
+
+[3]: Zhang, Huan, Si Si, and Cho-Jui Hsieh. "GPU-acceleration for Large-scale Tree Boosting." arXiv preprint arXiv:1706.08359 (2017).
+
+[4]: Jin, Ruoming, and Gagan Agrawal. "Communication and memory efficient parallel decision tree construction." Proceedings of the 2003 SIAM International Conference on Data Mining. Society for Industrial and Applied Mathematics, 2003.
+
+[5]: Chih-Chung Chang and Chih-Jen Lin, LIBSVM : a library for support vector machines. ACM Transactions on Intelligent Systems and Technology, 2:27:1--27:27, 2011. Software available at http://www.csie.ntu.edu.tw/~cjlin/libsvm.
 
 ## List of work
 
