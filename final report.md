@@ -118,29 +118,33 @@ We decide to set the block number to be the number of unlabeled leaves, and the 
 
 `calculate_gain_deltas_kernel` calculates the gain and entropy for each promising split point. According to the `calculate_feature_value_kernel` step, for each feature, there is at most `max_bin_size` number of possible split values. Therefore, the block number equals to the feature number, and the thread number equals to the max bin size parameter for histograms.
 
-`navigate_sample_kernel` assigns the datas to the leave nodes. It is parallel over different data points. The thread number is 128. The block number is (num_of_data + thread_num - 1) / thread_num. Therefore, the total thread number equals to the number of data. For each thread, it checks the assignment of a data pointer in the dataset. This function is called every time initialize a level of unlabeled leaves of histograms.
+`navigate_sample_kernel` assigns the datas to the leave nodes. It is parallel over different data points. The thread number is 128. The block number is (num\_of\_data + thread\_num - 1) / thread\_num. Therefore, the total thread number equals to the number of data. For each thread, it checks the assignment of a data pointer in the dataset. This function is called every time initialize a level of unlabeled leaves of histograms.
 
 We also introduced some helper functions and files to achieve the CUDA implementation. Basically, we have re-write other functions in array and pointers. In the CUDA version, data is at most serialized and stored in some 1-D arrays. Moreover, there is no STL vectors allowed in the CUDA kernel codes. Therefore, we have designed specific data structures and algorithms to support the CUDA version.
 
 ### Key Data Structure
 
 #### How we store our dataset in vector version
-We use the class `Dataset` in /src/SPDT_general/parser.cpp to store the dataset. For each data, we use the class `Data` in the same file to store it. The `Data` class contains an int `label` to mark the label of the data, and an unordered_map `values` to store the map between feature id and feature values. Some datasets contain sparse features, therefore we are using a map to store all and ignore the other 0's. 
+We use the class `Dataset` in /src/SPDT\_general/parser.cpp to store the dataset. For each data, we use the class `Data` in the same file to store it. The `Data` class contains an int `label` to mark the label of the data, and an unordered\_map `values` to store the map between feature id and feature values. Some datasets contain sparse features, therefore we are using a map to store all and ignore the other 0's. 
 
 The class `Dataset` contains a vector of `Data`, to store all the possible datas. It also stores some other dataset parameters, such as the number of features, the number of data.
 
 #### How we store our dataset in several serialized arrays for GPU
 When we pass dataset to GPU, the above vector version for dataset storage is not possible here. Therefore, we come up with a new version to store the dataset: several 1-D arrays.
 
-We are storing our dataset into two 1-D arrays. The pointer label_ptr points to an array of integers. The pointer value_ptr points to an array of floats. Due to the fact that it's better to pre-malloc place for the whole dataset, we are storing features and values in the dense mode. The size of the label_ptr is num_of_data. The size of the value_ptr is num_of_data * num_of_features. If we want to read/write to the (data_id, feature_id), then its label is label_ptr\[data_id\], and its value is value_ptr\[data_id * number_of_features + feature_id\].
+We are storing our dataset into two 1-D arrays. The pointer label\_ptr points to an array of integers. The pointer value\_ptr points to an array of floats. Due to the fact that it's better to pre-malloc place for the whole dataset, we are storing features and values in the dense mode. The size of the label\_ptr is num\_of\_data. The size of the value\_ptr is num\_of\_data * num\_of\_features. If we want to read/write to the (data\_id, feature\_id), then its label is label\_ptr[data\_id], and its value is value\_ptr[data\_id * number\_of\_features + feature\_id].
 
 The limitation of serialized arrays dataset are that, it's difficult to manage this dataset and provide operations. It's hard to write codes and debug. The memory usage of this version is large. While the memory on GPU is limited, it's difficult for some dataset to run in GPU parallel version.
 
 #### How we serialize histograms
-Pointers, malloc and seek.
+We are serialize histograms in a huge 1-D array. 
+
+For each histogram, we store it into a float array. The first element is the size of the histogram bins. After that, we store the (freq, value) of each element in the histogram. According to these rules, the histogram could be changed into an 1-D array. In order to malloc the place of all histograms together, for each histogram we initially malloc the place for the max_bin_size. We provide some setter and getter functions for histogram related operations. 
 
 #### How we serialize promising split points
 In the CUDA version, we are storing the promising (feature, value) split points in several 1-D arrays.
+
+
 
 #### Split Node
 
