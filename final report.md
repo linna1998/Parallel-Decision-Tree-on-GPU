@@ -28,7 +28,7 @@ end
 
 ```
 
-However, this approach is expensive in finding the `bestAttributeSplitPoint(n,A) `because it needs to iterate all the data set to find the best split for one feature. So this would lead to a $O(#data*#feature)$ complexity. One approach introduced by  [A Streaming Parallel Decision Tree Algorithm](http://www.jmlr.org/papers/volume11/ben-haim10a/ben-haim10a.pdf )  is to use an approaximation algorith. Firstly, we compress the data into pre-defined number of bins and then we iterate each bin for one feature, which reduce the complexity to $O(#bins * #feature)$. 
+However, this approach is expensive in finding the `bestAttributeSplitPoint(n,A) `because it needs to iterate all the data set to find the best split for one feature. So this would lead to a $O(data*feature)$ complexity. One approach introduced by  [A Streaming Parallel Decision Tree Algorithm](http://www.jmlr.org/papers/volume11/ben-haim10a/ben-haim10a.pdf )  is to use an approaximation algorith. Firstly, we compress the data into pre-defined number of bins and then we iterate each bin for one feature, which reduce the complexity to $O(bins*feature)$. 
 
 ```pseudocode
 Call TreeBuilding procedure:
@@ -177,7 +177,7 @@ In the general evaluation process, we choose three datasets: ijcnn1, big_size_sm
 
 We generated the other two test cases by our scripts. The dataset big_size_small_feature contains 990000 train cases and 110000 test cases. The feature size is 50. The dataset middle_size_small_feature contains 99000 train cases and 11000 test cases. The feature size is 50. We want to evaluate the scalability of different parallel algorithms, therefore we generate these datasets by ourselves.
 
-We compared our four approaches: the sequential version, the OpenMP version (thread number = 4), the OpenMPI version (thread number = 4) and the CUDA version.
+We compared our four approaches: the sequential version, the OpenMP version (thread number = 4), the OpenMPI version (thread number = 4) and the CUDA version. Our baseline is the single-threaded CPU sequential code.
 
 The speedup for four versions could be seen in figures ![ijcnn1](./Evaluation/ijcnn1.png)
 
@@ -205,8 +205,12 @@ The speedup for four versions could be seen in figures ![ijcnn1](./Evaluation/ij
 ...
 
 ### CUDA Speedup Analysis
+From the previous figures we can see, the CUDA version is slower than the sequential version in the ijcnn1 dataset. When the size of training dataset began to scale, the CUDA version achieves higher speedup. 
 
-[Speedup table in Evaluation folder]
+When it comes to the largest big_size_small_feature dataset, the CUDA version achieves the highest speedup. However, the speedup of CUDA is sightly lower than our expectation. The possible reasons might be as follows.
+
+1. The data transfer time for cudaMalloc and cudaMemcpy. In the CUDA version, we have to transfer the result between CUDA device and the host. The data transfer time for ijcnn1 dataset is 0.111410 seconds. While the total train time is 3.152414 seconds, the data transfer time occupies 3.53% of the total train time. Therefore, it might lead to a slightly poor performance for the CUDA version. The data transfer time for medium_size_small_feature dataset is 0.108330 (1.11%) and the data transfer time for big_size_small_feature dataset is 0.121970 seconds (0.13%). Therefore, when the dataset began to expand, the influence of data transfer reduces.
+2. The inherent operations in CUDA version. When we change from the sequential version to the CUDA version, we have included other operations so as to support the CUDA version. For example, in the `calculate_feature_value_kernel` fucntion, we have a new data structure `cuda_feature_value_num` to record the possible split value numbers for each feature. We have to calcualte this data structure explicitly. While in the previous versions, there is no need to build this data structure explicitly. The CUDA version creates new calculations.
 
 
 
