@@ -106,7 +106,22 @@ We successfully combined the above two parallel strategy together as they should
 All the parallel approaches are implemented by OpenMP and also we did a message-passing  Data-Feature parallel version on OpenMPI. 
 
 #### CUDA implementation
-Further more, we implemented a parallel version on CUDA. 
+Further more, we implemented a parallel version on CUDA. The codes could be seen in the /src/SPDT_CUDA folder.
+
+We introduced four kernels to provide parallel to CUDA: histogram_update_kernel, calculate_feature_value_kernel, calculate_gain_deltas_kernel, navigate_sample_kernel.
+
+`Histogram_update_kernel` is the kernel which updates the histogram with the given (key, value) pair. It is used in the `compress` function. There are two versions on this kernel. The first version is implemented in data parallel. The block number is the number of data, the thread number is the number of features. For each thread, it uses the corresponding feature value in the corresponding data to update the histogram. Even though this version could achieve high distribution works, we found out that there is competition for different threads to update the same histogram in the system, causing the wrong result. While the paper [Implementing Streaming Parallel Decision Trees on Graphic Processing Units](http://www.diva-portal.org/smash/record.jsf?pid=diva2%3A1220512&dswid=-9029) believes the conflict of updating the same histogram effects little to the correctness, we decide to assign the tasks differently.
+
+We decide to set the block number to be the number of unlabeled leaves, and the thread number to be the number of features. Each thread would go through the dataset, and update its own histogram according to the data. Therefore, we are parallel over different histograms. Even though there is fewer parallelism here, our apporach is guaranteed to have no data update conflict.
+
+`calculate_feature_value_kernel` is the kernel to calculate the promising split points features and values for the splitting operation for a leave node. It mainly calls the `CUDA_merge_array_pointers` and `CUDA_uniform_array` functions. It first merges the two possible histograms with the `CUDA_merge_array_pointers` function, then calls the `CUDA_uniform_array` function to uniform the array and come up with possible split points. We set the thread number to be 128, and block number being (num_of_features + thread_num - 1) / thread_num. In other words, we are paralleling over different features for the leave node. The total thread number equals to the number of features. For each thread, we come up with possible split (feature, value) pairs and store the result to an array.
+
+`calculate_gain_deltas_kernel` calculates the gain and entropy for each promising split point. According to the `calculate_feature_value_kernel` step, for each feature, there is at most `max_bin_size` number of possible split values. Therefore, the block number equals to the feature number, and the thread number equals to the max bin size parameter for histograms.
+
+`navigate_sample_kernel` assigns the datas to the leave nodes. It is parallel over different data points. The thread number is 128. The block number is (num_of_data + thread_num - 1) / thread_num. Therefore, the total thread number equals to the number of data. For each thread, it checks the assignment of a data pointer in the dataset. This function is called every time initialize a level of unlabeled leaves of histograms.
+
+We also introduced some helper functions and files to achieve the CUDA implementation. Basically, we have re-write other functions in array and pointers. In the CUDA version, data is at most serialized and stored in some 1-D arrays. Moreover, there is no STL vectors allowed in the CUDA kernel codes. Therefore, we have designed specific data structures and algorithms to support the CUDA version.
+
 ### Key Data Structure
 
 #### How we store our dataset in vector version
@@ -117,6 +132,9 @@ The limitation: difficult for operations, hard to write codes and debug, memory 
 
 #### How we serialize histograms
 Pointers, malloc and seek.
+
+#### How we serialize promising split points
+In the CUDA version, we are storing the promising (feature, value) split points in several 1-D arrays.
 
 #### Split Node
 

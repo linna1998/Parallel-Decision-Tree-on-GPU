@@ -584,6 +584,8 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
     // for these split points    
     // blockIdx: featureId
     // thread num: max_bin_size
+    // block_num = num_of_features;
+    // thread_num = max_bin_size;
     calculate_gain_deltas_kernel<<<block_num, thread_num>>>(node->histogram_id, node->data_size, cuda_feature_value_num, cuda_feature_id, cuda_feature_value, cuda_gain, cuda_entropy);
     cudaDeviceSynchronize();    
     
