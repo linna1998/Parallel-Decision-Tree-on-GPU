@@ -168,8 +168,6 @@ We decide to set the block number to be the number of unlabeled leaves, and the 
 We also introduced some helper functions and files to achieve the CUDA implementation. Basically, we have re-write other functions in array and pointers. In the CUDA version, data is at most serialized and stored in some 1-D arrays. Moreover, there is no STL vectors allowed in the CUDA kernel codes. Therefore, we have designed specific data structures and algorithms to support the CUDA version.
 
 
-<<<<<<< HEAD
-=======
 
 ## Results
 
@@ -186,12 +184,11 @@ The speedup for four versions could be seen in figures ![ijcnn1](./Evaluation/ij
 ![middle_size_small_feature](./Evaluation/middle_size_small_feature.png)
 
 ![big_size_small_feature](./Evaluation/big_size_small_feature.png)
->>>>>>> 9cc206c089f08401532f8268ffee6b743b98cc48
 
 
 ### Node Parallel & Data-Feature Parallel Speedup analysis 
 
-...
+![node_parallel](./img/NODE_PARALLEL.png)
 
 ### Data-Feature Parallel Scalability over Data Size
 
