@@ -175,7 +175,7 @@ We also introduced some helper functions and files to achieve the CUDA implement
 
 In the general evaluation process, we choose three datasets: ijcnn1, big_size_small_feature and middle_size_small_feature as samples to evaluate the speedup of them. The dataset ijcnn1 is taken from [LIBSVM dataset](https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/) [5]. The feature size is 22. It contains 49990 train data and 91701 test data.
 
-We generated the other two test cases by our scripts. The dataset big_size_small_feature contains 990000 train cases and 110000 test cases. The feature size is 50. The dataset middle_size_small_feature contains 99000 train cases and 11000 test cases. The feature size is 50. We want to evaluate the scalability of different parallel algorithms, therefore we generate these datasets by ourselves.
+We generated the other two test cases by our scripts. The dataset big_size_small_feature contains 1,000,000 train cases and 100,000 test cases. The feature size is 50. The dataset middle_size_small_feature contains 100,000 train cases and 10,000 test cases. The feature size is 50. We want to evaluate the scalability of different parallel algorithms, therefore we generate these datasets by ourselves.
 
 We compared our four approaches: the sequential version, the OpenMP version (thread number = 4), the OpenMPI version (thread number = 4) and the CUDA version. Our baseline is the single-threaded CPU sequential code.
 
@@ -189,21 +189,24 @@ The speedup for four versions could be seen in figures ![ijcnn1](./Evaluation/ij
 ### Node Parallel & Data-Feature Parallel Speedup analysis 
 
 ![node_parallel](./img/NODE_PARALLEL.png)
-
+As we expecetd, the node parallel version suffered from tremendous workload imbalance problem. As we shown here, the program shows little scalability.
 ### Data-Feature Parallel Scalability over Data Size
 
-#### OpenMP
-![mp_data](./img/MP_Speed_up_data.png)
-
-#### OpenMPI
-![mp_data](./img/MPI_Speed_up_data.png)
+<!-- ![mp_data](./img/MP_Speed_up_data.png) ![mp_data](./img/MPI_Speed_up_data.png) -->
+<p float="right">
+  <img src="./img/MP_Speed_up_data.png" width="240" />
+   
+  <img src="./img/MPI_Speed_up_data.png" width="260" /> 
+</p>
 
 ### Data-Feature Parallel Scalability over Feature Size
-#### OpenMP
-![mp_data](./img/MP_Speed_up_feature.png)
 
-#### OpenMPI
-![mp_data](./img/MPI_Speed_up_feature.png)
+<p float="right">
+  <img src="./img/MP_Speed_up_feature.png" width="240" />
+   
+  <img src="./img/MPI_Speed_up_feature.png" width="260" /> 
+</p>
+
 
 ### CUDA Speedup Analysis
 From the previous figures we can see, the CUDA version is slower than the sequential version in the ijcnn1 dataset. When the size of training dataset began to scale, the CUDA version achieves higher speedup. 
