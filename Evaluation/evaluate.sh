@@ -13,30 +13,27 @@ TARGETBIN_DATA="./decision-tree-data"
 # cuda
 TARGETBIN_CUDA="./decision-tree-cuda"
 
-# echo -e "Base Sequential mode"
-# for i in 0 1 6 7 8 9 10 11  
-# do  
-# $TARGETBIN -i $i
-# done  
-# echo "------------------"
-# echo "------------------"
+echo -e "Base Sequential mode"
+for i in 1 6 7
+do  
+$TARGETBIN -i $i
+done  
+echo "------------------"
+echo "------------------"
 
 # echo -e "Base OpenMP Node-Parallel Mode" 
-# for t in 1 2 4 8
-# do
-# $TARGETBIN_NODE -i 10 -n $t
-# done  
+# for i in 1 6 7
+# do  
+# $TARGETBIN_NODE -i $i -n 4
+# done 
 # echo "------------------"
 # echo "------------------"
 
 # echo "Dominated OpenMP Data-Parallel Mode"
-# for i in 1 6 7 8 9 10 11   
+# for i in 1 6 7
 # do  
-# for t in 1 2 4 8
-# do
-# $TARGETBIN_DATA2 -i $i -n $t
-# done  
-# done  
+# $TARGETBIN_DATA2 -i $i -n 4
+# done
 # echo "------------------"
 # echo "------------------"
 
@@ -51,33 +48,27 @@ TARGETBIN_CUDA="./decision-tree-cuda"
 # echo "------------------"
 # echo "------------------"
 
-
-# echo "Improved OpenMP Data-Feature-Parallel Mode"
-# for i in 1 6 7 8 9 10 11   
-# do  
-# for t in 1 2 4 8
-# do
-# $TARGETBIN_DATA_FEATURE -i $i -n $t
-# done  
-# done  
-# echo "------------------"
-# echo "------------------"
+echo "Improved OpenMP Data-Feature-Parallel Mode"
+for i in 1 6 7
+do  
+$TARGETBIN_DATA2 -i $i -n 4
+done
+echo "------------------"
+echo "------------------"
 
 echo "Message Passing Data-Feature-Parallel Mode"
-for i in 1 6 7 8 9 10 11  
+for i in 1 6 7
 do  
-for t in 1 2 4 8
-do
-mpirun -np $t $TARGETBIN_DATA -i $i
-done
+mpirun -np 4 $TARGETBIN_DATA -i $i
 done  
 echo "------------------"
 echo "------------------"
 
-# echo "CUDA Version"
-# for i in 1 6 7 8 9 10 11  
-# do  
-# $TARGETBIN_CUDA -i $i
-# done  
+echo "CUDA Version"
+for i in 1 6 7
+do  
+$TARGETBIN_CUDA -i $i
+done  
+echo "------------------"
 
 exit

@@ -179,9 +179,12 @@ We generated the other two test cases by our scripts. The dataset big_size_small
 
 We compared our four approaches: the sequential version, the OpenMP version (thread number = 4), the OpenMPI version (thread number = 4) and the CUDA version.
 
-[Table for speedup]
+The speedup for four versions could be seen in figures ![ijcnn1](./Evaluation/ijcnn1.png)
 
-[Figure for speedup]
+![middle_size_small_feature](./Evaluation/middle_size_small_feature.png)
+
+![big_size_small_feature](./Evaluation/big_size_small_feature.png)
+
 
 ### Node Parallel & Data-Feature Parallel Speedup analysis 
 
