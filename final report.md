@@ -88,6 +88,7 @@ The input of algorithm includes the train dataset and the test dataset. It also 
 The output of the algorithm is a decision tree. We could use the decision tree to predict the labels of the test dataset, so as to verify the correctness of decision tree.
 
 ### Computationally expensive parts
+
 #### compress function
 
 ![Streaming Compress](./img/compress.png "Streaming COMPRESS Algorithm")
@@ -147,6 +148,7 @@ This algorithm is essentially streaming and need explicit synchronization. After
 We successfully combined the above two parallel strategy together as they should be independent with each other.
 
 ## Implementation
+
 ### OpenMP & OpenMPI implementations
 All the parallel approaches are implemented by OpenMP and also we did a message-passing  Data-Feature parallel version on OpenMPI. 
 
