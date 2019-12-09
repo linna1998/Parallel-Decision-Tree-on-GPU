@@ -125,10 +125,16 @@ We also introduced some helper functions and files to achieve the CUDA implement
 ### Key Data Structure
 
 #### How we store our dataset in vector version
+We use the class `Dataset` in /src/SPDT_general/parser.cpp to store the dataset. For each data, we use the class `Data` in the same file to store it. The `Data` class contains an int `label` to mark the label of the data, and an unordered_map `values` to store the map between feature id and feature values. Some datasets contain sparse features, therefore we are using a map to store all and ignore the other 0's. 
+
+The class `Dataset` contains a vector of `Data`, to store all the possible datas. It also stores some other dataset parameters, such as the number of features, the number of data.
 
 #### How we store our dataset in several serialized arrays for GPU
-Why we do this: pass dataset to GPU
-The limitation: difficult for operations, hard to write codes and debug, memory limits on GPU
+When we pass dataset to GPU, the above vector version for dataset storage is not possible here. Therefore, we come up with a new version to store the dataset: several 1-D arrays.
+
+We are storing our dataset into two 1-D arrays. The pointer label_ptr points to an array of integers. The pointer value_ptr points to an array of floats. Due to the fact that it's better to pre-malloc place for the whole dataset, we are storing features and values in the dense mode. The size of the label_ptr is num_of_data. The size of the value_ptr is num_of_data * num_of_features. If we want to read/write to the (data_id, feature_id), then its label is label_ptr\[data_id\], and its value is value_ptr\[data_id * number_of_features + feature_id\].
+
+The limitation of serialized arrays dataset are that, it's difficult to manage this dataset and provide operations. It's hard to write codes and debug. The memory usage of this version is large. While the memory on GPU is limited, it's difficult for some dataset to run in GPU parallel version.
 
 #### How we serialize histograms
 Pointers, malloc and seek.
