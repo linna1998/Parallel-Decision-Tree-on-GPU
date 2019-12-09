@@ -190,6 +190,7 @@ The speedup for four versions could be seen in figures ![ijcnn1](./Evaluation/ij
 
 ![node_parallel](./img/NODE_PARALLEL.png)
 As we expecetd, the node parallel version suffered from tremendous workload imbalance problem. As we shown here, the program shows little scalability.
+
 ### Data-Feature Parallel Scalability over Data Size
 
 <!-- ![mp_data](./img/MP_Speed_up_data.png) ![mp_data](./img/MPI_Speed_up_data.png) -->
@@ -198,6 +199,8 @@ As we expecetd, the node parallel version suffered from tremendous workload imba
    
   <img src="./img/MPI_Speed_up_data.png" width="260" /> 
 </p>
+
+From the above figures, we could see the influence of computation cost and locality. When the sample size is 1000 and we are using 16 threads, we could assume that the data size assigned to each thread is small. Therefore, the data might fit into the cache of the processor. According to the locality, we could achieve higher speedup for the 1000 samples under 16 and 8 threads in OpenMP implementation. When we talk about the computation cost, we could say that a larger dataset includes more computation cost. Therefore, if we increase the size of the dataset, then we could achieve higher speedup in OpenMP and OpenMPI versions.
 
 ### Data-Feature Parallel Scalability over Feature Size
 
