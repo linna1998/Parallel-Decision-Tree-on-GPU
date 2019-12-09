@@ -20,14 +20,15 @@ def generate(name, **k):
             
 if __name__ == "__main__":
     # used by the open-mpi
-    generate("big_size_small_feature", n_samples=1100000, n_features=50, n_informative=10)
-    generate("middle_size_small_feature", n_samples=110000, n_features=50, n_informative=10)
-    generate("small_size_small_feature", n_samples=11000, n_features=50, n_informative=10)
-    generate("tiny_size_small_feature", n_samples=1100, n_features=50, n_informative=10)
+    # generate("big_size_small_feature", n_samples=1100000, n_features=50, n_informative=10)
+    # generate("middle_size_small_feature", n_samples=110000, n_features=50, n_informative=10)
+    # generate("small_size_small_feature", n_samples=11000, n_features=50, n_informative=10)
+    # generate("tiny_size_small_feature", n_samples=1100, n_features=50, n_informative=10)
     
-    # used by some feature parallel
-    generate("middle_size_middle_feature", n_samples=110000, n_features=100, n_informative=80)
-    generate("middle_size_big_feature", n_samples=110000, n_features=400, n_informative=300)
+    # # used by some feature parallel
+    # generate("middle_size_middle_feature", n_samples=110000, n_features=100, n_informative=80)
+    # generate("middle_size_big_feature", n_samples=110000, n_features=400, n_informative=300)
+    generate("middle_size_middle2_feature", n_samples=110000, n_features=500, n_informative=300)
     
     
     

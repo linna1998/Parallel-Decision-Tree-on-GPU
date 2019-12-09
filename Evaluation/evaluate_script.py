@@ -4,7 +4,7 @@ import numpy as np
 import re
 from copy import deepcopy
 from collections import defaultdict
-file_path = "/Users/adam/Desktop/COURSES/15-618/project/Parallel-Decision-Tree-on-GPU/Evaluation/evaluate_no_node.out"
+file_path = "/Users/adam/Desktop/COURSES/15-618/project/Parallel-Decision-Tree-on-GPU/Evaluation/evaluate_mpi.out"
 versions = ['SEQUENTIAL', "DATA-OPENMP", "FEATURE", 'CUDA', 'MPI', 'DATA-FEATURE', "NODE"]
 baseline = 'SEQUENTIAL'
 
@@ -51,9 +51,10 @@ DATA_FEATURE = get_data("DATA-FEATURE")
 DATA_FEATURE = cal_speedup(DATA_FEATURE, SEQUENTIAL)
 NODE = get_data("NODE")
 NODE = cal_speedup(NODE, SEQUENTIAL)
+CUDA = get_data("CUDA")
+CUDA = cal_speedup(CUDA, SEQUENTIAL)
 
-
-pd.DataFrame(MPI+SEQUENTIAL+DATA_FEATURE+NODE).to_excel("./Evaluation/evaluation_result_zax.xlsx", index=False)
+pd.DataFrame(MPI+SEQUENTIAL+DATA_FEATURE+NODE+CUDA).to_excel("./Evaluation/evaluation_mpi_result_zax.xlsx", index=False)
 
 
 

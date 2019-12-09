@@ -13,13 +13,11 @@ TARGETBIN_DATA="./decision-tree-data"
 # cuda
 TARGETBIN_CUDA="./decision-tree-cuda"
 
-# echo -e "Base Sequential mode"
-# for i in 0 1 6 7 8 9 10 11  
-# do  
-# $TARGETBIN -i $i
-# done  
-# echo "------------------"
-# echo "------------------"
+echo -e "Base Sequential mode"
+$TARGETBIN -i 
+done  
+echo "------------------"
+echo "------------------"
 
 # echo -e "Base OpenMP Node-Parallel Mode" 
 # for t in 1 2 4 8
@@ -64,13 +62,10 @@ TARGETBIN_CUDA="./decision-tree-cuda"
 # echo "------------------"
 
 echo "Message Passing Data-Feature-Parallel Mode"
-for i in 1 6 7 8 9 10 11  
-do  
 for t in 1 2 4 8
 do
-mpirun -np $t $TARGETBIN_DATA -i $i
+mpirun -np $t $TARGETBIN_DATA -i 12
 done
-done  
 echo "------------------"
 echo "------------------"
 

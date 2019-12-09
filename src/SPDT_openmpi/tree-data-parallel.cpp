@@ -200,8 +200,6 @@ void DecisionTree::compress(vector<Data> &data)
             t.reset();
             MPI_Recv(buffer, SIZE, MPI_FLOAT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
             memcpy(buffer2, buffer, SIZE * sizeof(float));
-            COMPRESS_COMMUNICATION_TIME += t.elapsed();
-
             for (int j = 0; j < num_unlabled_leaves; j++)
             { // merge the results in the master thread
                 for (int k = 0; k < num_of_features; k++)
@@ -212,6 +210,7 @@ void DecisionTree::compress(vector<Data> &data)
                     }
                 }
             }
+            COMPRESS_COMMUNICATION_TIME += t.elapsed();
             task_left--;
         }
     }
