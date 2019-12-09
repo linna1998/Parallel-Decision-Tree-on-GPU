@@ -65,10 +65,10 @@ int main(int argc, char **argv) {
     decisionTree.train(trainDataset, trainSize[index]);
     cpu_time_used_train = t.elapsed();
     printf("train time: %f\n", cpu_time_used_train);
-    prefix_printf("MEMCOPY_TIME: %f\n", COMMUNICATION_TIME); 
+    prefix_printf("COMMUNICATION_TIME: %f\n", COMMUNICATION_TIME); 
     prefix_printf("COMPRESS_TIME: %f\n", COMPRESS_TIME); 
     prefix_printf("NET_COMPRESS_TIME: %f\n", COMPRESS_TIME - COMPRESS_COMMUNICATION_TIME); 
-    prefix_printf("SPLIT_TIME: %f\n", SPLIT_TIME); 
+    prefix_printf("SPLIT_TIME: %f\n", SPLIT_TIME);    
     prefix_printf("NET_SPLIT_TIME: %f\n", SPLIT_TIME - SPLIT_COMMUNICATION_TIME); 
     prefix_printf("COMPRESS_COMMUNICATION_Time: %f\n", COMPRESS_COMMUNICATION_TIME);
     prefix_printf("SPLIT_COMMUNICATION_Time: %f\n", SPLIT_COMMUNICATION_TIME);

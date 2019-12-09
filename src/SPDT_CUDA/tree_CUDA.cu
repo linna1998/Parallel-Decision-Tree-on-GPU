@@ -547,7 +547,8 @@ find_most_gain_kernel(int histogram_id, int data_size, int *max_gain_index, int 
 */
 void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 {              
-    assert(node != NULL);       
+    assert(node != NULL); 
+    Timer t;      
 
     // store the number of possible splits
     // for each feature_id
@@ -556,7 +557,9 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
     // from feature_value[i * num_of_features]
     // to feature_value[i * num_of_features + feature_value_num[i] - 1]
     int* cuda_feature_value_num;
+    t.reset();
     gpuErrchk(cudaMalloc(&cuda_feature_value_num, sizeof(int) * num_of_features));    
+    COMMUNICATION_TIME += t.elapsed();
     
     // store the split points into four arrays in device
     int* cuda_feature_id;
@@ -566,14 +569,15 @@ void DecisionTree::find_best_split(TreeNode *node, SplitPoint &split)
 
     int split_point_num = num_of_features * max_bin_size;
 
+    t.reset();
     gpuErrchk(cudaMalloc(&cuda_feature_id, sizeof(int) * split_point_num));
     gpuErrchk(cudaMalloc(&cuda_feature_value, sizeof(float) * split_point_num));
     gpuErrchk(cudaMalloc(&cuda_gain, sizeof(float) * split_point_num));
     gpuErrchk(cudaMalloc(&cuda_entropy, sizeof(float) * split_point_num));
+    COMMUNICATION_TIME += t.elapsed();
     
     // first, build an array of feature_id, feature_value
-    // as possible split points
-    Timer t;
+    // as possible split points    
     
     int thread_num = 128;
     int block_num = (num_of_features + thread_num - 1) / thread_num;
@@ -724,16 +728,19 @@ void DecisionTree::compress(vector<TreeNode *> &unlabeled_leaf) {
         
     int block_num = unlabeled_leaf.size();
     int thread_per_block = num_of_features;
+    Timer t;
     
     gpuErrchk(cudaMemset(cuda_histogram_ptr, 0, sizeof(float) * SIZE));   
 
     histogram_update_kernel_2<<<block_num, thread_per_block>>>();         
 
     cudaDeviceSynchronize();
+    t.reset();
     cudaMemcpy(histogram,
         cuda_histogram_ptr,
         sizeof(float) * SIZE,
         cudaMemcpyDeviceToHost);  
+    COMMUNICATION_TIME += t.elapsed();
 
     // float *histo = NULL;
     // int bin_size = 0;

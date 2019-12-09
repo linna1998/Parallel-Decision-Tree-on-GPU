@@ -168,8 +168,26 @@ We decide to set the block number to be the number of unlabeled leaves, and the 
 We also introduced some helper functions and files to achieve the CUDA implementation. Basically, we have re-write other functions in array and pointers. In the CUDA version, data is at most serialized and stored in some 1-D arrays. Moreover, there is no STL vectors allowed in the CUDA kernel codes. Therefore, we have designed specific data structures and algorithms to support the CUDA version.
 
 
+<<<<<<< HEAD
+=======
 
 ## Results
+
+### General speed-up figure
+
+In the general evaluation process, we choose three datasets: ijcnn1, big_size_small_feature and middle_size_small_feature as samples to evaluate the speedup of them. The dataset ijcnn1 is taken from [LIBSVM dataset](https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/) [5]. The feature size is 22. It contains 49990 train data and 91701 test data.
+
+We generated the other two test cases by our scripts. The dataset big_size_small_feature contains 990000 train cases and 110000 test cases. The feature size is 50. The dataset middle_size_small_feature contains 99000 train cases and 11000 test cases. The feature size is 50. We want to evaluate the scalability of different parallel algorithms, therefore we generate these datasets by ourselves.
+
+We compared our four approaches: the sequential version, the OpenMP version (thread number = 4), the OpenMPI version (thread number = 4) and the CUDA version.
+
+The speedup for four versions could be seen in figures ![ijcnn1](./Evaluation/ijcnn1.png)
+
+![middle_size_small_feature](./Evaluation/middle_size_small_feature.png)
+
+![big_size_small_feature](./Evaluation/big_size_small_feature.png)
+>>>>>>> 9cc206c089f08401532f8268ffee6b743b98cc48
+
 
 ### Node Parallel & Data-Feature Parallel Speedup analysis 
 
