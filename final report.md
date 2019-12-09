@@ -103,7 +103,7 @@ This function calcualtes the gain of a specific split feature and split value fo
 * Memory Latency: Since the data is disk-residency, the memory latency is large. We have the leverage the temporal locality. 
 
 ## Approach
-There are mainly two functions in the tree building process that are costly. `compress` function and `find_best_split` function. And both of them could be parallelized. Since now to do not need to Also, we introduce our baseline parallel strategy ---- Node Parallel. 
+There are mainly two functions in the tree building process that are costly. `compress` function and `find_best_split` function. And both of them could be parallelized. To begin with, we introduce our baseline parallel strategy ---- Node Parallel. 
 
 ### Node Parallel
 
