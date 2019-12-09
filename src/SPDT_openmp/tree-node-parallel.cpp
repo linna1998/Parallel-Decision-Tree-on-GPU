@@ -144,10 +144,7 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             break;
         }       
         init_histogram(unlabeled_leaf); 
-        Timer t1 = Timer();
-        t1.reset();
         compress(train_data.dataset, unlabeled_leaf); 
-        COMPRESS_TIME += t1.elapsed();
         int siz = unlabeled_leaf.size();
         #pragma omp parallel for
         for (int e=0; e < siz; e++)
@@ -156,20 +153,19 @@ void DecisionTree::train_on_batch(Dataset &train_data)
             if (is_terminated(cur_leaf))
             {         
                 cur_leaf->set_label();
-                this->num_leaves++;             
+                #pragma omp atomic
+                    this->num_leaves++;
             }
             else
             {                
                 SplitPoint best_split = SplitPoint();
-                Timer t2 = Timer();
-                t2.reset();
                 find_best_split(cur_leaf, best_split);
-                SPLIT_TIME += t2.elapsed();
                 dbg_ensures(best_split.gain >= -EPS);
                 if (best_split.gain <= min_gain){
                     dbg_printf("Node terminated: gain=%.4f <= %.4f\n", best_split.gain, min_gain);
                     cur_leaf->set_label();
-                    this->num_leaves++;               
+                    #pragma omp atomic
+                    this->num_leaves++; 
                     continue;
                 }
                 cur_leaf->left_node = new TreeNode(this->cur_depth, this->num_nodes++);

@@ -175,11 +175,11 @@ void DecisionTree::initialize(Dataset &train_data, const int batch_size){
         delete[] histogram;
     }
     SIZE  = (long long)max_num_leaves * num_of_features * num_of_classes * ((max_bin_size + 1) * 2 + 1);    
-    printf("Init Root Node [%.4f] MB\n", SIZE * sizeof(float) / 1024.f / 1024.f);
+    // printf("Init Root Node [%.4f] MB\n", SIZE * sizeof(float) / 1024.f / 1024.f);
     
     histogram = new float[SIZE];
     memset(histogram, 0, SIZE * sizeof(float));  
-    printf("Init success\n");
+    // printf("Init success\n");
 
 }
 

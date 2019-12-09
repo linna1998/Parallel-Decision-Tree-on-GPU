@@ -213,7 +213,6 @@ void DecisionTree::compress(vector<Data> &data)
                 }
             }
             task_left--;
-            
         }
     }
     else

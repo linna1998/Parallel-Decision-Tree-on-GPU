@@ -19,7 +19,7 @@ HEADERS := src/SPDT_general/array.h src/SPDT_general/parser.h src/SPDT_general/t
 
 TARGETBIN := decision-tree
 TARGETBIN_DBG := decision-tree-dbg
-TARGETBIN_FEATURE := decision-tree-feature
+TARGETBIN_FEATURE := decision-tree-feature-openmp
 TARGETBIN_DATA := decision-tree-data
 TARGETBIN_DATA2 := decision-tree-data-openmp
 TARGETBIN_DATA3 := decision-tree-feature-data-openmp

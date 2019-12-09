@@ -65,15 +65,15 @@ int main(int argc, char **argv) {
     decisionTree.train(trainDataset, trainSize[index]);
     cpu_time_used_train = t.elapsed();
     printf("train time: %f\n", cpu_time_used_train);
-    prefix_printf("MEMCOPY TIME: %f\n", COMMUNICATION_TIME); 
-    prefix_printf("COMPRESS TIME: %f\n", COMPRESS_TIME); 
-    prefix_printf("NET COMPRESS TIME: %f\n", COMPRESS_TIME - COMPRESS_COMMUNICATION_TIME); 
-    prefix_printf("SPLIT TIME: %f\n", SPLIT_TIME); 
-    prefix_printf("NET SPLIT TIME: %f\n", SPLIT_TIME - SPLIT_COMMUNICATION_TIME); 
-    prefix_printf("COMPRESS_COMMUNICATION time: %f\n", COMPRESS_COMMUNICATION_TIME);
-    prefix_printf("SPLIT_COMMUNICATION time: %f\n", SPLIT_COMMUNICATION_TIME);
-    prefix_printf("Train Time: %f\n", cpu_time_used_train);
-    prefix_printf("Training Correct Rate: %f\n", decisionTree.test(trainDataset));
+    prefix_printf("MEMCOPY_TIME: %f\n", COMMUNICATION_TIME); 
+    prefix_printf("COMPRESS_TIME: %f\n", COMPRESS_TIME); 
+    prefix_printf("NET_COMPRESS_TIME: %f\n", COMPRESS_TIME - COMPRESS_COMMUNICATION_TIME); 
+    prefix_printf("SPLIT_TIME: %f\n", SPLIT_TIME); 
+    prefix_printf("NET_SPLIT_TIME: %f\n", SPLIT_TIME - SPLIT_COMMUNICATION_TIME); 
+    prefix_printf("COMPRESS_COMMUNICATION_Time: %f\n", COMPRESS_COMMUNICATION_TIME);
+    prefix_printf("SPLIT_COMMUNICATION_Time: %f\n", SPLIT_COMMUNICATION_TIME);
+    prefix_printf("Train_Time: %f\n", cpu_time_used_train);
+    prefix_printf("Training_Correct_Rate: %f\n", decisionTree.test(trainDataset));
     
     // test
     string testName = "./data/" + names[index] + ".test.txt";
@@ -81,9 +81,9 @@ int main(int argc, char **argv) {
     assert(testDataset.value_ptr != NULL);
     testDataset.open_read_data(testName);	
     t.reset();
-    prefix_printf("Testing Correct Rate: %f\n", decisionTree.test(testDataset)); 
+    prefix_printf("Testing_Correct_Rate: %f\n", decisionTree.test(testDataset)); 
     cpu_time_used_test = t.elapsed();
-    prefix_printf("Test Time: %f\n", cpu_time_used_test);
+    prefix_printf("Test_Time: %f\n", cpu_time_used_test);
 
     return 0;
 
